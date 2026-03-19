@@ -31,7 +31,6 @@ export default function Home() {
     setResumeData(null);
     setMatchResult(null);
     setLoadingExtraction(true);
-    setLoadingScore(true);
 
     let extracted: ResumeData;
 
@@ -64,6 +63,7 @@ export default function Home() {
     }
 
     setLoadingExtraction(false);
+    setLoadingScore(true);
 
     // Phase 2: Score against job description
     try {
