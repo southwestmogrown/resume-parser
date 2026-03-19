@@ -28,7 +28,9 @@ export async function POST(req: NextRequest) {
   }
 
   // Phase 1: Extract resume data
-  const extractionMessage = await client.messages.create({
+  let extractionMessage;
+  try {
+    extractionMessage = await client.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 2048,
     messages: [
@@ -71,7 +73,13 @@ export async function POST(req: NextRequest) {
         ],
       },
     ],
-  });
+    });
+  } catch (err) {
+    return NextResponse.json(
+      { error: "Claude API error during extraction" },
+      { status: 500 }
+    );
+  }
 
   const extractionText =
     extractionMessage.content[0].type === "text"
@@ -80,7 +88,8 @@ export async function POST(req: NextRequest) {
 
   let resumeData: ResumeData;
   try {
-    resumeData = JSON.parse(extractionText);
+    const cleanedExtraction = extractionText.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
+    resumeData = JSON.parse(cleanedExtraction);
   } catch {
     return NextResponse.json(
       { error: "Failed to parse resume extraction response" },
@@ -89,7 +98,9 @@ export async function POST(req: NextRequest) {
   }
 
   // Phase 2: Score match against job description
-  const scoringMessage = await client.messages.create({
+  let scoringMessage;
+  try {
+    scoringMessage = await client.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 1024,
     messages: [
@@ -112,7 +123,13 @@ Return a JSON object only, with no additional text or markdown:
 }`,
       },
     ],
-  });
+    });
+  } catch (err) {
+    return NextResponse.json(
+      { error: "Claude API error during scoring" },
+      { status: 500 }
+    );
+  }
 
   const scoringText =
     scoringMessage.content[0].type === "text"
@@ -121,7 +138,8 @@ Return a JSON object only, with no additional text or markdown:
 
   let matchResult: MatchResult;
   try {
-    matchResult = JSON.parse(scoringText);
+    const cleanedScoring = scoringText.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
+    matchResult = JSON.parse(cleanedScoring);
   } catch {
     return NextResponse.json(
       { error: "Failed to parse scoring response" },
