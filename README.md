@@ -4,7 +4,7 @@
 
 Built to demonstrate practical Anthropic API usage: native PDF parsing, structured JSON extraction, and a sequential two-phase prompt pipeline — no PDF libraries, no vector databases, no boilerplate.
 
-**[Live Demo →](https://your-deployment.vercel.app)** — no API key needed, just click Try Demo.
+**[Live Demo →](https://resume-parser-ten-mu.vercel.app/)** — no API key needed, just click Try Demo.
 
 ---
 
