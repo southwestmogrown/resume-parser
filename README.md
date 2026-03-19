@@ -2,17 +2,20 @@
 
 > Upload a PDF resume, paste a job description, get an AI-powered match score and skill gap analysis — in seconds.
 
-Built as a portfolio project to demonstrate practical Claude API usage: native PDF parsing, structured JSON extraction, and multi-phase prompt pipelines — no PDF libraries, no vector databases, no boilerplate.
+Built to demonstrate practical Anthropic API usage: native PDF parsing, structured JSON extraction, and a sequential two-phase prompt pipeline — no PDF libraries, no vector databases, no boilerplate.
+
+**[Live Demo →](https://your-deployment.vercel.app)** — no API key needed, just click Try Demo.
 
 ---
 
 ## Features
 
-- **Drag-and-drop PDF upload** — Claude reads the PDF natively via the Anthropic document API. No parsing library needed.
-- **Two-phase Claude pipeline** — Phase 1 extracts a structured candidate profile. Phase 2 scores it against the job description independently, so results appear progressively.
-- **Match scoring with skill gap analysis** — 0–100 score with color thresholds, matched skills, missing skills, and a hiring recommendation paragraph.
-- **Session-based access gate** — Passphrase modal on first visit, stored in `sessionStorage`. No login flow, no database.
-- **Skeleton loading states** — Each output panel loads independently as its phase completes, with matching skeletons during the wait.
+- **Try Demo — no account needed** — pre-loaded sample resume and job description with a realistic result. See the full experience before committing to anything.
+- **Bring Your Own Key (BYOK)** — paste your Anthropic API key directly in the browser. It never touches the server beyond a pass-through header — not logged, not stored, not seen.
+- **Native PDF parsing** — Claude reads the PDF via the Anthropic document API. No parsing libraries, no text extraction preprocessing.
+- **Two-phase Claude pipeline** — Phase 1 extracts a structured candidate profile. Phase 2 scores it against the job description independently, so results appear progressively as each phase completes.
+- **Match scoring with skill gap analysis** — 0–100 score with color thresholds (green / amber / red), matched skills, missing skills, and a hiring recommendation.
+- **Skeleton loading states** — each output panel loads independently with matching skeletons while its phase runs.
 
 ---
 
@@ -28,63 +31,60 @@ Built as a portfolio project to demonstrate practical Claude API usage: native P
 
 ---
 
+## How the Pipeline Works
+
+```
+PDF upload → base64 encode
+  │
+  ├── POST /api/extract
+  │     Claude reads PDF as document input
+  │     → structured ResumeData JSON
+  │     → ResumeProfile panel populates
+  │
+  └── POST /api/score
+        Claude compares ResumeData + job description
+        → MatchResult JSON (score, matched, missing, recommendation)
+        → MatchScore panel populates
+```
+
+The two phases run sequentially so Phase 2 can consume Phase 1's structured output rather than re-reading the raw PDF. Each route instantiates the Anthropic client with the user's key from the `x-api-key` header — no server-side key management required.
+
+---
+
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 18+
-- An [Anthropic API key](https://console.anthropic.com/)
+- An [Anthropic API key](https://console.anthropic.com/) — or just use Demo mode, no key needed
 
 ### Installation
 
 ```bash
-# Clone the repo
 git clone git@github.com:southwestmogrown/resume-parser.git
 cd resume-parser
-
-# Install dependencies
 npm install
-
-# Set up environment variables
-cp .env.example .env.local
-```
-
-Edit `.env.local`:
-
-```env
-ANTHROPIC_API_KEY=sk-ant-...
-ACCESS_KEY=your-chosen-passphrase
-```
-
-```bash
-# Start the dev server
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). The app will prompt for the access key on first load — enter whatever you set as `ACCESS_KEY`.
+Open [http://localhost:3000](http://localhost:3000).
+
+- Click **Try Demo** to run the app immediately with pre-loaded sample data.
+- Or paste your Anthropic API key (`sk-ant-...`) to analyze a real resume.
+
+No `.env.local` configuration is required to run the app locally.
 
 ---
 
 ## Usage
 
-1. Enter the access key when prompted (set by `ACCESS_KEY` in your env)
-2. Upload a PDF resume via the drag-and-drop zone or file picker
-3. Paste a job description into the right panel
-4. Click **Analyze**
+1. Open the app — the key gate appears on first visit
+2. Click **Try Demo** for instant pre-loaded results, or enter your Anthropic API key
+3. Upload a PDF resume via the drag-and-drop zone or file picker
+4. Paste a job description into the right panel
+5. Click **Analyze**
 
-The candidate profile populates as soon as Phase 1 completes. The match score and skill gap appear after Phase 2. Both panels show skeleton loaders while their phase is running.
-
----
-
-## How the Pipeline Works
-
-```
-PDF upload → base64 encode → POST /api/analyze
-  ├── Phase 1: Claude reads PDF as document input → structured ResumeData JSON
-  └── Phase 2: Claude compares ResumeData + job description → MatchResult JSON
-```
-
-The API route (`/api/analyze`) validates the `x-access-key` header before making any Claude calls. The two phases run sequentially so Phase 2 can use Phase 1's structured output rather than re-reading the PDF.
+The candidate profile populates as Phase 1 completes. The match score and skill breakdown appear after Phase 2. Both panels show skeleton loaders while their phase is running.
 
 ---
 
@@ -92,15 +92,16 @@ The API route (`/api/analyze`) validates the `x-access-key` header before making
 
 ### Vercel
 
-1. Push the repo to GitHub and import it into [Vercel](https://vercel.com)
-2. Add the following environment variables in the Vercel dashboard:
+1. Push to GitHub and import the repo at [vercel.com/new](https://vercel.com/new)
+2. Add one optional environment variable:
 
-| Variable | Description |
-|---|---|
-| `ANTHROPIC_API_KEY` | Your Anthropic API key |
-| `ACCESS_KEY` | The passphrase that gates access to the app |
+| Variable | Required | Description |
+|---|---|---|
+| `NEXT_PUBLIC_GITHUB_URL` | No | Repo URL shown as a "View source" link in the key gate modal |
 
-3. Deploy. No build configuration needed — Next.js is detected automatically.
+3. Deploy. No other configuration needed — users supply their own Anthropic keys at runtime.
+
+> **Note:** The Hobby plan has a 10-second function timeout. The routes include `maxDuration = 9` to surface a clean error instead of a silent gateway failure. Upgrade to Pro (60s limit) for longer resumes or job descriptions.
 
 ---
 
@@ -109,33 +110,25 @@ The API route (`/api/analyze`) validates the `x-access-key` header before making
 ```
 src/
 ├── app/
-│   ├── api/analyze/route.ts   # Two-phase Claude pipeline endpoint
+│   ├── api/
+│   │   ├── extract/route.ts   # Phase 1: PDF → structured ResumeData
+│   │   └── score/route.ts     # Phase 2: ResumeData + JD → MatchResult
 │   ├── layout.tsx             # Root layout with metadata
 │   ├── page.tsx               # Main page — state and pipeline wiring
 │   └── globals.css            # Tailwind v4 theme and global styles
 ├── components/
-│   ├── AccessKeyGate.tsx      # Session-based passphrase gate
+│   ├── AccessKeyGate.tsx      # BYOK key gate with demo mode entry point
 │   ├── ErrorBoundary.tsx      # React error boundary
-│   ├── JobDescription.tsx     # Job description textarea with char count
+│   ├── JobDescription.tsx     # Textarea with char count and controlled mode
 │   ├── MatchScore.tsx         # Score display with skill gap lists
 │   ├── ResumeProfile.tsx      # Structured candidate profile display
 │   ├── ResumeUpload.tsx       # PDF drag-and-drop upload zone
 │   └── Spinner.tsx            # Inline loading spinner
 └── lib/
+    ├── demoData.ts            # Canned ResumeData, MatchResult, and sample JD
     ├── extractPdfText.ts      # File → base64 utility for Anthropic input
     └── types.ts               # Shared TypeScript interfaces
 ```
-
----
-
-## Environment Variables
-
-| Variable | Required | Description |
-|---|---|---|
-| `ANTHROPIC_API_KEY` | Yes | Anthropic API key — used server-side only |
-| `ACCESS_KEY` | Yes | Passphrase validated by the API route |
-
-Neither variable is exposed to the browser. The frontend sends the user-entered key as a request header; the server compares it to `ACCESS_KEY` at the edge.
 
 ---
 
