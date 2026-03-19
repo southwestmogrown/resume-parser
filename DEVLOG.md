@@ -78,3 +78,55 @@ Wrote complete `README.md` covering: what the app does, how the two-phase Claude
 Branch `feat/m3-polish-ship` pushed to GitHub.
 
 ---
+
+## 2026-03-19 — Code Review Fixes (Round 1)
+
+Bug-fix pass following first code review.
+
+### route.ts — Unhandled Claude API errors
+Wrapped both `client.messages.create()` calls in `extract/route.ts` and `score/route.ts` in try/catch. Previously, any Anthropic API error (rate limit, network timeout, invalid key) caused Next.js to return an HTML 500 page instead of a JSON error. Each catch now returns a scoped JSON 500 with a descriptive message.
+
+### route.ts — Fragile JSON.parse on Claude responses
+Claude occasionally wraps JSON output in ` ```json ``` ` fences despite being instructed not to. Added fence-stripping before both `JSON.parse()` calls in each route: `text.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim()`.
+
+### AccessKeyGate.tsx — Network failure leaves button stuck
+The `fetch` probe in `handleSubmit` had no try/catch. A network error would throw past `setLoading(false)`, freezing the button in "Verifying…" indefinitely. Wrapped the fetch in try/catch; the catch block resets loading state and surfaces a "Could not reach the server" error message.
+
+### Minor fixes
+- `ResumeUpload.tsx` — error color changed from raw `text-red-400` to design-system token `text-brand-red`
+- `MatchScore.tsx` / `ResumeProfile.tsx` — skill pill list keys changed from skill string to index, preventing React key warnings on duplicate skill names returned by Claude
+- `AccessKeyGate.tsx` — removed `onKey` from `useEffect` dependency array (stable React setter; omission documented with eslint-disable comment)
+
+---
+
+## 2026-03-19 — Progressive Reveal Refactor
+
+Addressed the false progressive reveal identified in code review: `loadingExtraction` and `loadingScore` were aliases for the same event (one fetch), so both panels always appeared simultaneously.
+
+### Approach: Split `/api/analyze` into two independent routes
+
+- `src/app/api/extract/route.ts` — Phase 1 only: accepts base64 PDF, returns `ExtractResponse ({ resumeData })`
+- `src/app/api/score/route.ts` — Phase 2 only: accepts `ResumeData` + job description, returns `ScoreResponse ({ matchResult })`
+- `src/app/api/analyze/route.ts` — deleted
+- `src/lib/types.ts` — added `ExtractRequest/Response` and `ScoreRequest/Response`
+- `src/app/page.tsx` — `handleAnalyze` split into two sequential fetches; Phase 1 success sets `resumeData` and clears `loadingExtraction`; Phase 2 success sets `matchResult` and clears `loadingScore`; Phase 1 failure aborts early; Phase 2 failure preserves already-populated `ResumeProfile`
+- `CLAUDE.md` — Key Files table and API Route Contract updated
+
+`ResumeProfile` now genuinely populates before `MatchScore`.
+
+---
+
+## 2026-03-19 — Code Review Fixes (Round 2)
+
+Bug-fix pass following second code review. Three issues introduced by the route split.
+
+### AccessKeyGate.tsx — Probe targeting deleted route (critical)
+The key validation probe was still calling `POST /api/analyze`, which was deleted. A `404` is not a `401`, so the gate was treating every key as valid — access control was completely bypassed. Fixed by retargeting the probe to `POST /api/extract` with `{ resume: "" }`.
+
+### page.tsx — `loadingScore` set too early
+`setLoadingScore(true)` was called at the top of `handleAnalyze` alongside `setLoadingExtraction(true)`, causing the `MatchScore` skeleton to appear immediately on button click rather than after Phase 1 completes. Moved `setLoadingScore(true)` to immediately after `setLoadingExtraction(false)`, just before the Phase 2 fetch begins.
+
+### types.ts — Dead code removed
+`AnalysisRequest` and `AnalysisResponse` were left in `types.ts` after `/api/analyze` was deleted. Removed both interfaces.
+
+---
