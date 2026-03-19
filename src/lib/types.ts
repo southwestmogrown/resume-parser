@@ -39,3 +39,21 @@ export interface AnalysisResponse {
   resumeData: ResumeData;
   matchResult: MatchResult;
 }
+
+// Split route request/response shapes
+export interface ExtractRequest {
+  resume: string; // base64-encoded PDF
+}
+
+export interface ExtractResponse {
+  resumeData: ResumeData;
+}
+
+export interface ScoreRequest {
+  resumeData: ResumeData;
+  jobDescription: string;
+}
+
+export interface ScoreResponse {
+  matchResult: MatchResult;
+}

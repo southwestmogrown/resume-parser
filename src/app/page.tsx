@@ -9,7 +9,7 @@ import AccessKeyGate from "@/components/AccessKeyGate";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Spinner from "@/components/Spinner";
 import { extractPdfBase64 } from "@/lib/extractPdfText";
-import type { ResumeData, MatchResult, AnalysisResponse } from "@/lib/types";
+import type { ResumeData, MatchResult, ExtractResponse, ScoreResponse } from "@/lib/types";
 
 export default function Home() {
   const [accessKey, setAccessKey] = useState("");
@@ -33,33 +33,61 @@ export default function Home() {
     setLoadingExtraction(true);
     setLoadingScore(true);
 
+    let extracted: ResumeData;
+
+    // Phase 1: Extract resume data
     try {
       const base64 = await extractPdfBase64(resumeFile);
 
-      const res = await fetch("/api/analyze", {
+      const extractRes = await fetch("/api/extract", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "x-access-key": accessKey,
         },
-        body: JSON.stringify({ resume: base64, jobDescription }),
+        body: JSON.stringify({ resume: base64 }),
       });
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? `Request failed (${res.status})`);
+      if (!extractRes.ok) {
+        const data = await extractRes.json().catch(() => ({}));
+        throw new Error(data.error ?? `Extraction failed (${extractRes.status})`);
       }
 
-      const data: AnalysisResponse = await res.json();
-      setLoadingExtraction(false);
-      setResumeData(data.resumeData);
-      setMatchResult(data.matchResult);
-      setLoadingScore(false);
+      const extractData: ExtractResponse = await extractRes.json();
+      extracted = extractData.resumeData;
+      setResumeData(extracted);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(err instanceof Error ? err.message : "Extraction failed");
       setLoadingExtraction(false);
       setLoadingScore(false);
+      return;
     }
+
+    setLoadingExtraction(false);
+
+    // Phase 2: Score against job description
+    try {
+      const scoreRes = await fetch("/api/score", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-access-key": accessKey,
+        },
+        body: JSON.stringify({ resumeData: extracted, jobDescription }),
+      });
+
+      if (!scoreRes.ok) {
+        const data = await scoreRes.json().catch(() => ({}));
+        throw new Error(data.error ?? `Scoring failed (${scoreRes.status})`);
+      }
+
+      const scoreData: ScoreResponse = await scoreRes.json();
+      setMatchResult(scoreData.matchResult);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Scoring failed");
+    }
+
+    setLoadingScore(false);
   }, [resumeFile, jobDescription, accessKey]);
 
   const showResults = isLoading || !!resumeData || !!matchResult;

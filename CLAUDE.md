@@ -25,8 +25,9 @@ These run sequentially. The UI reflects each phase independently — `ResumeProf
 |---|---|
 | `lib/types.ts` | All shared TypeScript interfaces |
 | `lib/extractPdfText.ts` | Converts File → base64 for Anthropic document input |
-| `app/api/analyze/route.ts` | POST handler — runs both Claude phases, returns `AnalysisResponse` |
-| `app/page.tsx` | Main page — composes all components, wires the pipeline |
+| `app/api/extract/route.ts` | POST handler — Phase 1: PDF → `ResumeData` |
+| `app/api/score/route.ts` | POST handler — Phase 2: `ResumeData` + JD → `MatchResult` |
+| `app/page.tsx` | Main page — composes all components, wires two sequential fetch calls |
 | `components/ResumeUpload.tsx` | PDF drag-and-drop input |
 | `components/JobDescription.tsx` | Job description textarea input |
 | `components/ResumeProfile.tsx` | Structured resume output with skeleton loader |
@@ -54,18 +55,33 @@ Always keep `.env.local` out of git. Use `.env.example` to document required var
 
 ## API Route Contract
 
-**POST `/api/analyze`**
+**POST `/api/extract`**
 
 Headers:
 - `x-access-key: <ACCESS_KEY>` — required; returns 401 if missing or invalid
 
 Body:
 ```json
-{ "resume": "<base64 PDF string>", "jobDescription": "<string>" }
+{ "resume": "<base64 PDF string>" }
+```
+
+Returns 400 if `resume` is missing.
+Returns `ExtractResponse` (`{ resumeData: ResumeData }`) on success.
+
+---
+
+**POST `/api/score`**
+
+Headers:
+- `x-access-key: <ACCESS_KEY>` — required; returns 401 if missing or invalid
+
+Body:
+```json
+{ "resumeData": { ... }, "jobDescription": "<string>" }
 ```
 
 Returns 400 if either field is missing.
-Returns `AnalysisResponse` JSON on success.
+Returns `ScoreResponse` (`{ matchResult: MatchResult }`) on success.
 
 ---
 
