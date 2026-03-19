@@ -34,3 +34,30 @@ Created `src/app/api/analyze/route.ts` — POST handler with:
 Branch `feat/m1-foundation` pushed to GitHub.
 
 ---
+
+## 2026-03-19 — M2: UI & Analysis
+
+### ResumeUpload (#5)
+Created `src/components/ResumeUpload.tsx` — client component with drag-and-drop PDF upload. Accepts PDF via click or drag, rejects non-PDFs with an inline error, shows filename after selection, and exposes a clear button. Calls `onChange` with the `File` object.
+
+### JobDescription (#6)
+Created `src/components/JobDescription.tsx` — client component with an auto-filling textarea, live character count, and a conditional clear button. Calls `onChange` with the current string value.
+
+### ResumeProfile (#7)
+Created `src/components/ResumeProfile.tsx` — displays extracted `ResumeData`: candidate name, summary, skills as pills, experience timeline, and education entries. Renders a pulsing skeleton that matches component dimensions while extraction is in progress. Returns `null` when neither loading nor data is present.
+
+### MatchScore (#8)
+Created `src/components/MatchScore.tsx` — displays `MatchResult`: large percentage score color-coded by threshold (green ≥80%, amber 60–79%, red <60%), matched skills in green pills, missing skills in red pills, and a recommendation paragraph. Renders a skeleton while scoring is in progress.
+
+### Page Assembly (#9)
+Replaced the scaffold `app/page.tsx` with the full application page. Two-column input layout (ResumeUpload + JobDescription), Analyze button disabled until both inputs are populated, two-phase pipeline (PDF → base64 → POST `/api/analyze` → set extraction result → set score result). Output panels hidden until first analysis completes. Error displayed inline below the button.
+
+Also updated:
+- `globals.css` — simplified to a single dark background, removed light-mode `:root` and media query bleed
+- `layout.tsx` — page title set to "Resume Parser — Shane Wilkey"
+
+**Note:** `NEXT_PUBLIC_ACCESS_KEY` must be added to `.env.local` (client-side header send) alongside the existing `ACCESS_KEY` (server-side validation).
+
+Branch `feat/m2-ui-analysis` pushed to GitHub.
+
+---
