@@ -118,7 +118,7 @@ export default function ResumeUpload({ onChange }: ResumeUploadProps) {
         </div>
       )}
 
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-xs text-brand-red">{error}</p>}
     </div>
   );
 }
