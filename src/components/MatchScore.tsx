@@ -69,9 +69,9 @@ export default function MatchScore({ result, loading }: MatchScoreProps) {
             Matched Skills
           </h3>
           <div className="flex flex-wrap gap-2">
-            {result.matchedSkills.map((skill) => (
+            {result.matchedSkills.map((skill, i) => (
               <span
-                key={skill}
+                key={i}
                 className="rounded-full border border-brand-green/30 bg-brand-green/10 px-3 py-1 text-xs text-brand-green"
               >
                 {skill}
@@ -88,9 +88,9 @@ export default function MatchScore({ result, loading }: MatchScoreProps) {
             Missing Skills
           </h3>
           <div className="flex flex-wrap gap-2">
-            {result.missingSkills.map((skill) => (
+            {result.missingSkills.map((skill, i) => (
               <span
-                key={skill}
+                key={i}
                 className="rounded-full border border-brand-red/30 bg-brand-red/10 px-3 py-1 text-xs text-brand-red"
               >
                 {skill}

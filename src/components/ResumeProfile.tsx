@@ -65,9 +65,9 @@ export default function ResumeProfile({ data, loading }: ResumeProfileProps) {
             Skills
           </h3>
           <div className="flex flex-wrap gap-2">
-            {data.skills.map((skill) => (
+            {data.skills.map((skill, i) => (
               <span
-                key={skill}
+                key={i}
                 className="rounded-full border border-brand-border bg-brand-bg px-3 py-1 text-xs text-brand-text"
               >
                 {skill}

@@ -23,7 +23,10 @@ export default function AccessKeyGate({ children, onKey }: AccessKeyGateProps) {
       onKey(stored);
       setUnlocked(true);
     }
-  }, [onKey]);
+    // onKey is intentionally omitted — it's a stable React setter and
+    // this effect should only run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -34,27 +37,32 @@ export default function AccessKeyGate({ children, onKey }: AccessKeyGateProps) {
       setError(null);
 
       // Validate by making a lightweight probe request
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-access-key": input.trim(),
-        },
-        body: JSON.stringify({ resume: "", jobDescription: "" }),
-      });
+      try {
+        const res = await fetch("/api/analyze", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-access-key": input.trim(),
+          },
+          body: JSON.stringify({ resume: "", jobDescription: "" }),
+        });
 
-      setLoading(false);
+        setLoading(false);
 
-      // 400 = key accepted (fields missing, not auth failure)
-      // 401 = wrong key
-      if (res.status === 401) {
-        setError("Invalid access key. Try again.");
-        return;
+        // 400 = key accepted (fields missing, not auth failure)
+        // 401 = wrong key
+        if (res.status === 401) {
+          setError("Invalid access key. Try again.");
+          return;
+        }
+
+        sessionStorage.setItem(SESSION_KEY, input.trim());
+        onKey(input.trim());
+        setUnlocked(true);
+      } catch {
+        setLoading(false);
+        setError("Could not reach the server. Check your connection.");
       }
-
-      sessionStorage.setItem(SESSION_KEY, input.trim());
-      onKey(input.trim());
-      setUnlocked(true);
     },
     [input, onKey]
   );
