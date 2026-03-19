@@ -38,13 +38,13 @@ export default function AccessKeyGate({ children, onKey }: AccessKeyGateProps) {
 
       // Validate by making a lightweight probe request
       try {
-        const res = await fetch("/api/analyze", {
+        const res = await fetch("/api/extract", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "x-access-key": input.trim(),
           },
-          body: JSON.stringify({ resume: "", jobDescription: "" }),
+          body: JSON.stringify({ resume: "" }),
         });
 
         setLoading(false);
