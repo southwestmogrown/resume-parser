@@ -34,3 +34,47 @@ Created `src/app/api/analyze/route.ts` — POST handler with:
 Branch `feat/m1-foundation` pushed to GitHub.
 
 ---
+
+## 2026-03-19 — M2: UI & Analysis
+
+### ResumeUpload (#5)
+Created `src/components/ResumeUpload.tsx` — client component with drag-and-drop PDF upload. Accepts PDF via click or drag, rejects non-PDFs with an inline error, shows filename after selection, and exposes a clear button. Calls `onChange` with the `File` object.
+
+### JobDescription (#6)
+Created `src/components/JobDescription.tsx` — client component with an auto-filling textarea, live character count, and a conditional clear button. Calls `onChange` with the current string value.
+
+### ResumeProfile (#7)
+Created `src/components/ResumeProfile.tsx` — displays extracted `ResumeData`: candidate name, summary, skills as pills, experience timeline, and education entries. Renders a pulsing skeleton that matches component dimensions while extraction is in progress. Returns `null` when neither loading nor data is present.
+
+### MatchScore (#8)
+Created `src/components/MatchScore.tsx` — displays `MatchResult`: large percentage score color-coded by threshold (green ≥80%, amber 60–79%, red <60%), matched skills in green pills, missing skills in red pills, and a recommendation paragraph. Renders a skeleton while scoring is in progress.
+
+### Page Assembly (#9)
+Replaced the scaffold `app/page.tsx` with the full application page. Two-column input layout (ResumeUpload + JobDescription), Analyze button disabled until both inputs are populated, two-phase pipeline (PDF → base64 → POST `/api/analyze` → set extraction result → set score result). Output panels hidden until first analysis completes. Error displayed inline below the button.
+
+Also updated:
+- `globals.css` — simplified to a single dark background, removed light-mode `:root` and media query bleed
+- `layout.tsx` — page title set to "Resume Parser — Shane Wilkey"
+
+**Note:** `NEXT_PUBLIC_ACCESS_KEY` must be added to `.env.local` (client-side header send) alongside the existing `ACCESS_KEY` (server-side validation).
+
+Branch `feat/m2-ui-analysis` pushed to GitHub.
+
+---
+
+## 2026-03-19 — M3: Polish & Ship
+
+### Access Key Gate (#10)
+Created `src/components/AccessKeyGate.tsx` — a client component that wraps the entire app with a modal passphrase prompt. On mount it checks `sessionStorage` for a previously stored key and auto-unlocks. Validates the key by probing `POST /api/analyze` with an empty body: a `400` (field validation error) means the key was accepted, `401` means wrong key. Accepted key stored in `sessionStorage` under `resume-parser-access-key`. Updated `page.tsx` to pass the key via `onKey` callback into component state, replacing the previous `NEXT_PUBLIC_ACCESS_KEY` env var approach.
+
+### Polish Pass (#11)
+- `src/components/Spinner.tsx` — inline SVG spinner using `animate-spin`, shown inside the Analyze button while either pipeline phase is running
+- `src/components/ErrorBoundary.tsx` — React class component with `getDerivedStateFromError`, renders a branded error panel with a "Try again" reset button
+- `page.tsx` updated to wrap the full page tree in `ErrorBoundary > AccessKeyGate`, and the Analyze button now renders the spinner alongside the "Analyzing…" label
+
+### README (#12)
+Wrote complete `README.md` covering: what the app does, how the two-phase Claude pipeline works, tech stack, local setup steps, environment variable documentation, access key instructions, and project structure map.
+
+Branch `feat/m3-polish-ship` pushed to GitHub.
+
+---
