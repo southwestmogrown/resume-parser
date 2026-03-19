@@ -1,65 +1,107 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useCallback } from "react";
+import ResumeUpload from "@/components/ResumeUpload";
+import JobDescription from "@/components/JobDescription";
+import ResumeProfile from "@/components/ResumeProfile";
+import MatchScore from "@/components/MatchScore";
+import { extractPdfBase64 } from "@/lib/extractPdfText";
+import type { ResumeData, MatchResult, AnalysisResponse } from "@/lib/types";
 
 export default function Home() {
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [jobDescription, setJobDescription] = useState("");
+  const [resumeData, setResumeData] = useState<ResumeData | null>(null);
+  const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
+  const [loadingExtraction, setLoadingExtraction] = useState(false);
+  const [loadingScore, setLoadingScore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const canAnalyze = !!resumeFile && jobDescription.trim().length > 0;
+
+  const handleAnalyze = useCallback(async () => {
+    if (!resumeFile) return;
+
+    setError(null);
+    setResumeData(null);
+    setMatchResult(null);
+    setLoadingExtraction(true);
+    setLoadingScore(true);
+
+    try {
+      const base64 = await extractPdfBase64(resumeFile);
+
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-access-key": process.env.NEXT_PUBLIC_ACCESS_KEY ?? "",
+        },
+        body: JSON.stringify({ resume: base64, jobDescription }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? `Request failed (${res.status})`);
+      }
+
+      const data: AnalysisResponse = await res.json();
+      setLoadingExtraction(false);
+      setResumeData(data.resumeData);
+      setMatchResult(data.matchResult);
+      setLoadingScore(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+      setLoadingExtraction(false);
+      setLoadingScore(false);
+    }
+  }, [resumeFile, jobDescription]);
+
+  const showResults = loadingExtraction || loadingScore || !!resumeData || !!matchResult;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="min-h-screen bg-brand-bg px-4 py-10">
+      <div className="mx-auto max-w-6xl">
+        {/* Header */}
+        <div className="mb-10 text-center">
+          <h1 className="text-3xl font-bold text-brand-text">Resume Parser</h1>
+          <p className="mt-2 text-sm text-brand-muted">
+            Upload a resume and paste a job description to get an AI-powered match analysis.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Input panels */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="rounded-2xl border border-brand-border bg-brand-surface p-6">
+            <ResumeUpload onChange={setResumeFile} />
+          </div>
+          <div className="rounded-2xl border border-brand-border bg-brand-surface p-6">
+            <JobDescription onChange={setJobDescription} />
+          </div>
         </div>
-      </main>
-    </div>
+
+        {/* Analyze button */}
+        <div className="mt-6 flex flex-col items-center gap-3">
+          <button
+            onClick={handleAnalyze}
+            disabled={!canAnalyze || loadingExtraction || loadingScore}
+            className="rounded-xl bg-brand-accent px-8 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {loadingExtraction || loadingScore ? "Analyzing…" : "Analyze"}
+          </button>
+          {error && (
+            <p className="text-sm text-brand-red">{error}</p>
+          )}
+        </div>
+
+        {/* Output panels */}
+        {showResults && (
+          <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2">
+            <ResumeProfile data={resumeData} loading={loadingExtraction} />
+            <MatchScore result={matchResult} loading={loadingScore} />
+          </div>
+        )}
+      </div>
+    </main>
   );
 }
