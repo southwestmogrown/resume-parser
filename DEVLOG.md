@@ -130,3 +130,10 @@ The key validation probe was still calling `POST /api/analyze`, which was delete
 `AnalysisRequest` and `AnalysisResponse` were left in `types.ts` after `/api/analyze` was deleted. Removed both interfaces.
 
 ---
+
+## 2026-03-19 — Code Review Fixes (Round 3)
+
+### AccessKeyGate.tsx — Non-401 server errors unlocked the gate
+The probe validation only rejected `401` responses. Any other non-success status (e.g. `500` from a misconfigured server or Claude being down) fell through to `setUnlocked(true)`, admitting users without a valid key. Added an explicit guard: only a `400` (key accepted, fields missing) proceeds to unlock. Any other status surfaces "Unexpected server error. Try again later."
+
+---

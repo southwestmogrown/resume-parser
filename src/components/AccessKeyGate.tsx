@@ -56,6 +56,11 @@ export default function AccessKeyGate({ children, onKey }: AccessKeyGateProps) {
           return;
         }
 
+        if (res.status !== 400) {
+          setError("Unexpected server error. Try again later.");
+          return;
+        }
+
         sessionStorage.setItem(SESSION_KEY, input.trim());
         onKey(input.trim());
         setUnlocked(true);
