@@ -61,3 +61,20 @@ Also updated:
 Branch `feat/m2-ui-analysis` pushed to GitHub.
 
 ---
+
+## 2026-03-19 — M3: Polish & Ship
+
+### Access Key Gate (#10)
+Created `src/components/AccessKeyGate.tsx` — a client component that wraps the entire app with a modal passphrase prompt. On mount it checks `sessionStorage` for a previously stored key and auto-unlocks. Validates the key by probing `POST /api/analyze` with an empty body: a `400` (field validation error) means the key was accepted, `401` means wrong key. Accepted key stored in `sessionStorage` under `resume-parser-access-key`. Updated `page.tsx` to pass the key via `onKey` callback into component state, replacing the previous `NEXT_PUBLIC_ACCESS_KEY` env var approach.
+
+### Polish Pass (#11)
+- `src/components/Spinner.tsx` — inline SVG spinner using `animate-spin`, shown inside the Analyze button while either pipeline phase is running
+- `src/components/ErrorBoundary.tsx` — React class component with `getDerivedStateFromError`, renders a branded error panel with a "Try again" reset button
+- `page.tsx` updated to wrap the full page tree in `ErrorBoundary > AccessKeyGate`, and the Analyze button now renders the spinner alongside the "Analyzing…" label
+
+### README (#12)
+Wrote complete `README.md` covering: what the app does, how the two-phase Claude pipeline works, tech stack, local setup steps, environment variable documentation, access key instructions, and project structure map.
+
+Branch `feat/m3-polish-ship` pushed to GitHub.
+
+---
