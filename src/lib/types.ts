@@ -29,17 +29,6 @@ export interface MatchResult {
   recommendation: string;
 }
 
-// API request/response shapes
-export interface AnalysisRequest {
-  resume: string; // base64-encoded PDF
-  jobDescription: string;
-}
-
-export interface AnalysisResponse {
-  resumeData: ResumeData;
-  matchResult: MatchResult;
-}
-
 // Split route request/response shapes
 export interface ExtractRequest {
   resume: string; // base64-encoded PDF
