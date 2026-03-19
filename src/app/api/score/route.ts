@@ -2,6 +2,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 import type { ScoreRequest, ScoreResponse, MatchResult } from "@/lib/types";
 
+export const maxDuration = 9;
+
 export async function POST(req: NextRequest) {
   const apiKey = req.headers.get("x-api-key");
   if (!apiKey) {
