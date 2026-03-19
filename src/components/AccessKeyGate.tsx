@@ -1,19 +1,20 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 
-const SESSION_KEY = "resume-parser-access-key";
+const SESSION_KEY = "resume-parser-api-key";
 
 interface AccessKeyGateProps {
   children: React.ReactNode;
   onKey: (key: string) => void;
+  onDemo?: () => void;
+  forceShow?: boolean;
 }
 
-export default function AccessKeyGate({ children, onKey }: AccessKeyGateProps) {
+export default function AccessKeyGate({ children, onKey, onDemo, forceShow }: AccessKeyGateProps) {
   const [unlocked, setUnlocked] = useState(false);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -28,52 +29,24 @@ export default function AccessKeyGate({ children, onKey }: AccessKeyGateProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!input.trim()) return;
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = input.trim();
 
-      setLoading(true);
-      setError(null);
+    if (!trimmed) return;
 
-      // Validate by making a lightweight probe request
-      try {
-        const res = await fetch("/api/extract", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-access-key": input.trim(),
-          },
-          body: JSON.stringify({ resume: "" }),
-        });
+    if (!trimmed.startsWith("sk-ant-")) {
+      setError("That doesn't look like an Anthropic API key. Keys start with sk-ant-");
+      return;
+    }
 
-        setLoading(false);
-
-        // 400 = key accepted (fields missing, not auth failure)
-        // 401 = wrong key
-        if (res.status === 401) {
-          setError("Invalid access key. Try again.");
-          return;
-        }
-
-        if (res.status !== 400) {
-          setError("Unexpected server error. Try again later.");
-          return;
-        }
-
-        sessionStorage.setItem(SESSION_KEY, input.trim());
-        onKey(input.trim());
-        setUnlocked(true);
-      } catch {
-        setLoading(false);
-        setError("Could not reach the server. Check your connection.");
-      }
-    },
-    [input, onKey]
-  );
+    sessionStorage.setItem(SESSION_KEY, trimmed);
+    onKey(trimmed);
+    setUnlocked(true);
+  };
 
   if (!mounted) return null;
-  if (unlocked) return <>{children}</>;
+  if (unlocked && !forceShow) return <>{children}</>;
 
   return (
     <>
@@ -81,18 +54,18 @@ export default function AccessKeyGate({ children, onKey }: AccessKeyGateProps) {
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-bg/90 backdrop-blur-sm">
         <div className="w-full max-w-sm rounded-2xl border border-brand-border bg-brand-surface p-8 shadow-2xl">
           <h2 className="mb-1 text-lg font-semibold text-brand-text">
-            Access Required
+            Your Anthropic API Key
           </h2>
           <p className="mb-6 text-sm text-brand-muted">
-            Enter the access key to use Resume Parser.
+            Paste your Anthropic API key below. It's stored only in your browser session and sent directly to Anthropic — we never log, store, or see it.
           </p>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <input
-              type="password"
+              type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Access key"
+              placeholder="sk-ant-..."
               autoFocus
               className="rounded-xl border border-brand-border bg-brand-bg px-4 py-3 text-sm text-brand-text placeholder:text-brand-muted focus:border-brand-accent focus:outline-none transition-colors"
             />
@@ -101,11 +74,28 @@ export default function AccessKeyGate({ children, onKey }: AccessKeyGateProps) {
 
             <button
               type="submit"
-              disabled={loading || !input.trim()}
+              disabled={!input.trim()}
               className="rounded-xl bg-brand-accent py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {loading ? "Verifying…" : "Enter"}
+              Enter
             </button>
+
+            <p className="text-center text-xs text-brand-muted">
+              <a href={process.env.NEXT_PUBLIC_GITHUB_URL ?? "#"} target="_blank" rel="noopener noreferrer" className="underline hover:text-brand-text">View the source on GitHub</a> to verify.
+            </p>
+
+            {onDemo && (
+              <div className="mt-4 flex flex-col items-center gap-2">
+                <span className="text-xs text-brand-muted">or</span>
+                <button
+                  type="button"
+                  onClick={() => { setUnlocked(true); onDemo?.(); }}
+                  className="w-full rounded-xl border border-brand-border bg-transparent py-3 text-sm font-medium text-brand-muted transition-colors hover:border-brand-accent hover:text-brand-text"
+                >
+                  Try Demo — no API key needed
+                </button>
+              </div>
+            )}
           </form>
         </div>
       </div>

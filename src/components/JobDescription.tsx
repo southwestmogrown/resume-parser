@@ -1,13 +1,20 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 interface JobDescriptionProps {
   onChange: (value: string) => void;
+  value?: string;
 }
 
-export default function JobDescription({ onChange }: JobDescriptionProps) {
-  const [value, setValue] = useState("");
+export default function JobDescription({ onChange, value: externalValue }: JobDescriptionProps) {
+  const [value, setValue] = useState(externalValue ?? "");
+
+  useEffect(() => {
+    if (externalValue !== undefined) {
+      setValue(externalValue);
+    }
+  }, [externalValue]);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {

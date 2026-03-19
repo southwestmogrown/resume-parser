@@ -2,13 +2,13 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 import type { ScoreRequest, ScoreResponse, MatchResult } from "@/lib/types";
 
-const client = new Anthropic();
-
 export async function POST(req: NextRequest) {
-  const accessKey = req.headers.get("x-access-key");
-  if (!accessKey || accessKey !== process.env.ACCESS_KEY) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const apiKey = req.headers.get("x-api-key");
+  if (!apiKey) {
+    return NextResponse.json({ error: "Anthropic API key required" }, { status: 401 });
   }
+
+  const client = new Anthropic({ apiKey });
 
   let body: Partial<ScoreRequest>;
   try {
@@ -52,7 +52,10 @@ Return a JSON object only, with no additional text or markdown:
         },
       ],
     });
-  } catch {
+  } catch (error) {
+    if (error && typeof error === "object" && "status" in error && (error.status === 401 || error.status === 403)) {
+      return NextResponse.json({ error: "Invalid Anthropic API key" }, { status: 401 });
+    }
     return NextResponse.json(
       { error: "Claude API error during scoring" },
       { status: 500 }
