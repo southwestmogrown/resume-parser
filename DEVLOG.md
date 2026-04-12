@@ -137,3 +137,40 @@ The key validation probe was still calling `POST /api/analyze`, which was delete
 The probe validation only rejected `401` responses. Any other non-success status (e.g. `500` from a misconfigured server or Claude being down) fell through to `setUnlocked(true)`, admitting users without a valid key. Added an explicit guard: only a `400` (key accepted, fields missing) proceeds to unlock. Any other status surfaces "Unexpected server error. Try again later."
 
 ---
+
+## 2026-04-12 — M4: Application Toolkit for Developers
+
+Repositioned the app from "upload resume, get score" to "prepare to apply, maximize your odds." Six new features, four new API routes, six new components, and a reworked pipeline.
+
+### Feature 1 — Gap Severity Tiers
+Replaced the flat `missingSkills: string[]` with `MissingSkill[]`, each carrying `severity: "dealbreaker" | "learnable" | "soft"` and a `reason` string. Updated the `/api/score` prompt to classify each gap from the candidate's perspective. `MatchScore.tsx` now renders three color-coded sections (🔴🟡🟢) instead of a single red pill list. Turns a raw percentage into a go/no-go decision.
+
+### Feature 2 — Resume Bullet Rewrites
+New `/api/rewrite` route (Phase 3a). Claude takes `ResumeData` + JD and generates `RewriteSuggestion[]` — one per experience entry, each containing the original bullet, a rewritten version that mirrors the JD's language, and a rationale. New `ResumeRewriter.tsx` component renders before/after diffs with per-item copy buttons.
+
+### Feature 3 — Multi-JD Batch Mode
+New `BatchJobDescriptions.tsx` input component — accepts multiple JDs separated by `---`. Page orchestrates: extract once → parallel `/api/score` calls for each JD. New `BatchResults.tsx` renders a sortable table (score, company, title) with severity-colored gap pills. Clicking any row drills down into single-JD mode with that JD pre-loaded.
+
+### Feature 4 — Cover Letter Draft Generator
+New `/api/cover-letter` route (Phase 4). Claude generates a first-draft cover letter highlighting matched skills, proactively addressing learnable gaps with a framing strategy, and mirroring the JD's tone. New `CoverLetter.tsx` with markdown bold rendering and copy-to-clipboard.
+
+### Feature 5 — GitHub Profile Integration
+New `/api/github-profile` route — calls GitHub's public REST API (no auth) to fetch user profile, repos, and languages. New `GitHubConnect.tsx` input component with username entry and profile preview card. Profile data fed into Phase 2 scoring context as supplementary evidence.
+
+### Feature 6 — "What to Study" Action Plan
+New `/api/study-plan` route (Phase 3b, parallel with rewrites). For each learnable/soft gap, Claude generates a concrete action recommendation with a specific resource. New `StudyPlan.tsx` renders as severity-colored cards.
+
+### Pipeline Changes
+- `page.tsx` now runs a 4-phase progressive pipeline: extract → score → (rewrites + study plan parallel) → cover letter
+- Phases 3–4 are non-blocking — failures don't prevent earlier results from displaying
+- `maxDuration` bumped from 9s to 30s on Claude-powered routes
+- Single JD / Batch Mode toggle added above the JD panel
+- Demo mode extended with fixtures for all new features (rewrites, study items, cover letter)
+
+### Types
+`lib/types.ts` expanded with 15+ new interfaces: `GapSeverity`, `MissingSkill`, `RewriteSuggestion`, `RewriteRequest/Response`, `CoverLetterRequest/Response`, `StudyItem`, `StudyPlanRequest/Response`, `GitHubProfile`, `GitHubRepo`, `GitHubProfileResponse`, `BatchScoreResult`, `BatchScoreResponse`.
+
+### Documentation
+README, CLAUDE.md, and DEVLOG updated to cover all new features, the expanded pipeline, new API routes, new components, and updated project structure.
+
+---
