@@ -54,6 +54,7 @@ function PaymentForm({ onSuccess, onClose }: PaymentFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
+  const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -98,7 +99,24 @@ function PaymentForm({ onSuccess, onClose }: PaymentFormProps) {
 
   return (
     <form onSubmit={(e) => void handleSubmit(e)} style={{ display: "grid", gap: "var(--space-6)" }}>
-      <PaymentElement options={{ layout: "tabs" }} />
+      {/* Skeleton shown until Stripe iframe is ready */}
+      {!ready && (
+        <div style={{ display: "grid", gap: "var(--space-4)" }}>
+          <div className="skeleton" style={{ height: "46px", borderRadius: "var(--radius-md)" }} />
+          <div className="skeleton" style={{ height: "46px", borderRadius: "var(--radius-md)" }} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)" }}>
+            <div className="skeleton" style={{ height: "46px", borderRadius: "var(--radius-md)" }} />
+            <div className="skeleton" style={{ height: "46px", borderRadius: "var(--radius-md)" }} />
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: ready ? "block" : "none" }}>
+        <PaymentElement
+          options={{ layout: "tabs" }}
+          onReady={() => setReady(true)}
+        />
+      </div>
 
       {error && (
         <p style={{ color: "var(--ps-red)", fontSize: "13px" }}>{error}</p>
@@ -107,7 +125,7 @@ function PaymentForm({ onSuccess, onClose }: PaymentFormProps) {
       <div style={{ display: "grid", gap: "var(--space-3)" }}>
         <button
           type="submit"
-          disabled={!stripe || !elements || loading}
+          disabled={!stripe || !elements || !ready || loading}
           className="btn-primary btn-large btn-full"
         >
           {loading && <Spinner />}
