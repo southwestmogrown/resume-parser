@@ -4,8 +4,16 @@ import AppPage, { metadata as appMetadata } from "@/app/app/page";
 import RootLayout, { metadata as rootMetadata } from "@/app/layout";
 import HomePage from "@/app/page";
 
-jest.mock("@/components/AppExperience", () => () => <div>App Experience Stub</div>);
-jest.mock("@/components/LandingPage", () => () => <div>Landing Page Stub</div>);
+jest.mock("@/components/AppExperience", () =>
+  function MockAppExperience() {
+    return <div>App Experience Stub</div>;
+  }
+);
+jest.mock("@/components/LandingPage", () =>
+  function MockLandingPage() {
+    return <div>Landing Page Stub</div>;
+  }
+);
 
 describe("page wrappers and layout", () => {
   it("renders the landing and app pages", () => {

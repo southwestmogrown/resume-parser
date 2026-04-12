@@ -1,5 +1,6 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { sampleBatchResult, sampleMatchResult, sampleResumeData, sampleRewriteSuggestions, sampleStudyItems } from "@/test-utils/fixtures";
 
 const mockExtractPdfBase64 = jest.fn();
@@ -8,61 +9,150 @@ jest.mock("@/lib/extractPdfText", () => ({
   extractPdfBase64: (...args: unknown[]) => mockExtractPdfBase64(...args),
 }));
 
-jest.mock("@/components/ErrorBoundary", () => ({ children }: { children: React.ReactNode }) => <>{children}</>);
-jest.mock("@/components/Spinner", () => () => <span>Spinner</span>);
-jest.mock("@/components/ResumeUpload", () => ({ onChange }: { onChange: (file: File | null) => void }) => (
-  <button type="button" onClick={() => onChange(new File(["pdf"], "resume.pdf", { type: "application/pdf" }))}>
-    Select resume
-  </button>
-));
-jest.mock("@/components/GitHubConnect", () => () => <div>GitHubConnect</div>);
-jest.mock("@/components/JobDescription", () => ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
-  <textarea aria-label="job-description" value={value} onChange={(event) => onChange(event.target.value)} />
-));
-jest.mock("@/components/BatchJobDescriptions", () => ({ onSubmit, loading }: { onSubmit: (values: string[]) => void; loading: boolean }) => {
-  const [text, setText] = require("react").useState("");
-  return (
-    <div>
-      <textarea aria-label="batch-descriptions" value={text} onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setText(event.target.value)} />
-      <button type="button" disabled={loading} onClick={() => onSubmit(text.split("|").filter(Boolean))}>
-        Submit batch
+jest.mock("@/components/ErrorBoundary", () =>
+  function MockErrorBoundary({ children }: { children: React.ReactNode }) {
+    return <>{children}</>;
+  }
+);
+jest.mock("@/components/Spinner", () =>
+  function MockSpinner() {
+    return <span>Spinner</span>;
+  }
+);
+jest.mock("@/components/ResumeUpload", () =>
+  function MockResumeUpload({ onChange }: { onChange: (file: File | null) => void }) {
+    return (
+      <button
+        type="button"
+        onClick={() => onChange(new File(["pdf"], "resume.pdf", { type: "application/pdf" }))}
+      >
+        Select resume
       </button>
-    </div>
-  );
-});
-jest.mock("@/components/ResumeProfile", () => ({ data, loading }: { data: { name: string } | null; loading: boolean }) => (
-  <div>{loading ? "ResumeProfile loading" : data ? `ResumeProfile: ${data.name}` : "ResumeProfile empty"}</div>
-));
-jest.mock("@/components/MatchScore", () => ({ result, loading }: { result: { score: number } | null; loading: boolean }) => (
-  <div>{loading ? "MatchScore loading" : result ? `MatchScore: ${result.score}` : "MatchScore empty"}</div>
-));
-jest.mock("@/components/ResumeRewriter", () => ({ suggestions, loading }: { suggestions: Array<{ rewrittenBullet: string }> | null; loading: boolean }) => (
-  <div>{loading ? "ResumeRewriter loading" : suggestions ? `ResumeRewriter: ${suggestions.length}` : "ResumeRewriter empty"}</div>
-));
-jest.mock("@/components/StudyPlan", () => ({ items, loading }: { items: Array<{ skill: string }> | null; loading: boolean }) => (
-  <div>{loading ? "StudyPlan loading" : items ? `StudyPlan: ${items.length}` : "StudyPlan empty"}</div>
-));
-jest.mock("@/components/CoverLetter", () => ({ content, loading }: { content: string | null; loading: boolean }) => (
-  <div>{loading ? "CoverLetter loading" : content ? `CoverLetter: ${content}` : "CoverLetter empty"}</div>
-));
-jest.mock("@/components/PayGate", () => ({ paymentState, onPay }: { paymentState: string; onPay: () => void }) => (
-  <div>
-    <span>{`PayGate: ${paymentState}`}</span>
-    <button type="button" onClick={onPay}>
-      Pay now
-    </button>
-  </div>
-));
-jest.mock("@/components/BatchResults", () => ({ results, loading, onSelect }: { results: Array<{ company: string }> | null; loading: boolean; onSelect: (result: typeof sampleBatchResult) => void }) => (
-  <div>
-    <span>{loading ? "BatchResults loading" : results ? `BatchResults: ${results.length}` : "BatchResults empty"}</span>
-    {results?.[0] ? (
-      <button type="button" onClick={() => onSelect(results[0] as typeof sampleBatchResult)}>
-        Open batch result
-      </button>
-    ) : null}
-  </div>
-));
+    );
+  }
+);
+jest.mock("@/components/GitHubConnect", () =>
+  function MockGitHubConnect() {
+    return <div>GitHubConnect</div>;
+  }
+);
+jest.mock("@/components/JobDescription", () =>
+  function MockJobDescription({
+    value,
+    onChange,
+  }: {
+    value: string;
+    onChange: (value: string) => void;
+  }) {
+    return (
+      <textarea
+        aria-label="job-description"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    );
+  }
+);
+jest.mock("@/components/BatchJobDescriptions", () =>
+  function MockBatchJobDescriptions({
+    onSubmit,
+    loading,
+  }: {
+    onSubmit: (values: string[]) => void;
+    loading: boolean;
+  }) {
+    const [text, setText] = useState("");
+    return (
+      <div>
+        <textarea
+          aria-label="batch-descriptions"
+          value={text}
+          onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setText(event.target.value)}
+        />
+        <button type="button" disabled={loading} onClick={() => onSubmit(text.split("|").filter(Boolean))}>
+          Submit batch
+        </button>
+      </div>
+    );
+  }
+);
+jest.mock("@/components/ResumeProfile", () =>
+  function MockResumeProfile({
+    data,
+    loading,
+  }: {
+    data: { name: string } | null;
+    loading: boolean;
+  }) {
+    return <div>{loading ? "ResumeProfile loading" : data ? `ResumeProfile: ${data.name}` : "ResumeProfile empty"}</div>;
+  }
+);
+jest.mock("@/components/MatchScore", () =>
+  function MockMatchScore({
+    result,
+    loading,
+  }: {
+    result: { score: number } | null;
+    loading: boolean;
+  }) {
+    return <div>{loading ? "MatchScore loading" : result ? `MatchScore: ${result.score}` : "MatchScore empty"}</div>;
+  }
+);
+jest.mock("@/components/ResumeRewriter", () =>
+  function MockResumeRewriter({
+    suggestions,
+    loading,
+  }: {
+    suggestions: Array<{ rewrittenBullet: string }> | null;
+    loading: boolean;
+  }) {
+    return <div>{loading ? "ResumeRewriter loading" : suggestions ? `ResumeRewriter: ${suggestions.length}` : "ResumeRewriter empty"}</div>;
+  }
+);
+jest.mock("@/components/StudyPlan", () =>
+  function MockStudyPlan({ items, loading }: { items: Array<{ skill: string }> | null; loading: boolean }) {
+    return <div>{loading ? "StudyPlan loading" : items ? `StudyPlan: ${items.length}` : "StudyPlan empty"}</div>;
+  }
+);
+jest.mock("@/components/CoverLetter", () =>
+  function MockCoverLetter({ content, loading }: { content: string | null; loading: boolean }) {
+    return <div>{loading ? "CoverLetter loading" : content ? `CoverLetter: ${content}` : "CoverLetter empty"}</div>;
+  }
+);
+jest.mock("@/components/PayGate", () =>
+  function MockPayGate({ paymentState, onPay }: { paymentState: string; onPay: () => void }) {
+    return (
+      <div>
+        <span>{`PayGate: ${paymentState}`}</span>
+        <button type="button" onClick={onPay}>
+          Pay now
+        </button>
+      </div>
+    );
+  }
+);
+jest.mock("@/components/BatchResults", () =>
+  function MockBatchResults({
+    results,
+    loading,
+    onSelect,
+  }: {
+    results: Array<{ company: string }> | null;
+    loading: boolean;
+    onSelect: (result: typeof sampleBatchResult) => void;
+  }) {
+    return (
+      <div>
+        <span>{loading ? "BatchResults loading" : results ? `BatchResults: ${results.length}` : "BatchResults empty"}</span>
+        {results?.[0] ? (
+          <button type="button" onClick={() => onSelect(results[0] as typeof sampleBatchResult)}>
+            Open batch result
+          </button>
+        ) : null}
+      </div>
+    );
+  }
+);
 
 import AppExperience from "@/components/AppExperience";
 
