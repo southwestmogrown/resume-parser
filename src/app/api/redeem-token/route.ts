@@ -1,27 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { stripe } from '@/lib/stripe';
+import { getTokenBySessionId, mintToken } from '@/lib/tokens';
 
 export async function POST(req: NextRequest) {
   const { sessionId } = await req.json();
   if (!sessionId) return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
 
-  const { data, error } = await supabaseAdmin
-    .from('analysis_tokens')
-    .select('token, uses_remaining, expires_at')
-    .eq('stripe_session_id', sessionId)
-    .single();
+  let tokenRecord = await getTokenBySessionId(sessionId);
 
-  if (error || !data) {
+  if (!tokenRecord) {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+      if (session.payment_status !== 'paid') {
+        return NextResponse.json({ error: 'Payment not completed yet' }, { status: 404 });
+      }
+
+      await mintToken(session.id);
+      tokenRecord = await getTokenBySessionId(session.id);
+    } catch (error) {
+      console.error('Token redemption lookup failed:', error);
+      return NextResponse.json({ error: 'Token not found' }, { status: 404 });
+    }
+  }
+
+  if (!tokenRecord) {
     return NextResponse.json({ error: 'Token not found' }, { status: 404 });
   }
 
-  if (data.uses_remaining <= 0) {
+  if (tokenRecord.uses_remaining <= 0) {
     return NextResponse.json({ error: 'Token already used' }, { status: 410 });
   }
 
-  if (new Date(data.expires_at) < new Date()) {
+  if (new Date(tokenRecord.expires_at) < new Date()) {
     return NextResponse.json({ error: 'Token expired' }, { status: 410 });
   }
 
-  return NextResponse.json({ token: data.token });
+  return NextResponse.json({ token: tokenRecord.token });
 }

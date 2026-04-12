@@ -1,11 +1,31 @@
 import { randomBytes } from 'crypto';
 import { supabaseAdmin } from './supabaseAdmin';
 
+export interface AnalysisTokenRecord {
+  token: string;
+  uses_remaining: number;
+  expires_at: string;
+}
+
 export function generateToken(): string {
   return randomBytes(32).toString('hex');
 }
 
+export async function getTokenBySessionId(stripeSessionId: string): Promise<AnalysisTokenRecord | null> {
+  const { data, error } = await supabaseAdmin
+    .from('analysis_tokens')
+    .select('token, uses_remaining, expires_at')
+    .eq('stripe_session_id', stripeSessionId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data;
+}
+
 export async function mintToken(stripeSessionId: string): Promise<string> {
+  const existingToken = await getTokenBySessionId(stripeSessionId);
+  if (existingToken) return existingToken.token;
+
   const token = generateToken();
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   const { error } = await supabaseAdmin.from('analysis_tokens').insert({
@@ -14,7 +34,14 @@ export async function mintToken(stripeSessionId: string): Promise<string> {
     uses_remaining: 4,
     expires_at: expiresAt,
   });
-  if (error) throw new Error(`Failed to mint token: ${error.message}`);
+
+  if (error) {
+    const duplicateToken = await getTokenBySessionId(stripeSessionId);
+    if (duplicateToken) return duplicateToken.token;
+
+    throw new Error(`Failed to mint token: ${error.message}`);
+  }
+
   return token;
 }
 
