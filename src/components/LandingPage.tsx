@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import PassStackLogo from "@/components/PassStackLogo";
 import ScoreRing from "@/components/ScoreRing";
 import SeverityPill from "@/components/SeverityPill";
 
@@ -87,8 +88,7 @@ export default function LandingPage() {
       <nav className={`site-nav ${scrolled ? "site-nav--scrolled" : ""}`.trim()}>
         <div className="container nav-inner">
           <Link href="/" className="brand-mark" aria-label="PassStack home">
-            <span>Pass</span>
-            <span>Stack</span>
+            <PassStackLogo />
           </Link>
           <div className="nav-actions">
             <Link href="/app" className="btn-ghost">

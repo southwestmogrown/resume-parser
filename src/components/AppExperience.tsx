@@ -9,6 +9,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import GitHubConnect from "@/components/GitHubConnect";
 import JobDescription from "@/components/JobDescription";
 import MatchScore from "@/components/MatchScore";
+import PassStackLogo from "@/components/PassStackLogo";
 import PayGate from "@/components/PayGate";
 import ResumeProfile from "@/components/ResumeProfile";
 import ResumeRewriter from "@/components/ResumeRewriter";
@@ -554,8 +555,7 @@ export default function AppExperience() {
         <nav className="site-nav site-nav--scrolled">
           <div className="container nav-inner">
             <Link href="/" className="brand-mark" aria-label="PassStack home">
-              <span>Pass</span>
-              <span>Stack</span>
+              <PassStackLogo />
             </Link>
             <div className="nav-actions">
               <Link href="/" className="btn-ghost">
