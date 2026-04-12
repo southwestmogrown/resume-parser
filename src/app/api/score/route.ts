@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 import type { ScoreRequest, ScoreResponse, MatchResult } from "@/lib/types";
 
-export const maxDuration = 9;
+export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
   const apiKey = req.headers.get("x-api-key");
@@ -32,11 +32,11 @@ export async function POST(req: NextRequest) {
   try {
     scoringMessage = await client.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 1024,
+      max_tokens: 2048,
       messages: [
         {
           role: "user",
-          content: `You are evaluating how well a candidate matches a job description.
+          content: `You are a developer career advisor evaluating how well a candidate matches a job description. Think from the CANDIDATE's perspective — help them decide whether to apply and how to position themselves.
 
 Resume data:
 ${JSON.stringify(resumeData, null, 2)}
@@ -44,12 +44,19 @@ ${JSON.stringify(resumeData, null, 2)}
 Job description:
 ${jobDescription}
 
+For each missing skill or requirement, classify its severity:
+- "dealbreaker": Hard requirements the candidate fundamentally lacks and cannot quickly address (e.g., years of experience gaps, required certifications, security clearances, domain expertise that takes years to build)
+- "learnable": Skills the candidate could realistically pick up in weeks to a few months of focused study (e.g., a specific framework, tool, or cloud service)
+- "soft": Nice-to-have items the candidate is missing, OR requirements where they have adjacent/transferable experience that partially covers the gap
+
 Return a JSON object only, with no additional text or markdown:
 {
   "score": <integer 0-100>,
   "matchedSkills": ["skill1", "skill2"],
-  "missingSkills": ["skill1", "skill2"],
-  "recommendation": "2-3 sentence recommendation about this candidate's fit"
+  "missingSkills": [
+    { "skill": "skill name", "severity": "dealbreaker" | "learnable" | "soft", "reason": "brief explanation" }
+  ],
+  "recommendation": "2-3 sentence recommendation from the candidate's perspective — should they apply? What should they emphasize? What's the honest assessment?"
 }`,
         },
       ],
