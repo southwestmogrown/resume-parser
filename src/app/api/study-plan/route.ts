@@ -45,11 +45,13 @@ export async function POST(req: NextRequest) {
   try {
     studyMessage = await getAnthropic().messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 2048,
+      max_tokens: 4096,
+      system:
+        'You are an elite career strategist for software engineers. Build study plans that close hiring gaps fast through practical, portfolio-worthy work. Be specific, current, and realistic. Do not recommend vague self-study, generic MOOCs, or long multi-month programs when a tighter project-based path would work better.',
       messages: [
         {
           role: 'user',
-          content: `You are a developer career coach creating a concrete study plan. For each skill gap, provide an actionable recommendation with a specific resource. The candidate is a developer — recommend developer-appropriate resources (official docs, GitHub repos, hands-on tutorials), not generic online courses.
+          content: `Create a concrete study plan for this software engineering candidate. For each skill gap, provide an actionable recommendation with a specific resource. Recommend developer-appropriate resources such as official docs, GitHub repos, credible tutorials, sample projects, or focused references.
 
 Candidate background:
 ${JSON.stringify(resumeData, null, 2)}
@@ -58,9 +60,16 @@ Skill gaps to address:
 ${JSON.stringify(actionableGaps, null, 2)}
 
 For each gap, suggest a concrete action that:
-1. Leverages what the candidate already knows (build on existing skills)
-2. Results in something portfolio-worthy they can reference in interviews
-3. Can be completed in a reasonable timeframe (days to weeks, not months)
+1. Leverages what the candidate already knows and explicitly builds on adjacent experience
+2. Produces something portfolio-worthy, demo-worthy, or interview-worthy
+3. Can be completed in a reasonable timeframe (hours, days, or a couple of weekends — not months)
+4. Improves both real skill and ATS/interview positioning
+
+Additional rules:
+- Prioritize the highest-leverage path for each gap.
+- Make each action concrete enough that the candidate could start immediately.
+- Favor official/current resources over generic courses.
+- Keep "action" to 1-2 crisp sentences with a clear deliverable.
 
 Return a JSON array only, with no additional text or markdown:
 [
