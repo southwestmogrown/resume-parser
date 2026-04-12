@@ -4,7 +4,7 @@ type PassStackLogoProps = {
 
 export default function PassStackLogo({ compact = false }: PassStackLogoProps) {
   return (
-    <span className={`passstack-logo ${compact ? "passstack-logo--compact" : ""}`.trim()}>
+    <span className={compact ? "passstack-logo passstack-logo--compact" : "passstack-logo"}>
       <svg
         className="passstack-logo__icon"
         viewBox="0 0 64 64"
