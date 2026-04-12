@@ -7,9 +7,12 @@ export function generateToken(): string {
 
 export async function mintToken(stripeSessionId: string): Promise<string> {
   const token = generateToken();
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   const { error } = await supabaseAdmin.from('analysis_tokens').insert({
     token,
     stripe_session_id: stripeSessionId,
+    uses_remaining: 4,
+    expires_at: expiresAt,
   });
   if (error) throw new Error(`Failed to mint token: ${error.message}`);
   return token;
