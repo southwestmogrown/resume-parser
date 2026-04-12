@@ -1,16 +1,12 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
+import SkeletonBlock from "@/components/SkeletonBlock";
+import SeverityPill from "@/components/SeverityPill";
 import type { GitHubProfile } from "@/lib/types";
 
 interface GitHubConnectProps {
   onProfile: (profile: GitHubProfile | null) => void;
-}
-
-function Skeleton({ className }: { className?: string }) {
-  return (
-    <div className={`animate-pulse rounded bg-brand-border ${className ?? ""}`} />
-  );
 }
 
 export default function GitHubConnect({ onProfile }: GitHubConnectProps) {
@@ -27,18 +23,18 @@ export default function GitHubConnect({ onProfile }: GitHubConnectProps) {
     setError(null);
 
     try {
-      const res = await fetch("/api/github-profile", {
+      const response = await fetch("/api/github-profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: trimmed }),
       });
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? `Failed to fetch profile (${res.status})`);
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error ?? `Failed to fetch profile (${response.status})`);
       }
 
-      const data = await res.json();
+      const data = await response.json();
       setProfile(data.profile);
       onProfile(data.profile);
     } catch (err) {
@@ -48,7 +44,7 @@ export default function GitHubConnect({ onProfile }: GitHubConnectProps) {
     }
 
     setLoading(false);
-  }, [username, onProfile]);
+  }, [onProfile, username]);
 
   const handleClear = () => {
     setUsername("");
@@ -58,92 +54,89 @@ export default function GitHubConnect({ onProfile }: GitHubConnectProps) {
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      <label className="text-sm font-medium text-brand-text">
-        GitHub Profile <span className="font-normal text-brand-muted">(optional)</span>
-      </label>
+    <div className="result-card">
+      <div>
+        <div className="eyebrow">optional context</div>
+        <h2 style={{ fontSize: "1.15rem" }}>Add your GitHub profile</h2>
+      </div>
 
-      <div className="flex gap-2">
+      <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
         <input
           type="text"
           value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleFetch()}
+          onChange={(event) => setUsername(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              void handleFetch();
+            }
+          }}
           placeholder="username"
           disabled={loading}
-          className="flex-1 rounded-xl border border-brand-border bg-brand-surface px-4 py-2.5 text-sm text-brand-text placeholder:text-brand-muted focus:border-brand-accent focus:outline-none transition-colors"
+          className="text-input"
+          style={{ flex: 1 }}
         />
         {profile ? (
-          <button
-            onClick={handleClear}
-            className="rounded-xl border border-brand-border bg-brand-surface px-4 py-2.5 text-sm text-brand-muted transition-colors hover:text-brand-text"
-          >
+          <button type="button" onClick={handleClear} className="btn-ghost">
             Clear
           </button>
         ) : (
-          <button
-            onClick={handleFetch}
-            disabled={!username.trim() || loading}
-            className="rounded-xl bg-brand-accent px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
-          >
+          <button type="button" onClick={() => void handleFetch()} disabled={!username.trim() || loading} className="btn-primary">
             {loading ? "Fetching…" : "Connect"}
           </button>
         )}
       </div>
 
-      {error && <p className="text-xs text-brand-red">{error}</p>}
+      {error ? <p style={{ color: "var(--ps-red)" }}>{error}</p> : null}
 
-      {loading && (
-        <div className="rounded-xl border border-brand-border bg-brand-surface p-4">
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-3 w-48" />
-            <div className="flex gap-2 mt-1">
-              <Skeleton className="h-5 w-16" />
-              <Skeleton className="h-5 w-16" />
-              <Skeleton className="h-5 w-16" />
-            </div>
+      {loading ? (
+        <div className="github-preview" style={{ padding: "var(--space-4)", display: "grid", gap: "var(--space-3)" }}>
+          <SkeletonBlock className="h-4 w-32" />
+          <SkeletonBlock className="h-3 w-full" />
+          <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+            <SkeletonBlock className="h-5 w-20" />
+            <SkeletonBlock className="h-5 w-20" />
+            <SkeletonBlock className="h-5 w-20" />
           </div>
         </div>
-      )}
+      ) : null}
 
-      {profile && (
-        <div className="rounded-xl border border-brand-border bg-brand-surface p-4">
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-brand-text">@{profile.username}</span>
-              <span className="text-xs text-brand-muted">{profile.publicRepos} repos · {profile.followers} followers</span>
+      {profile ? (
+        <div className="github-preview" style={{ padding: "var(--space-4)", display: "grid", gap: "var(--space-3)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-3)", flexWrap: "wrap" }}>
+            <div>
+              <p>@{profile.username}</p>
+              {profile.bio ? <p className="result-muted">{profile.bio}</p> : null}
             </div>
-            {profile.bio && (
-              <p className="text-xs text-brand-muted">{profile.bio}</p>
-            )}
-            {profile.topLanguages.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {profile.topLanguages.map((lang) => (
-                  <span
-                    key={lang}
-                    className="rounded-full border border-brand-border bg-brand-bg px-2 py-0.5 text-xs text-brand-text"
-                  >
-                    {lang}
-                  </span>
-                ))}
-              </div>
-            )}
-            {profile.repos.length > 0 && (
-              <div className="mt-1 flex flex-col gap-1">
-                {profile.repos.slice(0, 3).map((repo) => (
-                  <div key={repo.name} className="flex items-center gap-2 text-xs">
-                    <span className="text-brand-text">{repo.name}</span>
-                    {repo.language && <span className="text-brand-muted">{repo.language}</span>}
-                    {repo.stars > 0 && <span className="text-brand-muted">⭐ {repo.stars}</span>}
-                  </div>
-                ))}
-              </div>
-            )}
-            <p className="text-xs text-brand-green mt-1">✓ GitHub data will be included in your analysis</p>
+            <p className="subtle-note">
+              {profile.publicRepos} repos · {profile.followers} followers
+            </p>
           </div>
+
+          {profile.topLanguages.length > 0 ? (
+            <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+              {profile.topLanguages.map((language) => (
+                <SeverityPill key={language} tone="sage" label={language} />
+              ))}
+            </div>
+          ) : null}
+
+          {profile.repos.length > 0 ? (
+            <div style={{ display: "grid", gap: "var(--space-2)" }}>
+              {profile.repos.slice(0, 3).map((repo) => (
+                <div key={repo.name} className="subcard" style={{ padding: "var(--space-3)" }}>
+                  <p>{repo.name}</p>
+                  <p className="result-muted">
+                    {[repo.language, repo.stars > 0 ? `★ ${repo.stars}` : null].filter(Boolean).join(" · ")}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          <p style={{ color: "var(--ps-green)" }}>GitHub context will be included in your analysis.</p>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

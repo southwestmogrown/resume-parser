@@ -12,8 +12,8 @@ export async function POST(req: NextRequest) {
         quantity: 1,
       },
     ],
-    success_url: `${origin}/?token={CHECKOUT_SESSION_ID}&success=true`,
-    cancel_url: `${origin}/?canceled=true`,
+    success_url: `${origin}/app?token={CHECKOUT_SESSION_ID}&success=true`,
+    cancel_url: `${origin}/app?canceled=true`,
     metadata: {
       product: 'resume_analysis',
     },

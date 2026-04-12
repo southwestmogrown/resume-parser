@@ -1,16 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import SkeletonBlock from "@/components/SkeletonBlock";
 
 interface CoverLetterProps {
   content: string | null;
   loading: boolean;
-}
-
-function Skeleton({ className }: { className?: string }) {
-  return (
-    <div className={`animate-pulse rounded bg-brand-border ${className ?? ""}`} />
-  );
 }
 
 export default function CoverLetter({ content, loading }: CoverLetterProps) {
@@ -20,19 +15,15 @@ export default function CoverLetter({ content, loading }: CoverLetterProps) {
 
   if (loading) {
     return (
-      <div className="flex flex-col gap-4 rounded-2xl border border-brand-border bg-brand-surface p-6">
-        <div className="flex items-center justify-between">
-          <Skeleton className="h-5 w-48" />
-          <Skeleton className="h-8 w-16" />
+      <div className="card result-card">
+        <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-3)", alignItems: "center" }}>
+          <div>
+            <SkeletonBlock className="h-4 w-24" />
+            <SkeletonBlock className="mt-3 h-7 w-40" />
+          </div>
+          <SkeletonBlock className="h-9 w-20" />
         </div>
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-3/4" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-2/3" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-5/6" />
+        <SkeletonBlock className="h-64 w-full" />
       </div>
     );
   }
@@ -42,43 +33,44 @@ export default function CoverLetter({ content, loading }: CoverLetterProps) {
   const handleCopy = async () => {
     await navigator.clipboard.writeText(content);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    window.setTimeout(() => setCopied(false), 2000);
   };
 
-  // Simple markdown bold rendering
   const renderText = (text: string) => {
     const parts = text.split(/(\*\*[^*]+\*\*)/g);
-    return parts.map((part, i) => {
+    return parts.map((part, index) => {
       if (part.startsWith("**") && part.endsWith("**")) {
-        return <strong key={i} className="font-semibold text-brand-text">{part.slice(2, -2)}</strong>;
+        return (
+          <strong key={index} style={{ color: "var(--ps-text-primary)" }}>
+            {part.slice(2, -2)}
+          </strong>
+        );
       }
-      return <span key={i}>{part}</span>;
+      return <span key={index}>{part}</span>;
     });
   };
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-brand-border bg-brand-surface p-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-brand-text">📝 Cover Letter Draft</h2>
-        <button
-          onClick={handleCopy}
-          className="rounded-lg border border-brand-border bg-brand-bg px-3 py-1.5 text-xs text-brand-muted transition-colors hover:border-brand-accent hover:text-brand-text"
-        >
-          {copied ? "Copied!" : "Copy"}
+    <div className="card result-card">
+      <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-3)", alignItems: "center", flexWrap: "wrap" }}>
+        <div>
+          <div className="eyebrow">phase 4</div>
+          <h2 style={{ fontSize: "1.3rem" }}>Cover letter draft</h2>
+        </div>
+        <button type="button" onClick={() => void handleCopy()} className="btn-ghost btn-inline copy-button">
+          {copied ? "Copied" : "Copy"}
         </button>
       </div>
 
-      <div className="rounded-lg border border-brand-border bg-brand-bg px-5 py-4">
-        {content.split("\n\n").map((paragraph, i) => (
-          <p key={i} className={`text-sm leading-relaxed text-brand-muted ${i > 0 ? "mt-4" : ""}`}>
+      <div className="cover-letter-panel" style={{ padding: "var(--space-5, 1.25rem)" }}>
+        {content.split("\n\n").map((paragraph, index) => (
+          <p key={index} className="result-muted" style={{ marginTop: index === 0 ? 0 : "var(--space-4)" }}>
             {renderText(paragraph)}
           </p>
         ))}
       </div>
 
-      <p className="text-xs text-brand-muted italic">
-        This is a first draft — personalize it with specific details about why you want this role.
-      </p>
+      <p className="result-muted">Use this as a draft, then make it sound like you.</p>
     </div>
   );
 }
