@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from('analysis_tokens')
-    .select('token, used, expires_at')
+    .select('token, uses_remaining, expires_at')
     .eq('stripe_session_id', sessionId)
     .single();
 
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Token not found' }, { status: 404 });
   }
 
-  if (data.used) {
+  if (data.uses_remaining <= 0) {
     return NextResponse.json({ error: 'Token already used' }, { status: 410 });
   }
 
