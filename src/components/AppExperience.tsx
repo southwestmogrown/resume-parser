@@ -151,26 +151,36 @@ export default function AppExperience() {
     if (success && sessionId) {
       setPaymentState("pending");
       let attempts = 0;
+      let redeeming = false;
       const poll = window.setInterval(async () => {
+        if (redeeming) return;
+
+        redeeming = true;
         attempts += 1;
-        const response = await fetch("/api/redeem-token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId }),
-        });
 
-        if (response.ok) {
-          const { token } = await response.json();
-          setAnalysisToken(token);
-          setPaymentState("paid");
-          window.clearInterval(poll);
-          window.history.replaceState({}, "", "/app");
-        }
+        try {
+          const response = await fetch("/api/redeem-token", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionId }),
+          });
 
-        if (attempts >= 10) {
-          window.clearInterval(poll);
-          setPaymentState("canceled");
-          window.history.replaceState({}, "", "/app");
+          if (response.ok) {
+            const { token } = await response.json();
+            setAnalysisToken(token);
+            setPaymentState("paid");
+            window.clearInterval(poll);
+            window.history.replaceState({}, "", "/app");
+            return;
+          }
+
+          if (attempts >= 10) {
+            window.clearInterval(poll);
+            setPaymentState("canceled");
+            window.history.replaceState({}, "", "/app");
+          }
+        } finally {
+          redeeming = false;
         }
       }, 1000);
 
