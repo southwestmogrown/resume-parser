@@ -2,7 +2,7 @@ import { anthropic } from '@/lib/anthropic';
 import { NextRequest, NextResponse } from 'next/server';
 import type { ExtractRequest, ExtractResponse, ResumeData } from '@/lib/types';
 
-export const maxDuration = 9;
+export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
   let body: Partial<ExtractRequest>;
