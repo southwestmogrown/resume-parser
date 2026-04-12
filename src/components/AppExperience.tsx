@@ -1,8 +1,10 @@
 "use client";
 
+import JSZip from "jszip";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import BatchResults from "@/components/BatchResults";
+import CheckoutModal from "@/components/CheckoutModal";
 import CoverLetter from "@/components/CoverLetter";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import GitHubConnect from "@/components/GitHubConnect";
@@ -29,6 +31,8 @@ import type {
   StudyItem,
   StudyPlanResponse,
 } from "@/lib/types";
+
+const LS_KEY = "ps_workspace_v1";
 
 type ResultTab = "rewrites" | "study" | "cover";
 
@@ -62,6 +66,7 @@ export default function AppExperience() {
   const [githubProfile, setGithubProfile] = useState<GitHubProfile | null>(null);
   const [linkedinProfile, setLinkedinProfile] = useState<LinkedInProfile | null>(null);
   const [batchResults, setBatchResults] = useState<BatchScoreResult[] | null>(null);
+  const [selectedBatchJD, setSelectedBatchJD] = useState<string | null>(null);
   const [loadingExtraction, setLoadingExtraction] = useState(false);
   const [loadingScore, setLoadingScore] = useState(false);
   const [loadingRewrite, setLoadingRewrite] = useState(false);
@@ -72,6 +77,7 @@ export default function AppExperience() {
   const [analysisToken, setAnalysisToken] = useState<string | null>(null);
   const [paymentState, setPaymentState] = useState<"idle" | "pending" | "paid" | "canceled">("idle");
   const [activeTab, setActiveTab] = useState<ResultTab>("rewrites");
+  const [checkoutClientSecret, setCheckoutClientSecret] = useState<string | null>(null);
 
   const jobDescriptionsRef = useRef(jobDescriptions);
   const resumeDataRef = useRef(resumeData);
@@ -98,6 +104,56 @@ export default function AppExperience() {
   useEffect(() => {
     if (loadingCoverLetter) setActiveTab("cover");
   }, [loadingCoverLetter]);
+
+  // ── localStorage persistence ──────────────────────────────────────────────
+
+  // Restore on mount (skip if coming back from Stripe redirect — sessionStorage handles that)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("success") || params.get("canceled")) return;
+
+    try {
+      const saved = localStorage.getItem(LS_KEY);
+      if (!saved) return;
+      const d = JSON.parse(saved) as Record<string, unknown>;
+      if (d.resumeData) setResumeData(d.resumeData as ResumeData);
+      if (d.matchResult) setMatchResult(d.matchResult as MatchResult);
+      if (d.batchResults) setBatchResults(d.batchResults as BatchScoreResult[]);
+      if (d.rewriteSuggestions) setRewriteSuggestions(d.rewriteSuggestions as RewriteSuggestion[]);
+      if (d.studyItems) setStudyItems(d.studyItems as StudyItem[]);
+      if (d.coverLetter) setCoverLetter(d.coverLetter as string);
+      if (Array.isArray(d.jobDescriptions) && (d.jobDescriptions as string[]).length > 0) {
+        setJobDescriptions(d.jobDescriptions as string[]);
+      }
+      if (d.githubProfile) setGithubProfile(d.githubProfile as GitHubProfile);
+      if (d.linkedinProfile) setLinkedinProfile(d.linkedinProfile as LinkedInProfile);
+      if (d.analysisToken) setAnalysisToken(d.analysisToken as string);
+    } catch {
+      localStorage.removeItem(LS_KEY);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Save whenever key state changes (skip if nothing to save)
+  useEffect(() => {
+    if (!resumeData && !matchResult && !batchResults) return;
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify({
+        resumeData,
+        matchResult,
+        batchResults,
+        rewriteSuggestions,
+        studyItems,
+        coverLetter,
+        jobDescriptions,
+        githubProfile,
+        linkedinProfile,
+        analysisToken,
+      }));
+    } catch {
+      // Storage unavailable or full
+    }
+  }, [resumeData, matchResult, batchResults, rewriteSuggestions, studyItems, coverLetter, jobDescriptions, githubProfile, linkedinProfile, analysisToken]);
 
   const canAnalyze = Boolean((resumeFile || resumeData) && jobDescriptions.length > 0);
   const isBusy = loadingExtraction || loadingScore || loadingRewrite || loadingCoverLetter || loadingStudyPlan || loadingBatch;
@@ -325,6 +381,7 @@ export default function AppExperience() {
     setCoverLetter(null);
     setStudyItems(null);
     setBatchResults(null);
+    setSelectedBatchJD(null);
 
     let extracted: ResumeData;
 
@@ -445,6 +502,7 @@ export default function AppExperience() {
     await runPaidPhases(extracted, scoreResult, jd);
   }, [analysisToken, resumeFile, runPaidPhases]);
 
+  // Batch drill-down: keep batchResults visible, track selected JD
   const handleBatchDrillDown = useCallback(
     (result: BatchScoreResult) => {
       const drillMatchResult: MatchResult = {
@@ -453,16 +511,24 @@ export default function AppExperience() {
         missingSkills: result.topGaps,
         recommendation: result.recommendation,
       };
+      setSelectedBatchJD(result.jobDescription);
       setJobDescriptions([result.jobDescription]);
       setMatchResult(drillMatchResult);
       setRewriteSuggestions(null);
       setStudyItems(null);
       setCoverLetter(null);
-      setBatchResults(null);
-      // Auto-trigger effect handles paid phases if token exists
+      // batchResults intentionally preserved — auto-trigger handles paid phases if token exists
     },
     []
   );
+
+  const handleBatchBack = useCallback(() => {
+    setSelectedBatchJD(null);
+    setMatchResult(null);
+    setRewriteSuggestions(null);
+    setStudyItems(null);
+    setCoverLetter(null);
+  }, []);
 
   const handlePay = useCallback(async () => {
     try {
@@ -472,6 +538,7 @@ export default function AppExperience() {
       const currentGithubProfile = githubProfileRef.current;
       const currentLinkedinProfile = linkedinProfileRef.current;
 
+      // Preserve state for post-redirect restoration
       sessionStorage.setItem("pending_jds", JSON.stringify(currentJDs));
       if (currentResumeData) sessionStorage.setItem("pending_resume_data", JSON.stringify(currentResumeData));
       if (currentMatchResult) sessionStorage.setItem("pending_match_result", JSON.stringify(currentMatchResult));
@@ -480,12 +547,85 @@ export default function AppExperience() {
 
       const response = await fetch("/api/create-checkout", { method: "POST" });
       if (!response.ok) throw new Error("Checkout setup failed.");
-      const { url } = await response.json();
-      window.location.href = url;
+      const { clientSecret } = await response.json();
+      setCheckoutClientSecret(clientSecret);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Checkout setup failed.");
     }
   }, []);
+
+  // ── Export ────────────────────────────────────────────────────────────────
+
+  const handleExportZip = useCallback(async () => {
+    const zip = new JSZip();
+
+    if (coverLetter) {
+      zip.file("cover-letter.txt", coverLetter);
+    }
+
+    if (rewriteSuggestions?.length) {
+      const bulletsText = rewriteSuggestions
+        .map((s) =>
+          [
+            s.originalRole,
+            "",
+            `Before: ${s.originalBullet}`,
+            "",
+            `After:  ${s.rewrittenBullet}`,
+            "",
+            `Why:    ${s.rationale}`,
+          ].join("\n")
+        )
+        .join("\n\n---\n\n");
+      zip.file("optimized-bullets.txt", bulletsText);
+    }
+
+    if (studyItems?.length) {
+      const studyText = studyItems
+        .map((item) =>
+          [
+            `[${item.severity.toUpperCase()}] ${item.skill}`,
+            item.action,
+            `Resource: ${item.resource}`,
+          ].join("\n")
+        )
+        .join("\n\n---\n\n");
+      zip.file("study-plan.txt", studyText);
+    }
+
+    if (matchResult) {
+      const reportLines = [
+        "MATCH REPORT",
+        "============",
+        `Score: ${matchResult.score}%`,
+        "",
+        `Recommendation: ${matchResult.recommendation}`,
+        "",
+        `Matched Skills: ${matchResult.matchedSkills.join(", ")}`,
+        "",
+        "Gaps:",
+        ...matchResult.missingSkills.map((g) => `  [${g.severity}] ${g.skill}: ${g.reason}`),
+      ];
+      zip.file("match-report.txt", reportLines.join("\n"));
+    }
+
+    if (batchResults?.length) {
+      const batchText = batchResults
+        .map((r) =>
+          [`${r.jobTitle} @ ${r.company}`, `Score: ${r.score}%`, r.recommendation].join("\n")
+        )
+        .join("\n\n---\n\n");
+      zip.file("batch-scores.txt", batchText);
+    }
+
+    const content = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(content);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `passstack-${resumeData?.name?.replace(/\s+/g, "-").toLowerCase() ?? "analysis"}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [coverLetter, rewriteSuggestions, studyItems, matchResult, batchResults, resumeData]);
 
   const resetWorkspace = useCallback(() => {
     setMatchResult(null);
@@ -495,9 +635,11 @@ export default function AppExperience() {
     setCoverLetter(null);
     setStudyItems(null);
     setBatchResults(null);
+    setSelectedBatchJD(null);
     setJobDescriptions([]);
     setError(null);
     setActiveTab("rewrites");
+    try { localStorage.removeItem(LS_KEY); } catch { /* ignore */ }
   }, []);
 
   const getAnalyzeButtonText = () => {
@@ -506,15 +648,24 @@ export default function AppExperience() {
     return jobDescriptions.length > 1 ? "Score all jobs" : "Analyze";
   };
 
+  const canExport = (hasPaidContent || Boolean(batchResults)) && !loadingPaid && !loadingBatch;
+
   return (
     <ErrorBoundary>
       <main className="app-shell">
+        {checkoutClientSecret && (
+          <CheckoutModal
+            clientSecret={checkoutClientSecret}
+            onClose={() => setCheckoutClientSecret(null)}
+          />
+        )}
+
         <nav className="site-nav site-nav--scrolled">
           <div className="container nav-inner">
             <Link href="/" className="brand-mark" aria-label="PassStack home">
               <PassStackLogo />
             </Link>
-            {!analysisToken && (
+            {!analysisToken && !checkoutClientSecret && (
               <button type="button" onClick={() => void handlePay()} className="btn-primary">
                 Unlock — $5 →
               </button>
@@ -629,24 +780,56 @@ export default function AppExperience() {
                       {linkedinProfile?.currentCompany ? ` · ${linkedinProfile.currentCompany}` : ""}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={resetWorkspace}
-                    className="btn-ghost btn-inline"
-                    style={{ alignSelf: "flex-start", fontSize: "11px" }}
-                  >
-                    ↩ New analysis
-                  </button>
+                  <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={resetWorkspace}
+                      className="btn-ghost btn-inline"
+                      style={{ alignSelf: "flex-start", fontSize: "11px" }}
+                    >
+                      ↩ New analysis
+                    </button>
+                    {canExport && (
+                      <button
+                        type="button"
+                        onClick={() => void handleExportZip()}
+                        className="btn-ghost btn-inline"
+                        style={{ alignSelf: "flex-start", fontSize: "11px" }}
+                      >
+                        ↓ Export .zip
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Right main — batch results or tabbed paid content */}
+              {/* Right main — batch results + paid content */}
               <div style={{ display: "grid", gap: "var(--space-6)", alignContent: "start" }}>
                 {(batchResults || loadingBatch) && (
-                  <BatchResults results={batchResults} loading={loadingBatch} onSelect={handleBatchDrillDown} />
+                  <BatchResults
+                    results={batchResults}
+                    loading={loadingBatch}
+                    onSelect={handleBatchDrillDown}
+                    selectedJD={selectedBatchJD}
+                  />
                 )}
 
-                {!batchResults && !loadingBatch && (hasPaidContent || loadingPaid) && (
+                {/* Drill-down header with back button */}
+                {selectedBatchJD && (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-4)" }}>
+                    <button
+                      type="button"
+                      onClick={handleBatchBack}
+                      className="btn-ghost btn-inline"
+                      style={{ fontSize: "11px" }}
+                    >
+                      ← Back to all
+                    </button>
+                    <span className="eyebrow" style={{ marginBottom: 0 }}>selected role</span>
+                  </div>
+                )}
+
+                {(hasPaidContent || loadingPaid) && (
                   <>
                     <div className="result-tabs">
                       <button

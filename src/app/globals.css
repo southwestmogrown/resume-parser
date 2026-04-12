@@ -935,6 +935,63 @@ main {
   50% { opacity: 0.4; }
 }
 
+/* Modal overlay */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+}
+
+.modal-container {
+  background: var(--ps-bg-card);
+  border: 1px solid var(--ps-border-mid);
+  border-radius: var(--radius-xl);
+  max-width: 520px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.modal-container::-webkit-scrollbar {
+  display: none;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--ps-border);
+}
+
+.modal-close {
+  color: var(--ps-text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.modal-close:hover {
+  color: var(--ps-text-primary);
+}
+
+.modal-body {
+  padding: var(--space-6);
+}
+
+/* Batch row selected state */
+.batch-row--selected {
+  border-color: var(--ps-accent) !important;
+  background: rgba(57, 217, 184, 0.05) !important;
+}
+
 @media (max-width: 1100px) {
   .workspace-results {
     grid-template-columns: 300px 1fr;

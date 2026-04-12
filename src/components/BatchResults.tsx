@@ -10,6 +10,7 @@ interface BatchResultsProps {
   results: BatchScoreResult[] | null;
   loading: boolean;
   onSelect: (result: BatchScoreResult) => void;
+  selectedJD?: string | null;
 }
 
 type SortField = "score" | "company" | "jobTitle";
@@ -21,7 +22,7 @@ const sortOptions: Array<{ field: SortField; label: string }> = [
   { field: "jobTitle", label: "Title" },
 ];
 
-export default function BatchResults({ results, loading, onSelect }: BatchResultsProps) {
+export default function BatchResults({ results, loading, onSelect, selectedJD }: BatchResultsProps) {
   const [sortField, setSortField] = useState<SortField>("score");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
@@ -90,7 +91,7 @@ export default function BatchResults({ results, loading, onSelect }: BatchResult
             key={`${result.company}-${result.jobTitle}`}
             type="button"
             onClick={() => onSelect(result)}
-            className="batch-row"
+            className={`batch-row${result.jobDescription === selectedJD ? " batch-row--selected" : ""}`}
             style={{
               padding: "var(--space-4)",
               display: "grid",
@@ -110,7 +111,9 @@ export default function BatchResults({ results, loading, onSelect }: BatchResult
                 ))}
               </div>
             </div>
-            <span className="subtle-note">Open →</span>
+            <span className="subtle-note" style={result.jobDescription === selectedJD ? { color: "var(--ps-accent)" } : {}}>
+              {result.jobDescription === selectedJD ? "Selected" : "Open →"}
+            </span>
           </button>
         ))}
       </div>
