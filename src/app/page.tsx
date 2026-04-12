@@ -631,17 +631,8 @@ export default function Home() {
             </div>
           )}
 
-          {/* PayGate (after Phase 1) — replaces results section when shown */}
-          {showPayGate ? (
-            <div className="mt-10">
-              <PayGate
-                resumeData={resumeData}
-                paymentState={paymentState}
-                onPay={handlePay}
-                onCancel={handlePayCancel}
-              />
-            </div>
-          ) : showResults && (
+          {/* Results section */}
+          {showResults && (
             <div className="mt-10 flex flex-col gap-6">
               {/* Batch results */}
               {(batchResults || loadingBatch) && (
@@ -660,6 +651,16 @@ export default function Home() {
                     <ResumeProfile data={resumeData} loading={loadingExtraction} />
                     <MatchScore result={matchResult} loading={loadingScore} />
                   </div>
+
+                  {/* PayGate (after Phase 1) — shown below extracted resume */}
+                  {showPayGate && (
+                    <PayGate
+                      resumeData={resumeData}
+                      paymentState={paymentState}
+                      onPay={handlePay}
+                      onCancel={handlePayCancel}
+                    />
+                  )}
 
                   {/* Rewrites */}
                   <ResumeRewriter suggestions={rewriteSuggestions} loading={loadingRewrite} />
