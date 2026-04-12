@@ -281,6 +281,11 @@ export default function AppExperience() {
       setLoadingStudyPlan(true);
       setActiveTab("rewrites");
 
+      const handleTokenInvalid = () => {
+        setAnalysisToken(null);
+        setPaymentState("idle");
+      };
+
       const rewritePromise = fetch("/api/rewrite", {
         method: "POST",
         headers: {
@@ -295,6 +300,7 @@ export default function AppExperience() {
         }),
       })
         .then(async (res) => {
+          if (res.status === 401 || res.status === 402) { handleTokenInvalid(); return; }
           if (!res.ok) throw new Error("Rewrite generation failed");
           const data: RewriteResponse = await res.json();
           setRewriteSuggestions(data.suggestions);
@@ -315,6 +321,7 @@ export default function AppExperience() {
         }),
       })
         .then(async (res) => {
+          if (res.status === 401 || res.status === 402) { handleTokenInvalid(); return; }
           if (!res.ok) throw new Error("Study plan generation failed");
           const data: StudyPlanResponse = await res.json();
           setStudyItems(data.items);
@@ -341,7 +348,9 @@ export default function AppExperience() {
           }),
         });
 
-        if (coverRes.ok && coverRes.body) {
+        if ((coverRes.status === 401 || coverRes.status === 402)) {
+          handleTokenInvalid();
+        } else if (coverRes.ok && coverRes.body) {
           const reader = coverRes.body.getReader();
           const decoder = new TextDecoder();
           let text = "";
