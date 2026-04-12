@@ -28,6 +28,12 @@ const phases = [
   },
 ] as const;
 
+const testimonials = [
+  { id: 'placeholder-1' },
+  { id: 'placeholder-2' },
+  { id: 'placeholder-3' },
+] as const;
+
 const steps = [
   {
     number: "01",
@@ -241,9 +247,9 @@ export default function LandingPage() {
             </Link>
           </div>
           <div className="placeholder-grid">
-            {Array.from({ length: 3 }).map((_, index) => (
+            {testimonials.map((testimonial, index) => (
               <div
-                key={index}
+                key={testimonial.id}
                 className="placeholder-card reveal"
                 data-reveal
                 style={{ "--delay": `${index * 80}ms` } as React.CSSProperties}

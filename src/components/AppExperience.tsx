@@ -75,6 +75,8 @@ export default function AppExperience() {
   const resumeDataRef = useRef(resumeData);
   const githubProfileRef = useRef(githubProfile);
   const inputModeRef = useRef(inputMode);
+  const pollIntervalRef = useRef<number | null>(null);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
     jobDescriptionRef.current = jobDescription;
@@ -91,6 +93,15 @@ export default function AppExperience() {
   useEffect(() => {
     inputModeRef.current = inputMode;
   }, [inputMode]);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (pollIntervalRef.current !== null) {
+        window.clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, []);
 
   const canAnalyze = Boolean(resumeFile && jobDescription.trim().length > 0);
   const isScoring = loadingExtraction || loadingScore;
@@ -152,7 +163,7 @@ export default function AppExperience() {
       setPaymentState("pending");
       let attempts = 0;
       let redeeming = false;
-      const poll = window.setInterval(async () => {
+      pollIntervalRef.current = window.setInterval(async () => {
         if (redeeming) return;
 
         redeeming = true;
@@ -165,17 +176,30 @@ export default function AppExperience() {
             body: JSON.stringify({ sessionId }),
           });
 
+          if (!isMountedRef.current) {
+            return;
+          }
+
           if (response.ok) {
             const { token } = await response.json();
+            if (!isMountedRef.current) {
+              return;
+            }
             setAnalysisToken(token);
             setPaymentState("paid");
-            window.clearInterval(poll);
+            if (pollIntervalRef.current !== null) {
+              window.clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
             window.history.replaceState({}, "", "/app");
             return;
           }
 
           if (attempts >= 10) {
-            window.clearInterval(poll);
+            if (pollIntervalRef.current !== null) {
+              window.clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
             setPaymentState("canceled");
             window.history.replaceState({}, "", "/app");
           }
@@ -184,7 +208,12 @@ export default function AppExperience() {
         }
       }, 1000);
 
-      return () => window.clearInterval(poll);
+      return () => {
+        if (pollIntervalRef.current !== null) {
+          window.clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+        }
+      };
     }
   }, []);
 
