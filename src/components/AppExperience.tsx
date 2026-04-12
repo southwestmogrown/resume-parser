@@ -31,6 +31,10 @@ import type {
 
 type InputMode = "single" | "batch";
 
+function isInputMode(value: string | null): value is InputMode {
+  return value === "single" || value === "batch";
+}
+
 function StepPill({
   number,
   label,
@@ -75,7 +79,7 @@ export default function AppExperience() {
   const resumeDataRef = useRef(resumeData);
   const githubProfileRef = useRef(githubProfile);
   const inputModeRef = useRef(inputMode);
-  const pollIntervalRef = useRef<number | null>(null);
+  const pollTimeoutRef = useRef<number | ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -97,8 +101,8 @@ export default function AppExperience() {
   useEffect(() => {
     return () => {
       isMountedRef.current = false;
-      if (pollIntervalRef.current !== null) {
-        window.clearInterval(pollIntervalRef.current);
+      if (pollTimeoutRef.current !== null) {
+        window.clearTimeout(pollTimeoutRef.current);
       }
     };
   }, []);
@@ -143,7 +147,7 @@ export default function AppExperience() {
           sessionStorage.removeItem("pending_github_profile");
         }
       }
-      if (savedInputMode === "single" || savedInputMode === "batch") {
+      if (isInputMode(savedInputMode)) {
         setInputMode(savedInputMode);
       }
 
@@ -163,57 +167,73 @@ export default function AppExperience() {
       setPaymentState("pending");
       let attempts = 0;
       let redeeming = false;
-      pollIntervalRef.current = window.setInterval(async () => {
-        if (redeeming) return;
 
-        redeeming = true;
-        attempts += 1;
-
-        try {
-          const response = await fetch("/api/redeem-token", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sessionId }),
-          });
-
-          if (!isMountedRef.current) {
-            return;
-          }
-
-          if (response.ok) {
-            const { token } = await response.json();
-            if (!isMountedRef.current) {
-              return;
-            }
-            setAnalysisToken(token);
-            setPaymentState("paid");
-            if (pollIntervalRef.current !== null) {
-              window.clearInterval(pollIntervalRef.current);
-              pollIntervalRef.current = null;
-            }
-            window.history.replaceState({}, "", "/app");
-            return;
-          }
-
-          if (attempts >= 10) {
-            if (pollIntervalRef.current !== null) {
-              window.clearInterval(pollIntervalRef.current);
-              pollIntervalRef.current = null;
-            }
-            setPaymentState("canceled");
-            window.history.replaceState({}, "", "/app");
-          }
-        } finally {
-          redeeming = false;
-        }
-      }, 1000);
-
-      return () => {
-        if (pollIntervalRef.current !== null) {
-          window.clearInterval(pollIntervalRef.current);
-          pollIntervalRef.current = null;
+      const clearPollTimeout = () => {
+        if (pollTimeoutRef.current !== null) {
+          window.clearTimeout(pollTimeoutRef.current);
+          pollTimeoutRef.current = null;
         }
       };
+
+      const pollForToken = () => {
+        pollTimeoutRef.current = window.setTimeout(async () => {
+          if (!isMountedRef.current) {
+            clearPollTimeout();
+            return;
+          }
+
+          if (redeeming) {
+            pollForToken();
+            return;
+          }
+
+          redeeming = true;
+          attempts += 1;
+
+          try {
+            const response = await fetch("/api/redeem-token", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ sessionId }),
+            });
+
+            if (!isMountedRef.current) {
+              clearPollTimeout();
+              return;
+            }
+
+            if (response.ok) {
+              const { token } = await response.json();
+              if (!isMountedRef.current) {
+                clearPollTimeout();
+                return;
+              }
+              setAnalysisToken(token);
+              setPaymentState("paid");
+              clearPollTimeout();
+              window.history.replaceState({}, "", "/app");
+              return;
+            }
+
+            if (attempts >= 10) {
+              clearPollTimeout();
+              setPaymentState("canceled");
+              window.history.replaceState({}, "", "/app");
+              return;
+            }
+          } finally {
+            redeeming = false;
+          }
+
+          if (isMountedRef.current) {
+            pollForToken();
+          }
+        }, 1000);
+      };
+
+      pollForToken();
+
+      return clearPollTimeout;
     }
   }, []);
 
