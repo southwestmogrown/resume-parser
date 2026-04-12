@@ -530,25 +530,18 @@ export default function AppExperience() {
     setCoverLetter(null);
   }, []);
 
+  const handlePaymentSuccess = useCallback((token: string) => {
+    setAnalysisToken(token);
+    setPaymentState("paid");
+    setCheckoutClientSecret(null);
+  }, []);
+
   const handlePay = useCallback(async () => {
     try {
-      const currentJDs = jobDescriptionsRef.current;
-      const currentResumeData = resumeDataRef.current;
-      const currentMatchResult = matchResultRef.current;
-      const currentGithubProfile = githubProfileRef.current;
-      const currentLinkedinProfile = linkedinProfileRef.current;
-
-      // Preserve state for post-redirect restoration
-      sessionStorage.setItem("pending_jds", JSON.stringify(currentJDs));
-      if (currentResumeData) sessionStorage.setItem("pending_resume_data", JSON.stringify(currentResumeData));
-      if (currentMatchResult) sessionStorage.setItem("pending_match_result", JSON.stringify(currentMatchResult));
-      if (currentGithubProfile) sessionStorage.setItem("pending_github_profile", JSON.stringify(currentGithubProfile));
-      if (currentLinkedinProfile) sessionStorage.setItem("pending_linkedin_profile", JSON.stringify(currentLinkedinProfile));
-
-      const response = await fetch("/api/create-checkout", { method: "POST" });
+      const response = await fetch("/api/create-payment-intent", { method: "POST" });
       if (!response.ok) throw new Error("Checkout setup failed.");
       const { clientSecret } = await response.json();
-      setCheckoutClientSecret(clientSecret);
+      setCheckoutClientSecret(clientSecret as string);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Checkout setup failed.");
     }
@@ -656,6 +649,7 @@ export default function AppExperience() {
         {checkoutClientSecret && (
           <CheckoutModal
             clientSecret={checkoutClientSecret}
+            onSuccess={handlePaymentSuccess}
             onClose={() => setCheckoutClientSecret(null)}
           />
         )}
