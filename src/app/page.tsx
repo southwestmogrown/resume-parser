@@ -91,6 +91,26 @@ export default function Home() {
     const success = params.get('success');
     const canceled = params.get('canceled');
 
+    // Restore persisted state from sessionStorage immediately on any Stripe redirect
+    // so the user sees their data while payment is verified (or after cancellation).
+    if (success || canceled) {
+      const savedJd = sessionStorage.getItem('pending_jd');
+      const savedResumeData = sessionStorage.getItem('pending_resume_data');
+      const savedGithubProfile = sessionStorage.getItem('pending_github_profile');
+      const savedInputMode = sessionStorage.getItem('pending_input_mode');
+
+      if (savedJd) setJobDescription(savedJd);
+      if (savedResumeData) setResumeData(JSON.parse(savedResumeData));
+      if (savedGithubProfile) setGithubProfile(JSON.parse(savedGithubProfile));
+      if (savedInputMode) setInputMode(savedInputMode as InputMode);
+
+      // Clear sessionStorage after restoring
+      sessionStorage.removeItem('pending_jd');
+      sessionStorage.removeItem('pending_resume_data');
+      sessionStorage.removeItem('pending_github_profile');
+      sessionStorage.removeItem('pending_input_mode');
+    }
+
     if (canceled) {
       setPaymentState('canceled');
       window.history.replaceState({}, '', '/');
@@ -109,33 +129,14 @@ export default function Home() {
         });
         if (res.ok) {
           const { token } = await res.json();
-
-          // Restore persisted state from sessionStorage
-          const savedJd = sessionStorage.getItem('pending_jd');
-          const savedResumeData = sessionStorage.getItem('pending_resume_data');
-          const savedGithubProfile = sessionStorage.getItem('pending_github_profile');
-          const savedInputMode = sessionStorage.getItem('pending_input_mode');
-
           setAnalysisToken(token);
           setPaymentState('paid');
-
-          if (savedJd) setJobDescription(savedJd);
-          if (savedResumeData) setResumeData(JSON.parse(savedResumeData));
-          if (savedGithubProfile) setGithubProfile(JSON.parse(savedGithubProfile));
-          if (savedInputMode) setInputMode(savedInputMode as InputMode);
-
-          // Clear sessionStorage after restoring
-          sessionStorage.removeItem('pending_jd');
-          sessionStorage.removeItem('pending_resume_data');
-          sessionStorage.removeItem('pending_github_profile');
-          sessionStorage.removeItem('pending_input_mode');
-
           clearInterval(poll);
           window.history.replaceState({}, '', '/');
         }
         if (attempts >= 10) {
           clearInterval(poll);
-          setPaymentState('idle');
+          setPaymentState('canceled');
         }
       }, 1000);
     }
@@ -481,7 +482,7 @@ export default function Home() {
     sessionStorage.removeItem('pending_input_mode');
   };
 
-  const showPayGate = !isDemoMode && !analysisToken && resumeData && !loadingExtraction && paymentState !== 'pending';
+  const showPayGate = !isDemoMode && !analysisToken && resumeData && !loadingExtraction;
 
   const showResults =
     isLoading || loadingRewrite || loadingCoverLetter || loadingStudyPlan ||
