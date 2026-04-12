@@ -317,13 +317,21 @@ export default function Home() {
         const scoreData: ScoreResponse = await scoreRes.json();
         const match = scoreData.matchResult;
 
-        // Extract job title and company from JD (best effort)
+        // Extract job title and company from JD (best effort — regex covers common patterns like "Company is seeking a Title")
         const lines = jd.split("\n").filter((l) => l.trim().length > 0);
         const firstLine = lines[0] ?? "Unknown Position";
         const seekingMatch = firstLine.match(/^(.+?)\s+(?:is seeking|is looking for|is hiring)\s+(?:a|an)\s+(.+)/i);
 
+        // Truncate at word boundary for cleaner display
+        let titleFallback = firstLine;
+        if (titleFallback.length > 80) {
+          const truncated = titleFallback.slice(0, 80);
+          const lastSpace = truncated.lastIndexOf(" ");
+          titleFallback = (lastSpace > 40 ? truncated.slice(0, lastSpace) : truncated) + "…";
+        }
+
         return {
-          jobTitle: seekingMatch ? seekingMatch[2].trim() : firstLine.slice(0, 80),
+          jobTitle: seekingMatch ? seekingMatch[2].trim() : titleFallback,
           company: seekingMatch ? seekingMatch[1].trim() : "Unknown Company",
           score: match.score,
           matchedSkills: match.matchedSkills,

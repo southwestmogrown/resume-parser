@@ -30,6 +30,12 @@ function scoreBg(score: number): string {
 type SortField = "score" | "company" | "jobTitle";
 type SortDir = "asc" | "desc";
 
+const SORT_OPTIONS: readonly (readonly [SortField, string])[] = [
+  ["score", "Score"],
+  ["company", "Company"],
+  ["jobTitle", "Title"],
+] as const;
+
 export default function BatchResults({ results, loading, onSelect }: BatchResultsProps) {
   const [sortField, setSortField] = useState<SortField>("score");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -71,7 +77,7 @@ export default function BatchResults({ results, loading, onSelect }: BatchResult
 
       {/* Sort controls */}
       <div className="flex gap-4">
-        {([["score", "Score"], ["company", "Company"], ["jobTitle", "Title"]] as const).map(([field, label]) => (
+        {SORT_OPTIONS.map(([field, label]) => (
           <button
             key={field}
             onClick={() => handleSort(field)}

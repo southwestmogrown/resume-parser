@@ -26,7 +26,7 @@ const SEVERITY_CONFIG = {
     border: "border-brand-red/30",
     bg: "bg-brand-red/10",
     text: "text-brand-red",
-    description: "Hard requirements you don\u2019t meet",
+    description: "Hard requirements you don\u0027t meet",
   },
   learnable: {
     label: "Learnable Gaps",
