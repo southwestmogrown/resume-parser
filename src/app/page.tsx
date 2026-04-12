@@ -100,8 +100,12 @@ export default function Home() {
       const savedInputMode = sessionStorage.getItem('pending_input_mode');
 
       if (savedJd) setJobDescription(savedJd);
-      if (savedResumeData) setResumeData(JSON.parse(savedResumeData));
-      if (savedGithubProfile) setGithubProfile(JSON.parse(savedGithubProfile));
+      if (savedResumeData) {
+        try { setResumeData(JSON.parse(savedResumeData)); } catch { /* ignore corrupt data */ }
+      }
+      if (savedGithubProfile) {
+        try { setGithubProfile(JSON.parse(savedGithubProfile)); } catch { /* ignore corrupt data */ }
+      }
       if (savedInputMode) setInputMode(savedInputMode as InputMode);
 
       // Clear sessionStorage after restoring
