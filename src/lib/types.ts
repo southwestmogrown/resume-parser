@@ -61,6 +61,7 @@ export interface CoverLetterRequest {
   matchResult: MatchResult;
   jobDescription: string;
   githubProfile?: GitHubProfile;
+  linkedinProfile?: LinkedInProfile;
 }
 
 export interface CoverLetterResponse {
@@ -82,6 +83,20 @@ export interface StudyPlanRequest {
 
 export interface StudyPlanResponse {
   items: StudyItem[];
+}
+
+// LinkedIn profile integration
+export interface LinkedInProfile {
+  name: string | null;
+  headline: string | null;
+  currentRole: string | null;
+  currentCompany: string | null;
+  skills: string[];
+  summary: string | null;
+}
+
+export interface LinkedInProfileResponse {
+  profile: LinkedInProfile;
 }
 
 // GitHub profile integration
@@ -134,6 +149,7 @@ export interface ScoreRequest {
   resumeData: ResumeData;
   jobDescription: string;
   githubProfile?: GitHubProfile;
+  linkedinProfile?: LinkedInProfile;
 }
 
 export interface ScoreResponse {

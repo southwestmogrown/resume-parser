@@ -1,9 +1,9 @@
 import { getAnthropic } from '@/lib/anthropic';
 import { NextRequest, NextResponse } from 'next/server';
 import { validateAndConsumeToken } from '@/lib/tokens';
-import type { CoverLetterRequest, CoverLetterResponse } from '@/lib/types';
+import type { CoverLetterRequest } from '@/lib/types';
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   const token = req.headers.get('x-analysis-token');
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { resumeData, matchResult, jobDescription, githubProfile } = body;
+  const { resumeData, matchResult, jobDescription, githubProfile, linkedinProfile } = body;
 
   if (!resumeData || !matchResult || !jobDescription) {
     return NextResponse.json(
@@ -31,11 +31,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let coverLetterMessage;
+  let stream;
   try {
-    coverLetterMessage = await getAnthropic().messages.create({
+    stream = getAnthropic().messages.stream({
       model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
+      max_tokens: 500,
       system:
         'You are an elite cover letter writer for software engineers. Your job is to help the candidate win interviews with writing that is specific, credible, and persuasive. Never invent facts, company knowledge, projects, metrics, or tools. Use the strongest truthful evidence available and avoid generic filler.',
       messages: [
@@ -60,11 +60,14 @@ ${JSON.stringify(matchResult, null, 2)}
 ${githubProfile ? `GitHub profile evidence:
 ${JSON.stringify(githubProfile, null, 2)}
 
+` : ''}${linkedinProfile ? `LinkedIn profile:
+${JSON.stringify(linkedinProfile, null, 2)}
+
 ` : ''}Job description:
 ${jobDescription}
 
 Additional rules:
-- Keep it concise and high-signal, roughly 250-400 words.
+- HARD LIMIT: 300 words maximum. Count your words before responding. Stop writing before you reach 300 words. Do not pad with closings or filler to reach a minimum.
 - Use concrete evidence from the resume and GitHub profile when available.
 - Do not claim the candidate already has a missing skill; frame learnable gaps as ramp-up strengths or active next steps.
 - Avoid bullet lists and section headers; this should read like a natural letter.
@@ -85,11 +88,25 @@ Return the cover letter as plain text (not JSON and no code fences). Use **bold*
     );
   }
 
-  const coverLetter =
-    coverLetterMessage.content[0].type === 'text'
-      ? coverLetterMessage.content[0].text
-      : '';
+  const encoder = new TextEncoder();
+  const body2 = new ReadableStream({
+    async start(controller) {
+      try {
+        for await (const chunk of stream) {
+          if (
+            chunk.type === 'content_block_delta' &&
+            chunk.delta.type === 'text_delta'
+          ) {
+            controller.enqueue(encoder.encode(chunk.delta.text));
+          }
+        }
+      } finally {
+        controller.close();
+      }
+    },
+  });
 
-  const response: CoverLetterResponse = { coverLetter };
-  return NextResponse.json(response);
+  return new Response(body2, {
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+  });
 }

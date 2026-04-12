@@ -7,19 +7,20 @@ type PaymentState = "idle" | "pending" | "paid" | "canceled";
 
 interface PayGateProps {
   resumeData: ResumeData;
+  score: number;
   paymentState: PaymentState;
   onPay: () => void;
 }
 
-export default function PayGate({ resumeData, paymentState, onPay }: PayGateProps) {
+export default function PayGate({ resumeData, score, paymentState, onPay }: PayGateProps) {
   return (
     <div className="card card-accent result-card">
       <div>
         <div className="eyebrow" style={{ color: "var(--ps-accent)" }}>
-          phase 1 complete
+          your score
         </div>
         <h2 className="display" style={{ fontSize: "1.9rem" }}>
-          Ready to see where you stand?
+          {score}% match — unlock the full battle plan
         </h2>
       </div>
 
@@ -31,10 +32,9 @@ export default function PayGate({ resumeData, paymentState, onPay }: PayGateProp
       </div>
 
       <ul className="feature-list">
-        <li>Match score vs. this JD</li>
-        <li>Gap breakdown — 3 tiers</li>
-        <li>Bullet rewrites</li>
-        <li>Cover letter + study plan</li>
+        <li>Bullet rewrites — reframed against the JD</li>
+        <li>Study plan for each gap with resources</li>
+        <li>Cover letter draft, ready to customize</li>
       </ul>
 
       {paymentState === "pending" ? (

@@ -1,7 +1,7 @@
 import { getAnthropic } from '@/lib/anthropic';
 import { NextRequest, NextResponse } from 'next/server';
 import { validateAndConsumeToken } from '@/lib/tokens';
-import type { RewriteRequest, RewriteResponse, RewriteSuggestion } from '@/lib/types';
+import type { RewriteRequest, RewriteResponse, RewriteSuggestion, LinkedInProfile } from '@/lib/types';
 
 export const maxDuration = 30;
 
@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { resumeData, jobDescription } = body;
+  const linkedinProfile = (body as { linkedinProfile?: LinkedInProfile }).linkedinProfile ?? null;
 
   if (!resumeData || !jobDescription) {
     return NextResponse.json(
@@ -46,7 +47,10 @@ export async function POST(req: NextRequest) {
 Resume data:
 ${JSON.stringify(resumeData, null, 2)}
 
-Job description:
+${linkedinProfile ? `LinkedIn profile context:
+${JSON.stringify(linkedinProfile, null, 2)}
+
+` : ''}Job description:
 ${jobDescription}
 
 Rules:

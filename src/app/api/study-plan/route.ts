@@ -1,7 +1,7 @@
 import { getAnthropic } from '@/lib/anthropic';
 import { NextRequest, NextResponse } from 'next/server';
 import { validateAndConsumeToken } from '@/lib/tokens';
-import type { StudyPlanRequest, StudyPlanResponse, StudyItem } from '@/lib/types';
+import type { StudyPlanRequest, StudyPlanResponse, StudyItem, LinkedInProfile } from '@/lib/types';
 
 export const maxDuration = 30;
 
@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { matchResult, resumeData } = body;
+  const linkedinProfile = (body as { linkedinProfile?: LinkedInProfile }).linkedinProfile ?? null;
 
   if (!matchResult || !resumeData) {
     return NextResponse.json(
@@ -56,7 +57,10 @@ export async function POST(req: NextRequest) {
 Candidate background:
 ${JSON.stringify(resumeData, null, 2)}
 
-Skill gaps to address:
+${linkedinProfile ? `LinkedIn profile context:
+${JSON.stringify(linkedinProfile, null, 2)}
+
+` : ''}Skill gaps to address:
 ${JSON.stringify(actionableGaps, null, 2)}
 
 For each gap, suggest a concrete action that:

@@ -2,16 +2,15 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import BatchJobDescriptions from "@/components/BatchJobDescriptions";
 import BatchResults from "@/components/BatchResults";
 import CoverLetter from "@/components/CoverLetter";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import GitHubConnect from "@/components/GitHubConnect";
-import JobDescription from "@/components/JobDescription";
+import JobDescriptionList from "@/components/JobDescriptionList";
+import LinkedInConnect from "@/components/LinkedInConnect";
 import MatchScore from "@/components/MatchScore";
 import PassStackLogo from "@/components/PassStackLogo";
 import PayGate from "@/components/PayGate";
-import ResumeProfile from "@/components/ResumeProfile";
 import ResumeRewriter from "@/components/ResumeRewriter";
 import ResumeUpload from "@/components/ResumeUpload";
 import Spinner from "@/components/Spinner";
@@ -21,6 +20,7 @@ import type {
   BatchScoreResult,
   ExtractResponse,
   GitHubProfile,
+  LinkedInProfile,
   MatchResult,
   ResumeData,
   RewriteResponse,
@@ -30,11 +30,7 @@ import type {
   StudyPlanResponse,
 } from "@/lib/types";
 
-type InputMode = "single" | "batch";
-
-function isInputMode(value: string | null): value is InputMode {
-  return value === "single" || value === "batch";
-}
+type ResultTab = "rewrites" | "study" | "cover";
 
 function StepPill({
   number,
@@ -57,13 +53,14 @@ function StepPill({
 
 export default function AppExperience() {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
-  const [jobDescription, setJobDescription] = useState("");
+  const [jobDescriptions, setJobDescriptions] = useState<string[]>([]);
   const [resumeData, setResumeData] = useState<ResumeData | null>(null);
   const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
   const [rewriteSuggestions, setRewriteSuggestions] = useState<RewriteSuggestion[] | null>(null);
   const [coverLetter, setCoverLetter] = useState<string | null>(null);
   const [studyItems, setStudyItems] = useState<StudyItem[] | null>(null);
   const [githubProfile, setGithubProfile] = useState<GitHubProfile | null>(null);
+  const [linkedinProfile, setLinkedinProfile] = useState<LinkedInProfile | null>(null);
   const [batchResults, setBatchResults] = useState<BatchScoreResult[] | null>(null);
   const [loadingExtraction, setLoadingExtraction] = useState(false);
   const [loadingScore, setLoadingScore] = useState(false);
@@ -72,55 +69,53 @@ export default function AppExperience() {
   const [loadingStudyPlan, setLoadingStudyPlan] = useState(false);
   const [loadingBatch, setLoadingBatch] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [inputMode, setInputMode] = useState<InputMode>("single");
   const [analysisToken, setAnalysisToken] = useState<string | null>(null);
   const [paymentState, setPaymentState] = useState<"idle" | "pending" | "paid" | "canceled">("idle");
+  const [activeTab, setActiveTab] = useState<ResultTab>("rewrites");
 
-  const jobDescriptionRef = useRef(jobDescription);
+  const jobDescriptionsRef = useRef(jobDescriptions);
   const resumeDataRef = useRef(resumeData);
+  const matchResultRef = useRef(matchResult);
   const githubProfileRef = useRef(githubProfile);
-  const inputModeRef = useRef(inputMode);
+  const linkedinProfileRef = useRef(linkedinProfile);
   const pollTimeoutRef = useRef<number | ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
 
-  useEffect(() => {
-    jobDescriptionRef.current = jobDescription;
-  }, [jobDescription]);
-
-  useEffect(() => {
-    resumeDataRef.current = resumeData;
-  }, [resumeData]);
-
-  useEffect(() => {
-    githubProfileRef.current = githubProfile;
-  }, [githubProfile]);
-
-  useEffect(() => {
-    inputModeRef.current = inputMode;
-  }, [inputMode]);
+  useEffect(() => { jobDescriptionsRef.current = jobDescriptions; }, [jobDescriptions]);
+  useEffect(() => { resumeDataRef.current = resumeData; }, [resumeData]);
+  useEffect(() => { matchResultRef.current = matchResult; }, [matchResult]);
+  useEffect(() => { githubProfileRef.current = githubProfile; }, [githubProfile]);
+  useEffect(() => { linkedinProfileRef.current = linkedinProfile; }, [linkedinProfile]);
 
   useEffect(() => {
     return () => {
       isMountedRef.current = false;
-      if (pollTimeoutRef.current !== null) {
-        window.clearTimeout(pollTimeoutRef.current);
-      }
+      if (pollTimeoutRef.current !== null) window.clearTimeout(pollTimeoutRef.current);
     };
   }, []);
 
-  const canAnalyze = Boolean(resumeFile && jobDescription.trim().length > 0);
-  const isScoring = loadingExtraction || loadingScore;
-  const isBusy = isScoring || loadingRewrite || loadingCoverLetter || loadingStudyPlan || loadingBatch;
+  // Auto-switch to cover letter tab when it starts streaming
+  useEffect(() => {
+    if (loadingCoverLetter) setActiveTab("cover");
+  }, [loadingCoverLetter]);
 
-  const clearResults = useCallback(() => {
-    setResumeData(null);
-    setMatchResult(null);
-    setRewriteSuggestions(null);
-    setCoverLetter(null);
-    setStudyItems(null);
-    setBatchResults(null);
-  }, []);
+  const canAnalyze = Boolean((resumeFile || resumeData) && jobDescriptions.length > 0);
+  const isBusy = loadingExtraction || loadingScore || loadingRewrite || loadingCoverLetter || loadingStudyPlan || loadingBatch;
+  const showPayGate = !analysisToken && Boolean(matchResult) && !loadingScore && !loadingExtraction;
+  const hasPaidContent = Boolean(rewriteSuggestions) || Boolean(studyItems) || Boolean(coverLetter);
+  const loadingPaid = loadingRewrite || loadingStudyPlan || loadingCoverLetter;
+  const showResults =
+    Boolean(resumeData) ||
+    Boolean(matchResult) ||
+    Boolean(batchResults) ||
+    loadingExtraction ||
+    loadingScore ||
+    loadingRewrite ||
+    loadingCoverLetter ||
+    loadingStudyPlan ||
+    loadingBatch;
 
+  // Redirect handling: restore session state and poll for token after Stripe redirect
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const sessionId = params.get("token");
@@ -128,34 +123,33 @@ export default function AppExperience() {
     const canceled = params.get("canceled");
 
     if (success || canceled) {
-      const savedJd = sessionStorage.getItem("pending_jd");
+      const savedJds = sessionStorage.getItem("pending_jds");
       const savedResumeData = sessionStorage.getItem("pending_resume_data");
+      const savedMatchResult = sessionStorage.getItem("pending_match_result");
       const savedGithubProfile = sessionStorage.getItem("pending_github_profile");
-      const savedInputMode = sessionStorage.getItem("pending_input_mode");
+      const savedLinkedinProfile = sessionStorage.getItem("pending_linkedin_profile");
 
-      if (savedJd) setJobDescription(savedJd);
+      if (savedJds) {
+        try { setJobDescriptions(JSON.parse(savedJds)); } catch { sessionStorage.removeItem("pending_jds"); }
+      }
       if (savedResumeData) {
-        try {
-          setResumeData(JSON.parse(savedResumeData));
-        } catch {
-          sessionStorage.removeItem("pending_resume_data");
-        }
+        try { setResumeData(JSON.parse(savedResumeData)); } catch { sessionStorage.removeItem("pending_resume_data"); }
+      }
+      if (savedMatchResult) {
+        try { setMatchResult(JSON.parse(savedMatchResult)); } catch { sessionStorage.removeItem("pending_match_result"); }
       }
       if (savedGithubProfile) {
-        try {
-          setGithubProfile(JSON.parse(savedGithubProfile));
-        } catch {
-          sessionStorage.removeItem("pending_github_profile");
-        }
+        try { setGithubProfile(JSON.parse(savedGithubProfile)); } catch { sessionStorage.removeItem("pending_github_profile"); }
       }
-      if (isInputMode(savedInputMode)) {
-        setInputMode(savedInputMode);
+      if (savedLinkedinProfile) {
+        try { setLinkedinProfile(JSON.parse(savedLinkedinProfile)); } catch { sessionStorage.removeItem("pending_linkedin_profile"); }
       }
 
-      sessionStorage.removeItem("pending_jd");
+      sessionStorage.removeItem("pending_jds");
       sessionStorage.removeItem("pending_resume_data");
+      sessionStorage.removeItem("pending_match_result");
       sessionStorage.removeItem("pending_github_profile");
-      sessionStorage.removeItem("pending_input_mode");
+      sessionStorage.removeItem("pending_linkedin_profile");
     }
 
     if (canceled) {
@@ -178,15 +172,8 @@ export default function AppExperience() {
 
       const pollForToken = () => {
         pollTimeoutRef.current = window.setTimeout(async () => {
-          if (!isMountedRef.current) {
-            clearPollTimeout();
-            return;
-          }
-
-          if (redeeming) {
-            pollForToken();
-            return;
-          }
+          if (!isMountedRef.current) { clearPollTimeout(); return; }
+          if (redeeming) { pollForToken(); return; }
 
           redeeming = true;
           attempts += 1;
@@ -198,17 +185,11 @@ export default function AppExperience() {
               body: JSON.stringify({ sessionId }),
             });
 
-            if (!isMountedRef.current) {
-              clearPollTimeout();
-              return;
-            }
+            if (!isMountedRef.current) { clearPollTimeout(); return; }
 
             if (response.ok) {
               const { token } = await response.json();
-              if (!isMountedRef.current) {
-                clearPollTimeout();
-                return;
-              }
+              if (!isMountedRef.current) { clearPollTimeout(); return; }
               setAnalysisToken(token);
               setPaymentState("paid");
               clearPollTimeout();
@@ -226,56 +207,23 @@ export default function AppExperience() {
             redeeming = false;
           }
 
-          if (isMountedRef.current) {
-            pollForToken();
-          }
+          if (isMountedRef.current) pollForToken();
         }, 1000);
       };
 
       pollForToken();
-
       return clearPollTimeout;
     }
   }, []);
 
+  // runPaidPhases — phases 3a, 3b (parallel), then 4 (streaming cover letter)
   const runPaidPhases = useCallback(
-    async (extracted: ResumeData) => {
+    async (resumeDataArg: ResumeData, matchResultArg: MatchResult, jd: string) => {
       if (!analysisToken) return;
 
-      setLoadingScore(true);
-      let scoreResult: MatchResult;
-
-      try {
-        const scoreResponse = await fetch("/api/score", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-analysis-token": analysisToken,
-          },
-          body: JSON.stringify({
-            resumeData: extracted,
-            jobDescription,
-            ...(githubProfile ? { githubProfile } : {}),
-          }),
-        });
-
-        if (!scoreResponse.ok) {
-          const data = await scoreResponse.json().catch(() => ({}));
-          throw new Error(data.error ?? `Scoring failed (${scoreResponse.status})`);
-        }
-
-        const scoreData: ScoreResponse = await scoreResponse.json();
-        scoreResult = scoreData.matchResult;
-        setMatchResult(scoreResult);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Scoring failed");
-        setLoadingScore(false);
-        return;
-      }
-
-      setLoadingScore(false);
       setLoadingRewrite(true);
       setLoadingStudyPlan(true);
+      setActiveTab("rewrites");
 
       const rewritePromise = fetch("/api/rewrite", {
         method: "POST",
@@ -283,11 +231,16 @@ export default function AppExperience() {
           "Content-Type": "application/json",
           "x-analysis-token": analysisToken,
         },
-        body: JSON.stringify({ resumeData: extracted, jobDescription }),
+        body: JSON.stringify({
+          resumeData: resumeDataArg,
+          jobDescription: jd,
+          ...(githubProfile ? { githubProfile } : {}),
+          ...(linkedinProfile ? { linkedinProfile } : {}),
+        }),
       })
-        .then(async (response) => {
-          if (!response.ok) throw new Error("Rewrite generation failed");
-          const data: RewriteResponse = await response.json();
+        .then(async (res) => {
+          if (!res.ok) throw new Error("Rewrite generation failed");
+          const data: RewriteResponse = await res.json();
           setRewriteSuggestions(data.suggestions);
         })
         .catch(() => undefined)
@@ -299,11 +252,15 @@ export default function AppExperience() {
           "Content-Type": "application/json",
           "x-analysis-token": analysisToken,
         },
-        body: JSON.stringify({ matchResult: scoreResult, resumeData: extracted }),
+        body: JSON.stringify({
+          matchResult: matchResultArg,
+          resumeData: resumeDataArg,
+          ...(linkedinProfile ? { linkedinProfile } : {}),
+        }),
       })
-        .then(async (response) => {
-          if (!response.ok) throw new Error("Study plan generation failed");
-          const data: StudyPlanResponse = await response.json();
+        .then(async (res) => {
+          if (!res.ok) throw new Error("Study plan generation failed");
+          const data: StudyPlanResponse = await res.json();
           setStudyItems(data.items);
         })
         .catch(() => undefined)
@@ -313,90 +270,67 @@ export default function AppExperience() {
 
       setLoadingCoverLetter(true);
       try {
-        const coverResponse = await fetch("/api/cover-letter", {
+        const coverRes = await fetch("/api/cover-letter", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "x-analysis-token": analysisToken,
           },
           body: JSON.stringify({
-            resumeData: extracted,
-            matchResult: scoreResult,
-            jobDescription,
+            resumeData: resumeDataArg,
+            matchResult: matchResultArg,
+            jobDescription: jd,
             ...(githubProfile ? { githubProfile } : {}),
+            ...(linkedinProfile ? { linkedinProfile } : {}),
           }),
         });
 
-        if (coverResponse.ok) {
-          const data = await coverResponse.json();
-          setCoverLetter(data.coverLetter);
+        if (coverRes.ok && coverRes.body) {
+          const reader = coverRes.body.getReader();
+          const decoder = new TextDecoder();
+          let text = "";
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            text += decoder.decode(value, { stream: true });
+            setCoverLetter(text);
+          }
         }
       } catch {
-        // Non-blocking.
+        // Non-blocking
       }
       setLoadingCoverLetter(false);
     },
-    [analysisToken, githubProfile, jobDescription]
+    [analysisToken, githubProfile, linkedinProfile]
   );
 
-  const handleAnalyze = useCallback(async () => {
-    if (!resumeFile) return;
+  // Auto-trigger paid phases when token arrives and score is ready
+  useEffect(() => {
+    if (!analysisToken || !resumeData || !matchResult) return;
+    if (rewriteSuggestions !== null || studyItems !== null || coverLetter !== null) return;
+    if (loadingRewrite || loadingStudyPlan || loadingCoverLetter) return;
+    const jd = jobDescriptionsRef.current[0];
+    if (!jd) return;
+    void runPaidPhases(resumeData, matchResult, jd);
+  }, [analysisToken, matchResult, resumeData, rewriteSuggestions, studyItems, coverLetter, loadingRewrite, loadingStudyPlan, loadingCoverLetter, runPaidPhases]);
 
+  const handleAnalyze = useCallback(async () => {
+    const currentJDs = jobDescriptionsRef.current;
+    if (currentJDs.length === 0) return;
+
+    const currentResumeData = resumeDataRef.current;
     setError(null);
-    clearResults();
-    setLoadingExtraction(true);
+    setMatchResult(null);
+    setRewriteSuggestions(null);
+    setCoverLetter(null);
+    setStudyItems(null);
+    setBatchResults(null);
 
     let extracted: ResumeData;
 
-    try {
-      const base64 = await extractPdfBase64(resumeFile);
-      const extractResponse = await fetch("/api/extract", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resume: base64 }),
-      });
-
-      if (!extractResponse.ok) {
-        const data = await extractResponse.json().catch(() => ({}));
-        throw new Error(data.error ?? `Extraction failed (${extractResponse.status})`);
-      }
-
-      const extractData: ExtractResponse = await extractResponse.json();
-      extracted = extractData.resumeData;
-      setResumeData(extracted);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Extraction failed");
-      setLoadingExtraction(false);
-      return;
-    }
-
-    setLoadingExtraction(false);
-
-    if (!analysisToken) {
-      setPaymentState("idle");
-      return;
-    }
-
-    await runPaidPhases(extracted);
-  }, [analysisToken, clearResults, resumeFile, runPaidPhases]);
-
-  useEffect(() => {
-    if (!analysisToken || !resumeData || matchResult) return;
-    void runPaidPhases(resumeData);
-  }, [analysisToken, matchResult, resumeData, runPaidPhases]);
-
-  const handleBatchScore = useCallback(
-    async (descriptions: string[]) => {
-      if (!resumeFile) {
-        setError("Upload a resume before batch scoring.");
-        return;
-      }
-
-      setError(null);
-      clearResults();
+    if (resumeFile) {
+      setResumeData(null);
       setLoadingExtraction(true);
-
-      let extracted: ResumeData;
       try {
         const base64 = await extractPdfBase64(resumeFile);
         const extractResponse = await fetch("/api/extract", {
@@ -404,12 +338,10 @@ export default function AppExperience() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ resume: base64 }),
         });
-
         if (!extractResponse.ok) {
           const data = await extractResponse.json().catch(() => ({}));
           throw new Error(data.error ?? `Extraction failed (${extractResponse.status})`);
         }
-
         const extractData: ExtractResponse = await extractResponse.json();
         extracted = extractData.resumeData;
         setResumeData(extracted);
@@ -418,48 +350,43 @@ export default function AppExperience() {
         setLoadingExtraction(false);
         return;
       }
-
       setLoadingExtraction(false);
+    } else if (currentResumeData) {
+      extracted = currentResumeData;
+    } else {
+      setError("Please upload your resume.");
+      return;
+    }
 
-      if (!analysisToken) {
-        setPaymentState("idle");
-        return;
-      }
-
+    if (currentJDs.length > 1) {
+      // Batch mode: score all JDs for free, no token required
       setLoadingBatch(true);
-
       const settled = await Promise.all(
-        descriptions.map(async (description) => {
+        currentJDs.map(async (description) => {
           try {
             const scoreResponse = await fetch("/api/score", {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "x-analysis-token": analysisToken,
-              },
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 resumeData: extracted,
                 jobDescription: description,
-                ...(githubProfile ? { githubProfile } : {}),
+                ...(githubProfileRef.current ? { githubProfile: githubProfileRef.current } : {}),
+                ...(linkedinProfileRef.current ? { linkedinProfile: linkedinProfileRef.current } : {}),
               }),
             });
-
             if (!scoreResponse.ok) return null;
-
             const scoreData: ScoreResponse = await scoreResponse.json();
-            const lines = description.split("\n").filter((line) => line.trim().length > 0);
+            const lines = description.split("\n").filter((l) => l.trim().length > 0);
             const firstLine = lines[0] ?? "Unknown Position";
             const seekingMatch = firstLine.match(
               /^(.+?)\s+(?:is seeking|is looking for|is hiring)\s+(?:a|an)\s+(.+)/i
             );
-
             let titleFallback = firstLine;
             if (titleFallback.length > 80) {
               const truncated = titleFallback.slice(0, 80);
               const lastSpace = truncated.lastIndexOf(" ");
               titleFallback = `${lastSpace > 40 ? truncated.slice(0, lastSpace) : truncated}…`;
             }
-
             return {
               jobTitle: seekingMatch ? seekingMatch[2].trim() : titleFallback,
               company: seekingMatch ? seekingMatch[1].trim() : "Unknown Company",
@@ -474,53 +401,85 @@ export default function AppExperience() {
           }
         })
       );
-
-      const results = settled.filter((result): result is BatchScoreResult => Boolean(result));
+      const results = settled.filter((r): r is BatchScoreResult => Boolean(r));
       setBatchResults(results.length > 0 ? results : null);
-      if (results.length === 0) {
-        setError("Failed to score any job descriptions. Try again.");
-      }
+      if (results.length === 0) setError("Failed to score any job descriptions. Try again.");
       setLoadingBatch(false);
-    },
-    [analysisToken, clearResults, githubProfile, resumeFile]
-  );
+      return;
+    }
 
-  const handleBatchDrillDown = useCallback((result: BatchScoreResult) => {
-    setInputMode("single");
-    setJobDescription(result.jobDescription);
-    setMatchResult({
-      score: result.score,
-      matchedSkills: result.matchedSkills,
-      missingSkills: result.topGaps,
-      recommendation: result.recommendation,
-    });
-    setRewriteSuggestions(null);
-    setStudyItems(null);
-    setCoverLetter(null);
-    setBatchResults(null);
-  }, []);
+    // Single JD: score for free
+    const jd = currentJDs[0];
+    setLoadingScore(true);
+    let scoreResult: MatchResult;
+    try {
+      const scoreResponse = await fetch("/api/score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resumeData: extracted,
+          jobDescription: jd,
+          ...(githubProfileRef.current ? { githubProfile: githubProfileRef.current } : {}),
+          ...(linkedinProfileRef.current ? { linkedinProfile: linkedinProfileRef.current } : {}),
+        }),
+      });
+      if (!scoreResponse.ok) {
+        const data = await scoreResponse.json().catch(() => ({}));
+        throw new Error(data.error ?? `Scoring failed (${scoreResponse.status})`);
+      }
+      const scoreData: ScoreResponse = await scoreResponse.json();
+      scoreResult = scoreData.matchResult;
+      setMatchResult(scoreResult);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Scoring failed");
+      setLoadingScore(false);
+      return;
+    }
+    setLoadingScore(false);
+
+    if (!analysisToken) {
+      setPaymentState("idle");
+      return;
+    }
+
+    await runPaidPhases(extracted, scoreResult, jd);
+  }, [analysisToken, resumeFile, runPaidPhases]);
+
+  const handleBatchDrillDown = useCallback(
+    (result: BatchScoreResult) => {
+      const drillMatchResult: MatchResult = {
+        score: result.score,
+        matchedSkills: result.matchedSkills,
+        missingSkills: result.topGaps,
+        recommendation: result.recommendation,
+      };
+      setJobDescriptions([result.jobDescription]);
+      setMatchResult(drillMatchResult);
+      setRewriteSuggestions(null);
+      setStudyItems(null);
+      setCoverLetter(null);
+      setBatchResults(null);
+      // Auto-trigger effect handles paid phases if token exists
+    },
+    []
+  );
 
   const handlePay = useCallback(async () => {
     try {
-      const currentJd = jobDescriptionRef.current;
+      const currentJDs = jobDescriptionsRef.current;
       const currentResumeData = resumeDataRef.current;
+      const currentMatchResult = matchResultRef.current;
       const currentGithubProfile = githubProfileRef.current;
-      const currentInputMode = inputModeRef.current;
+      const currentLinkedinProfile = linkedinProfileRef.current;
 
-      if (currentJd) sessionStorage.setItem("pending_jd", currentJd);
-      if (currentResumeData) {
-        sessionStorage.setItem("pending_resume_data", JSON.stringify(currentResumeData));
-      }
-      if (currentGithubProfile) {
-        sessionStorage.setItem("pending_github_profile", JSON.stringify(currentGithubProfile));
-      }
-      sessionStorage.setItem("pending_input_mode", currentInputMode);
+      sessionStorage.setItem("pending_jds", JSON.stringify(currentJDs));
+      if (currentResumeData) sessionStorage.setItem("pending_resume_data", JSON.stringify(currentResumeData));
+      if (currentMatchResult) sessionStorage.setItem("pending_match_result", JSON.stringify(currentMatchResult));
+      if (currentGithubProfile) sessionStorage.setItem("pending_github_profile", JSON.stringify(currentGithubProfile));
+      if (currentLinkedinProfile) sessionStorage.setItem("pending_linkedin_profile", JSON.stringify(currentLinkedinProfile));
 
       const response = await fetch("/api/create-checkout", { method: "POST" });
-      if (!response.ok) {
-        throw new Error("Checkout setup failed.");
-      }
-
+      if (!response.ok) throw new Error("Checkout setup failed.");
       const { url } = await response.json();
       window.location.href = url;
     } catch (err) {
@@ -528,25 +487,23 @@ export default function AppExperience() {
     }
   }, []);
 
-  const showPayGate = !analysisToken && Boolean(resumeData) && !loadingExtraction;
-  const showResults =
-    Boolean(resumeData) ||
-    Boolean(matchResult) ||
-    Boolean(batchResults) ||
-    loadingExtraction ||
-    loadingScore ||
-    loadingRewrite ||
-    loadingCoverLetter ||
-    loadingStudyPlan ||
-    loadingBatch;
+  const resetWorkspace = useCallback(() => {
+    setMatchResult(null);
+    setResumeData(null);
+    setResumeFile(null);
+    setRewriteSuggestions(null);
+    setCoverLetter(null);
+    setStudyItems(null);
+    setBatchResults(null);
+    setJobDescriptions([]);
+    setError(null);
+    setActiveTab("rewrites");
+  }, []);
 
   const getAnalyzeButtonText = () => {
     if (loadingExtraction) return "Extracting resume…";
-    if (loadingScore) return "Scoring gaps…";
-    if (loadingRewrite) return "Rewriting bullets…";
-    if (loadingStudyPlan) return "Building study plan…";
-    if (loadingCoverLetter) return "Writing cover letter…";
-    return "Run analysis — $5";
+    if (loadingScore || loadingBatch) return "Scoring…";
+    return jobDescriptions.length > 1 ? "Score all jobs" : "Analyze";
   };
 
   return (
@@ -557,14 +514,11 @@ export default function AppExperience() {
             <Link href="/" className="brand-mark" aria-label="PassStack home">
               <PassStackLogo />
             </Link>
-            <div className="nav-actions">
-              <Link href="/" className="btn-ghost">
-                Landing Page
-              </Link>
-              <a href="#workspace" className="btn-primary">
+            {!analysisToken && (
+              <button type="button" onClick={() => void handlePay()} className="btn-primary">
                 Unlock — $5 →
-              </a>
-            </div>
+              </button>
+            )}
           </div>
         </nav>
 
@@ -573,99 +527,199 @@ export default function AppExperience() {
             <div className="eyebrow">resume analysis workspace</div>
             <h1 className="display">Stop feeding the ATS blind.</h1>
             <p className="result-muted">
-              Upload the resume. Paste the job description. Pay once. Get the score, the gaps, the rewrites, and the follow-up plan. No subscription.
+              Upload your resume, paste a job description, and get your match score instantly — free. Pay once to unlock bullet rewrites, a study plan, and a cover letter draft.
             </p>
-            <p className="fine-print">$5 one time. No account. No subscription.</p>
+            <p className="fine-print">Score is always free. Full analysis: $5 one-time, no subscription.</p>
           </div>
         </section>
 
         <section id="workspace" className="container" style={{ paddingBottom: "var(--space-16)" }}>
-          <div className="step-indicator" style={{ marginBottom: "var(--space-6)" }}>
-            <StepPill number={1} label="Upload" active={!resumeData} done={Boolean(resumeData)} />
-            <StepPill number={2} label="Describe" active={Boolean(resumeData) && !jobDescription} done={jobDescription.length > 0} />
-            <StepPill number={3} label="Pay" active={showPayGate} done={Boolean(analysisToken)} />
-            <StepPill number={4} label="Results" active={Boolean(matchResult)} done={Boolean(coverLetter) || Boolean(batchResults)} />
-          </div>
-
-          <div className="panel-grid">
-            <div className="panel-stack">
-              <div className="card">
-                <ResumeUpload onChange={setResumeFile} />
+          {!showResults ? (
+            <>
+              <div className="step-indicator" style={{ marginBottom: "var(--space-6)" }}>
+                <StepPill
+                  number={1}
+                  label="Upload"
+                  active={!resumeFile && !resumeData}
+                  done={Boolean(resumeFile) || Boolean(resumeData)}
+                />
+                <StepPill
+                  number={2}
+                  label="Describe"
+                  active={Boolean(resumeFile || resumeData) && jobDescriptions.length === 0}
+                  done={jobDescriptions.length > 0}
+                />
+                <StepPill
+                  number={3}
+                  label="Score"
+                  active={false}
+                  done={Boolean(matchResult)}
+                />
+                <StepPill
+                  number={4}
+                  label="Full analysis"
+                  active={showPayGate}
+                  done={Boolean(analysisToken)}
+                />
               </div>
-              <div className="card card-sage">
-                <GitHubConnect onProfile={setGithubProfile} />
-              </div>
-            </div>
 
-            <div className="card result-card">
-              <div className="eyebrow">job targeting</div>
-              <div className="mode-toggle">
+              <div className="panel-grid">
+                <div className="panel-stack">
+                  <div className="card">
+                    <ResumeUpload
+                      onChange={setResumeFile}
+                      sessionResumeName={!resumeFile ? (resumeData?.name ?? null) : null}
+                    />
+                  </div>
+                  <div className="card card-sage">
+                    <GitHubConnect onProfile={setGithubProfile} />
+                  </div>
+                  <div className="card card-sage">
+                    <LinkedInConnect onProfile={setLinkedinProfile} />
+                  </div>
+                </div>
+
+                <div className="card">
+                  <JobDescriptionList
+                    value={jobDescriptions}
+                    onChange={setJobDescriptions}
+                    disabled={isBusy}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginTop: "var(--space-6)", display: "grid", gap: "var(--space-3)", justifyItems: "center" }}>
                 <button
                   type="button"
-                  onClick={() => setInputMode("single")}
-                  className={inputMode === "single" ? "active" : ""}
+                  onClick={() => void handleAnalyze()}
+                  disabled={!canAnalyze || isBusy}
+                  className="btn-primary btn-large"
                 >
-                  Single JD
+                  {isBusy && <Spinner />}
+                  {getAnalyzeButtonText()}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setInputMode("batch")}
-                  className={inputMode === "batch" ? "active" : ""}
-                >
-                  Batch Mode
-                </button>
+                <p className="fine-print">Score is free. Full analysis unlocked with a one-time $5 payment.</p>
+                {error && <p style={{ color: "var(--ps-red)" }}>{error}</p>}
+              </div>
+            </>
+          ) : (
+            <div className="workspace-results">
+              {/* Left sidebar — score + paygate + session info */}
+              <div className="workspace-sidebar">
+                <MatchScore result={matchResult} loading={loadingExtraction || loadingScore} />
+
+                {showPayGate && matchResult && resumeData ? (
+                  <PayGate
+                    resumeData={resumeData}
+                    score={matchResult.score}
+                    paymentState={paymentState}
+                    onPay={() => void handlePay()}
+                  />
+                ) : null}
+
+                <div className="card card-soft" style={{ display: "grid", gap: "var(--space-3)" }}>
+                  <div>
+                    <div className="eyebrow" style={{ marginBottom: "var(--space-2)" }}>session</div>
+                    {resumeData?.name && (
+                      <p style={{ fontSize: "13px", fontWeight: 500 }}>{resumeData.name}</p>
+                    )}
+                    <p className="result-muted" style={{ fontSize: "12px", marginTop: "var(--space-1)" }}>
+                      {jobDescriptions.length} job{jobDescriptions.length !== 1 ? "s" : ""}
+                      {githubProfile ? ` · @${githubProfile.username}` : ""}
+                      {linkedinProfile?.currentCompany ? ` · ${linkedinProfile.currentCompany}` : ""}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={resetWorkspace}
+                    className="btn-ghost btn-inline"
+                    style={{ alignSelf: "flex-start", fontSize: "11px" }}
+                  >
+                    ↩ New analysis
+                  </button>
+                </div>
               </div>
 
-              {inputMode === "single" ? (
-                <JobDescription onChange={setJobDescription} value={jobDescription} />
-              ) : (
-                <BatchJobDescriptions onSubmit={handleBatchScore} loading={loadingBatch || loadingExtraction} />
-              )}
-            </div>
-          </div>
+              {/* Right main — batch results or tabbed paid content */}
+              <div style={{ display: "grid", gap: "var(--space-6)", alignContent: "start" }}>
+                {(batchResults || loadingBatch) && (
+                  <BatchResults results={batchResults} loading={loadingBatch} onSelect={handleBatchDrillDown} />
+                )}
 
-          {inputMode === "single" && !showPayGate && (
-            <div style={{ marginTop: "var(--space-6)", display: "grid", gap: "var(--space-3)", justifyItems: "center" }}>
-              <button type="button" onClick={handleAnalyze} disabled={!canAnalyze || isBusy} className="btn-primary btn-large">
-                {isBusy && <Spinner />}
-                {getAnalyzeButtonText()}
-              </button>
-              <p className="fine-print">One run. Four paid phases. No subscription.</p>
-              {error ? <p style={{ color: "var(--ps-red)" }}>{error}</p> : null}
+                {!batchResults && !loadingBatch && (hasPaidContent || loadingPaid) && (
+                  <>
+                    <div className="result-tabs">
+                      <button
+                        type="button"
+                        className={`result-tab ${activeTab === "rewrites" ? "result-tab--active" : ""}`.trim()}
+                        onClick={() => setActiveTab("rewrites")}
+                      >
+                        Bullet Rewrites
+                        {loadingRewrite && <span style={{ opacity: 0.5 }}> ·</span>}
+                        {!loadingRewrite && rewriteSuggestions && (
+                          <span style={{ opacity: 0.5 }}> ({rewriteSuggestions.length})</span>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        className={`result-tab ${activeTab === "study" ? "result-tab--active" : ""}`.trim()}
+                        onClick={() => setActiveTab("study")}
+                      >
+                        Study Plan
+                        {loadingStudyPlan && <span style={{ opacity: 0.5 }}> ·</span>}
+                        {!loadingStudyPlan && studyItems && (
+                          <span style={{ opacity: 0.5 }}> ({studyItems.length})</span>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        className={`result-tab ${activeTab === "cover" ? "result-tab--active" : ""}`.trim()}
+                        onClick={() => setActiveTab("cover")}
+                      >
+                        Cover Letter
+                        {loadingCoverLetter && <span style={{ opacity: 0.5 }}> writing…</span>}
+                      </button>
+                    </div>
+
+                    {activeTab === "rewrites" && (
+                      <ResumeRewriter suggestions={rewriteSuggestions} loading={loadingRewrite} />
+                    )}
+                    {activeTab === "study" && (
+                      <StudyPlan items={studyItems} loading={loadingStudyPlan} />
+                    )}
+                    {activeTab === "cover" && (
+                      <CoverLetter content={coverLetter} loading={loadingCoverLetter} />
+                    )}
+                  </>
+                )}
+
+                {!batchResults && !loadingBatch && !hasPaidContent && !loadingPaid && (
+                  <div
+                    style={{
+                      padding: "var(--space-16) var(--space-8)",
+                      textAlign: "center",
+                      color: "var(--ps-text-faint)",
+                      border: "1px dashed var(--ps-border)",
+                      borderRadius: "var(--radius-lg)",
+                    }}
+                  >
+                    {loadingExtraction || loadingScore ? (
+                      <p className="eyebrow">Analyzing…</p>
+                    ) : showPayGate ? (
+                      <>
+                        <p className="eyebrow">ready to unlock</p>
+                        <p className="result-muted" style={{ marginTop: "var(--space-3)", fontSize: "13px" }}>
+                          Bullet rewrites, study plan, and cover letter appear here after payment.
+                        </p>
+                      </>
+                    ) : null}
+                  </div>
+                )}
+
+                {error && <p style={{ color: "var(--ps-red)" }}>{error}</p>}
+              </div>
             </div>
           )}
-
-          {inputMode === "batch" && error ? (
-            <div style={{ marginTop: "var(--space-6)", color: "var(--ps-red)" }}>{error}</div>
-          ) : null}
-
-          {showResults ? (
-            <div className="result-stack" style={{ marginTop: "var(--space-10, 2.5rem)" }}>
-              {(batchResults || loadingBatch) && (
-                <BatchResults results={batchResults} loading={loadingBatch} onSelect={handleBatchDrillDown} />
-              )}
-
-              {(resumeData || matchResult || loadingExtraction || loadingScore) && (
-                <>
-                  <div className="top-grid">
-                    <ResumeProfile data={resumeData} loading={loadingExtraction} />
-                    <MatchScore result={matchResult} loading={loadingScore} />
-                  </div>
-
-                  {showPayGate && resumeData ? (
-                    <PayGate resumeData={resumeData} paymentState={paymentState} onPay={handlePay} />
-                  ) : null}
-
-                  <ResumeRewriter suggestions={rewriteSuggestions} loading={loadingRewrite} />
-
-                  <div className="bottom-grid">
-                    <StudyPlan items={studyItems} loading={loadingStudyPlan} />
-                    <CoverLetter content={coverLetter} loading={loadingCoverLetter} />
-                  </div>
-                </>
-              )}
-            </div>
-          ) : null}
         </section>
       </main>
     </ErrorBoundary>

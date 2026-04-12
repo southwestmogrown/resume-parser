@@ -1,20 +1,10 @@
 import { getAnthropic } from '@/lib/anthropic';
 import { NextRequest, NextResponse } from 'next/server';
-import { validateAndConsumeToken } from '@/lib/tokens';
 import type { ScoreRequest, ScoreResponse, MatchResult } from '@/lib/types';
 
 export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
-  const token = req.headers.get('x-analysis-token');
-  if (!token) {
-    return NextResponse.json({ error: 'Payment required' }, { status: 402 });
-  }
-  const valid = await validateAndConsumeToken(token);
-  if (!valid) {
-    return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
-  }
-
   let body: Partial<ScoreRequest>;
   try {
     body = await req.json();
@@ -22,7 +12,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { resumeData, jobDescription, githubProfile } = body;
+  const { resumeData, jobDescription, githubProfile, linkedinProfile } = body;
 
   if (!resumeData || !jobDescription) {
     return NextResponse.json(
@@ -37,7 +27,7 @@ export async function POST(req: NextRequest) {
       model: 'claude-sonnet-4-6',
       max_tokens: 4096,
       system:
-        'You are an elite software engineering resume strategist. Your job is to maximize the candidate’s chance of getting interviews while staying 100% truthful. Optimize for ATS alignment, recruiter clarity, and actionable guidance. Never invent evidence, never treat equivalent experience as a gap when the match is credible, and never overrate a weak fit just to sound positive.',
+        "You are an elite software engineering resume strategist. Your job is to maximize the candidate's chance of getting interviews while staying 100% truthful. Optimize for ATS alignment, recruiter clarity, and actionable guidance. Never invent evidence, never treat equivalent experience as a gap when the match is credible, and never overrate a weak fit just to sound positive.",
       messages: [
         {
           role: 'user',
@@ -48,6 +38,9 @@ ${JSON.stringify(resumeData, null, 2)}
 
 ${githubProfile ? `GitHub profile evidence:
 ${JSON.stringify(githubProfile, null, 2)}
+
+` : ''}${linkedinProfile ? `LinkedIn profile:
+${JSON.stringify(linkedinProfile, null, 2)}
 
 ` : ''}Job description:
 ${jobDescription}

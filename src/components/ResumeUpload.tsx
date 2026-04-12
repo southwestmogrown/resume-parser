@@ -4,9 +4,10 @@ import { useCallback, useState } from "react";
 
 interface ResumeUploadProps {
   onChange: (file: File | null) => void;
+  sessionResumeName?: string | null;
 }
 
-export default function ResumeUpload({ onChange }: ResumeUploadProps) {
+export default function ResumeUpload({ onChange, sessionResumeName }: ResumeUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +57,19 @@ export default function ResumeUpload({ onChange }: ResumeUploadProps) {
         <h2 style={{ fontSize: "1.35rem" }}>Upload your resume</h2>
       </div>
 
-      {!file ? (
+      {!file && sessionResumeName ? (
+        <div className="file-chip" style={{ padding: "var(--space-4)", display: "flex", justifyContent: "space-between", gap: "var(--space-3)", alignItems: "center" }}>
+          <div>
+            <div className="eyebrow" style={{ marginBottom: "var(--space-2)" }}>
+              restored from session
+            </div>
+            <p className="result-muted">↩ {sessionResumeName}</p>
+          </div>
+          <button type="button" onClick={handleClear} className="btn-ghost btn-inline">
+            Change
+          </button>
+        </div>
+      ) : !file ? (
         <div
           onDragOver={(event) => {
             event.preventDefault();
@@ -86,6 +99,7 @@ export default function ResumeUpload({ onChange }: ResumeUploadProps) {
           </button>
         </div>
       )}
+
 
       {error ? <p style={{ color: "var(--ps-red)" }}>{error}</p> : null}
     </div>

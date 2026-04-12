@@ -13,7 +13,8 @@ export default function CoverLetter({ content, loading }: CoverLetterProps) {
 
   if (!loading && !content) return null;
 
-  if (loading) {
+  // Skeleton only when loading with no content yet (pre-stream)
+  if (loading && !content) {
     return (
       <div className="card result-card">
         <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-3)", alignItems: "center" }}>
@@ -57,9 +58,21 @@ export default function CoverLetter({ content, loading }: CoverLetterProps) {
           <div className="eyebrow">phase 4</div>
           <h2 style={{ fontSize: "1.3rem" }}>Cover letter draft</h2>
         </div>
-        <button type="button" onClick={() => void handleCopy()} className="btn-ghost btn-inline copy-button">
-          {copied ? "Copied" : "Copy"}
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+          {loading && (
+            <span className="eyebrow" style={{ color: "var(--ps-accent)", animation: "pulse 1.5s ease-in-out infinite" }}>
+              writing…
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => void handleCopy()}
+            disabled={loading}
+            className="btn-ghost btn-inline copy-button"
+          >
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </div>
       </div>
 
       <div className="cover-letter-panel" style={{ padding: "var(--space-5, 1.25rem)" }}>
@@ -70,7 +83,7 @@ export default function CoverLetter({ content, loading }: CoverLetterProps) {
         ))}
       </div>
 
-      <p className="result-muted">Use this as a draft, then make it sound like you.</p>
+      {!loading && <p className="result-muted">Use this as a draft, then make it sound like you.</p>}
     </div>
   );
 }

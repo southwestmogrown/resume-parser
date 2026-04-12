@@ -40,7 +40,7 @@
   --radius-lg: 6px;
   --radius-xl: 10px;
 
-  --max-w-content: 1100px;
+  --max-w-content: 1440px;
   --max-w-prose: 680px;
 
   --transition-fast: 120ms ease;
@@ -722,6 +722,58 @@ main {
   gap: var(--space-6);
 }
 
+/* Workspace split layout — post-analysis */
+.workspace-results {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.workspace-sidebar {
+  position: sticky;
+  top: 72px;
+  display: grid;
+  gap: var(--space-6);
+  max-height: calc(100vh - 88px);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.workspace-sidebar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Result tabs */
+.result-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--ps-border);
+}
+
+.result-tab {
+  padding: 10px 20px;
+  cursor: pointer;
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ps-text-faint);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.result-tab:hover {
+  color: var(--ps-text-secondary);
+}
+
+.result-tab--active {
+  color: var(--ps-accent);
+  border-bottom-color: var(--ps-accent);
+}
+
 .step-indicator {
   display: flex;
   flex-wrap: wrap;
@@ -878,6 +930,17 @@ main {
   }
 }
 
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@media (max-width: 1100px) {
+  .workspace-results {
+    grid-template-columns: 300px 1fr;
+  }
+}
+
 @media (max-width: 960px) {
   .hero-grid,
   .phase-grid,
@@ -885,8 +948,15 @@ main {
   .top-grid,
   .bottom-grid,
   .placeholder-grid,
-  .process-grid {
+  .process-grid,
+  .workspace-results {
     grid-template-columns: 1fr;
+  }
+
+  .workspace-sidebar {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
   }
 
   .landing-hero {
@@ -901,17 +971,6 @@ main {
 @media (max-width: 720px) {
   .container {
     padding: 0 var(--space-4);
-  }
-
-  .nav-inner,
-  .nav-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .nav-actions .btn-primary,
-  .nav-actions .btn-ghost {
-    width: 100%;
   }
 
   .hero-actions,

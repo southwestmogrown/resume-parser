@@ -38,7 +38,7 @@ export async function mintToken(stripeSessionId: string): Promise<string> {
   const { error } = await supabaseAdmin.from('analysis_tokens').insert({
     token,
     stripe_session_id: stripeSessionId,
-    uses_remaining: 4,
+    uses_remaining: 3,
     expires_at: expiresAt,
   });
 
