@@ -465,14 +465,40 @@ main {
 }
 
 .brand-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
   font-family: 'Bricolage Grotesque', sans-serif;
   font-size: 17px;
   font-weight: 700;
   letter-spacing: 0.02em;
 }
 
-.brand-mark span:last-child {
+.passstack-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.passstack-logo__icon {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  filter: drop-shadow(0 10px 16px rgba(57, 217, 184, 0.16));
+}
+
+.passstack-logo__wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.02em;
+}
+
+.passstack-logo__wordmark-accent {
   color: var(--ps-accent);
+}
+
+.passstack-logo--compact .passstack-logo__wordmark {
+  display: none;
 }
 
 .nav-actions {
