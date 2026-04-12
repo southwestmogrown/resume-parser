@@ -9,23 +9,36 @@ export async function POST(req: NextRequest) {
   let tokenRecord = await getTokenBySessionId(sessionId);
 
   if (!tokenRecord) {
+    let session;
+
     try {
-      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      session = await stripe.checkout.sessions.retrieve(sessionId);
+    } catch (error) {
+      console.error('Token redemption lookup failed:', error);
+      return NextResponse.json(
+        { error: 'Unable to verify payment with Stripe. Please try again or contact support.' },
+        { status: 502 }
+      );
+    }
 
-      if (session.payment_status !== 'paid') {
-        return NextResponse.json({ error: 'Payment not completed yet' }, { status: 404 });
-      }
+    if (session.payment_status !== 'paid') {
+      return NextResponse.json({ error: 'Payment not completed yet' }, { status: 402 });
+    }
 
+    try {
       await mintToken(session.id);
       tokenRecord = await getTokenBySessionId(session.id);
     } catch (error) {
-      console.error('Token redemption lookup failed:', error);
-      return NextResponse.json({ error: 'Token not found' }, { status: 404 });
+      console.error('Token creation failed after payment verification:', error);
+      return NextResponse.json(
+        { error: 'Payment verified, but token creation failed. Please try again.' },
+        { status: 502 }
+      );
     }
   }
 
   if (!tokenRecord) {
-    return NextResponse.json({ error: 'Token not found' }, { status: 404 });
+    return NextResponse.json({ error: 'Token could not be created' }, { status: 500 });
   }
 
   if (tokenRecord.uses_remaining <= 0) {

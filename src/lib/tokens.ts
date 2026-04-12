@@ -18,7 +18,12 @@ export async function getTokenBySessionId(stripeSessionId: string): Promise<Anal
     .eq('stripe_session_id', stripeSessionId)
     .maybeSingle();
 
-  if (error || !data) return null;
+  if (error) {
+    console.error('Failed to fetch analysis token:', error);
+    return null;
+  }
+
+  if (!data) return null;
   return data;
 }
 
@@ -36,8 +41,12 @@ export async function mintToken(stripeSessionId: string): Promise<string> {
   });
 
   if (error) {
-    const duplicateToken = await getTokenBySessionId(stripeSessionId);
-    if (duplicateToken) return duplicateToken.token;
+    if (error.code === '23505') {
+      const duplicateToken = await getTokenBySessionId(stripeSessionId);
+      if (duplicateToken) return duplicateToken.token;
+
+      throw new Error('Duplicate token detected, but the existing token record could not be loaded');
+    }
 
     throw new Error(`Failed to mint token: ${error.message}`);
   }
