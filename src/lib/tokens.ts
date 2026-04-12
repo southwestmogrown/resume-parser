@@ -1,5 +1,5 @@
 import { randomBytes } from 'crypto';
-import { supabaseAdmin } from './supabaseAdmin';
+import { getSupabaseAdmin } from './supabaseAdmin';
 
 export interface AnalysisTokenRecord {
   token: string;
@@ -12,6 +12,7 @@ export function generateToken(): string {
 }
 
 export async function getTokenBySessionId(stripeSessionId: string): Promise<AnalysisTokenRecord | null> {
+  const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin
     .from('analysis_tokens')
     .select('token, uses_remaining, expires_at')
@@ -28,6 +29,7 @@ export async function getTokenBySessionId(stripeSessionId: string): Promise<Anal
 }
 
 export async function mintToken(stripeSessionId: string): Promise<string> {
+  const supabaseAdmin = getSupabaseAdmin();
   const existingToken = await getTokenBySessionId(stripeSessionId);
   if (existingToken) return existingToken.token;
 
@@ -55,6 +57,7 @@ export async function mintToken(stripeSessionId: string): Promise<string> {
 }
 
 export async function validateAndConsumeToken(token: string): Promise<boolean> {
+  const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin
     .from('analysis_tokens')
     .select('id, uses_remaining, expires_at')

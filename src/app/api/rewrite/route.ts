@@ -1,4 +1,4 @@
-import { anthropic } from '@/lib/anthropic';
+import { getAnthropic } from '@/lib/anthropic';
 import { NextRequest, NextResponse } from 'next/server';
 import { validateAndConsumeToken } from '@/lib/tokens';
 import type { RewriteRequest, RewriteResponse, RewriteSuggestion } from '@/lib/types';
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 
   let rewriteMessage;
   try {
-    rewriteMessage = await anthropic.messages.create({
+    rewriteMessage = await getAnthropic().messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 2048,
       messages: [

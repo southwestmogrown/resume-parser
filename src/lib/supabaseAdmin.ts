@@ -1,6 +1,18 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-export const supabaseAdmin = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+let supabaseAdminClient: SupabaseClient | null = null;
+
+export function getSupabaseAdmin() {
+  const url = process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !serviceRoleKey) {
+    throw new Error('Supabase admin environment variables are not set');
+  }
+
+  if (!supabaseAdminClient) {
+    supabaseAdminClient = createClient(url, serviceRoleKey);
+  }
+
+  return supabaseAdminClient;
+}
