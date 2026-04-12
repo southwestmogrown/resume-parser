@@ -6,7 +6,7 @@ A Next.js application toolkit for developers — upload a PDF resume and get a f
 
 **Stack:** Next.js (App Router), TypeScript, Tailwind CSS
 **Deployment:** Frontend on Vercel, API routes deployable via Railway
-**Payments:** Stripe Checkout with Supabase token storage
+**Payments:** Stripe PaymentElement (in-app modal) with Supabase token storage
 **Auth:** Server-side Anthropic API key (no BYOK); $5 one-time token gate for paid phases
 
 ---
@@ -24,13 +24,26 @@ Phases 1→2 are sequential. Phases 3–4 are non-blocking. In batch mode, Phase
 
 ### Token System
 
-- Stripe Checkout creates a session → webhook mints a **3-use** token in Supabase (one use per paid phase: rewrite, study plan, cover letter)
-- Frontend polls `/api/redeem-token` after Stripe redirect to get the token
+- Clicking Unlock opens `CheckoutModal` → fetches `/api/create-payment-intent` → clientSecret returned
+- User enters card in Stripe `PaymentElement` → `stripe.confirmPayment({ redirect: 'if_required' })`
+- On success: `POST /api/mint-from-payment-intent` verifies PaymentIntent status and mints a **3-use** token
+- Token stored in Supabase `analysis_tokens` table (one use per paid phase: rewrite, study plan, cover letter)
 - Each paid route validates the token via `validateAndConsumeToken` (decrements `uses_remaining`)
 - `/api/score` requires **no token** — scoring is always free
 - Demo mode bypasses all payment gates
+- Legacy: `/api/create-checkout` + `/api/webhook` + `/api/redeem-token` support the Stripe Checkout redirect flow (kept but not the primary path)
 
-### SessionStorage Keys (cross-redirect state)
+### State Persistence
+
+**localStorage key: `ps_workspace_v1`**
+
+All workspace state is serialized to localStorage on every change and restored on mount (unless `?success` or `?canceled` is in the URL — those trigger the sessionStorage redirect flow instead).
+
+Saved fields: `resumeData`, `resumeName`, `matchResult`, `batchResults`, `rewriteSuggestions`, `studyItems`, `coverLetter`, `jobDescriptions`, `githubProfile`, `linkedinProfile`, `analysisToken`
+
+`resetWorkspace()` also calls `localStorage.removeItem("ps_workspace_v1")`.
+
+**SessionStorage keys (legacy redirect flow only)**
 
 | Key | Value |
 |---|---|
@@ -60,11 +73,14 @@ Phases 1→2 are sequential. Phases 3–4 are non-blocking. In batch mode, Phase
 | `app/api/cover-letter/route.ts` | POST — Phase 4: streaming plain-text cover letter (token auth, `maxDuration=60`) |
 | `app/api/github-profile/route.ts` | POST — GitHub username → `GitHubProfile` (public API, no auth) |
 | `app/api/linkedin-profile/route.ts` | POST — pasted LinkedIn text → `LinkedInProfile` via Claude (free) |
-| `app/api/create-checkout/route.ts` | POST — creates Stripe Checkout session, returns URL |
+| `app/api/create-payment-intent/route.ts` | POST — creates Stripe PaymentIntent, returns `clientSecret` |
+| `app/api/mint-from-payment-intent/route.ts` | POST — verifies PaymentIntent succeeded, mints analysis token |
+| `app/api/create-checkout/route.ts` | POST — legacy: creates Stripe Checkout session (redirect flow) |
 | `app/api/webhook/route.ts` | POST — Stripe webhook: mints token on `checkout.session.completed` |
 | `app/api/redeem-token/route.ts` | POST — frontend exchanges Stripe session ID for analysis token |
 | `app/app/page.tsx` (→ `AppExperience`) | Pipeline orchestration, layout, state management |
-| `components/AppExperience.tsx` | All app state, phase logic, layout split, tabs, sessionStorage |
+| `components/AppExperience.tsx` | All app state, phase logic, layout split, tabs, localStorage persistence |
+| `components/CheckoutModal.tsx` | In-app dark payment modal (Stripe `Elements` + `PaymentElement`) |
 | `components/ResumeUpload.tsx` | PDF drag-and-drop; shows "restored from session" after redirect |
 | `components/JobDescriptionList.tsx` | Card-based JD input (up to 6 JDs, one at a time) |
 | `components/GitHubConnect.tsx` | GitHub username input with profile preview card |
@@ -174,15 +190,27 @@ Hard-capped at 300 words / 500 tokens. `maxDuration = 60`.
 
 ### Payment Routes
 
-**POST `/api/create-checkout`** — No auth
+**POST `/api/create-payment-intent`** — No auth (primary flow)
 
-Creates a Stripe Checkout session. Returns `{ url: "<stripe-checkout-url>" }`.
+Creates a Stripe PaymentIntent priced from `STRIPE_PRICE_ID`.
+Returns `{ clientSecret: string, paymentIntentId: string }`.
 
-**POST `/api/webhook`** — Stripe signature verified
+**POST `/api/mint-from-payment-intent`** — No auth (primary flow)
 
-On `checkout.session.completed`: mints a **3-use** analysis token in Supabase (rewrite, study plan, cover letter). Returns 400 if signature verification fails.
+Body: `{ "paymentIntentId": "<pi_...>" }`
+Retrieves the PaymentIntent from Stripe and verifies `status === 'succeeded'`.
+Returns 402 if not succeeded. Returns `{ token: "<analysis-token>" }` on success.
+`mintToken` is idempotent — safe to call twice with the same PaymentIntent ID.
 
-**POST `/api/redeem-token`** — No auth
+**POST `/api/create-checkout`** — No auth (legacy redirect flow)
+
+Creates a Stripe Checkout session. Returns `{ clientSecret: string }` (embedded mode).
+
+**POST `/api/webhook`** — Stripe signature verified (legacy redirect flow)
+
+On `checkout.session.completed`: mints a **3-use** analysis token in Supabase. Returns 400 if signature verification fails.
+
+**POST `/api/redeem-token`** — No auth (legacy redirect flow)
 
 Body: `{ "sessionId": "<stripe-session-id>" }`
 Returns 400/404/410 on error. Returns `{ token: "<analysis-token>" }` on success.
@@ -195,10 +223,14 @@ Returns 400/404/410 on error. Returns `{ token: "<analysis-token>" }` on success
 - Central orchestrator: all pipeline state, phase logic, layout switching
 - Pre-analysis: `panel-grid` (left column: Upload + GitHub + LinkedIn; right column: JobDescriptionList)
 - Post-analysis: `workspace-results` CSS grid (360px sticky sidebar + 1fr main content)
-- Sidebar shows: `MatchScore` + `PayGate` (if unpaid) + session summary card
-- Main area: `BatchResults` table (multi-JD) OR tabbed panel (rewrites / study / cover letter)
-- `resetWorkspace()` clears all state and returns to input view
+- Sidebar shows: `MatchScore` + `PayGate` (if unpaid) + export button (if paid content exists) + session summary card
+- Main area: `BatchResults` table (multi-JD) AND/OR tabbed panel (rewrites / study / cover letter) — both can be visible simultaneously
+- `resetWorkspace()` clears all state, removes `ps_workspace_v1` from localStorage, returns to input view
 - Auto-trigger effect: when `analysisToken` arrives and `matchResult` + `resumeData` exist, fires `runPaidPhases` automatically
+- `handlePay`: fetches `/api/create-payment-intent`, sets `checkoutClientSecret` → modal opens
+- `handlePaymentSuccess(token)`: sets `analysisToken`, closes modal, auto-triggers paid phases
+- `handleExportZip`: uses jszip to package all available output files into a downloadable zip
+- `selectedBatchJD` state: tracks which batch row is drilled into; "← Back to all" clears it without destroying `batchResults`
 
 **ResumeUpload**
 - Accepts PDF only via click or drag-and-drop; rejects non-PDF with inline error
@@ -241,7 +273,16 @@ Returns 400/404/410 on error. Returns `{ token: "<analysis-token>" }` on success
 **BatchResults**
 - Sortable table (score, company, title) with score bar visualization
 - Top gaps as colored pills per row
-- Drill-down: click row → sets `jobDescriptions = [that JD]`, clears paid content, re-runs paid phases if token exists
+- Accepts `selectedJD?: string | null` prop — applies `.batch-row--selected` highlight to the active row
+- Drill-down: click row → sets `selectedBatchJD`, loads that JD's paid content below the table; batch table stays visible
+
+**CheckoutModal**
+- Rendered over the app when `checkoutClientSecret` is set in `AppExperience`
+- Dark overlay (`.modal-backdrop`) with blurred background; click outside to cancel
+- `Elements` + `PaymentElement` with dark Stripe appearance theme
+- Skeleton loaders shown until `PaymentElement.onReady` fires
+- Pay button disabled until `ready && stripe && elements`
+- On success: calls `onSuccess(token)` — modal closes and paid phases begin
 
 ---
 
