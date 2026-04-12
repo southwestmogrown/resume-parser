@@ -1,41 +1,44 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { NextRequest, NextResponse } from "next/server";
-import type { ScoreRequest, ScoreResponse, MatchResult } from "@/lib/types";
+import { anthropic } from '@/lib/anthropic';
+import { NextRequest, NextResponse } from 'next/server';
+import { validateAndConsumeToken } from '@/lib/tokens';
+import type { ScoreRequest, ScoreResponse, MatchResult } from '@/lib/types';
 
 export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
-  const apiKey = req.headers.get("x-api-key");
-  if (!apiKey) {
-    return NextResponse.json({ error: "Anthropic API key required" }, { status: 401 });
+  const token = req.headers.get('x-analysis-token');
+  if (!token) {
+    return NextResponse.json({ error: 'Payment required' }, { status: 402 });
   }
-
-  const client = new Anthropic({ apiKey });
+  const valid = await validateAndConsumeToken(token);
+  if (!valid) {
+    return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
+  }
 
   let body: Partial<ScoreRequest>;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
   const { resumeData, jobDescription } = body;
 
   if (!resumeData || !jobDescription) {
     return NextResponse.json(
-      { error: "resumeData and jobDescription are required" },
+      { error: 'resumeData and jobDescription are required' },
       { status: 400 }
     );
   }
 
   let scoringMessage;
   try {
-    scoringMessage = await client.messages.create({
-      model: "claude-sonnet-4-6",
+    scoringMessage = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
       max_tokens: 2048,
       messages: [
         {
-          role: "user",
+          role: 'user',
           content: `You are a developer career advisor evaluating how well a candidate matches a job description. Think from the CANDIDATE's perspective — help them decide whether to apply and how to position themselves.
 
 Resume data:
@@ -62,30 +65,30 @@ Return a JSON object only, with no additional text or markdown:
       ],
     });
   } catch (error) {
-    if (error && typeof error === "object" && "status" in error && (error.status === 401 || error.status === 403)) {
-      return NextResponse.json({ error: "Invalid Anthropic API key" }, { status: 401 });
+    if (error && typeof error === 'object' && 'status' in error && (error.status === 401 || error.status === 403)) {
+      return NextResponse.json({ error: 'Invalid Anthropic API key' }, { status: 401 });
     }
     return NextResponse.json(
-      { error: "Claude API error during scoring" },
+      { error: 'Claude API error during scoring' },
       { status: 500 }
     );
   }
 
   const scoringText =
-    scoringMessage.content[0].type === "text"
+    scoringMessage.content[0].type === 'text'
       ? scoringMessage.content[0].text
-      : "";
+      : '';
 
   let matchResult: MatchResult;
   try {
     const cleaned = scoringText
-      .replace(/^```(?:json)?\n?/, "")
-      .replace(/\n?```$/, "")
+      .replace(/^```(?:json)?\n?/, '')
+      .replace(/\n?```$/, '')
       .trim();
     matchResult = JSON.parse(cleaned);
   } catch {
     return NextResponse.json(
-      { error: "Failed to parse scoring response" },
+      { error: 'Failed to parse scoring response' },
       { status: 500 }
     );
   }

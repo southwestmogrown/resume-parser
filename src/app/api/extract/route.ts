@@ -1,49 +1,42 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { NextRequest, NextResponse } from "next/server";
-import type { ExtractRequest, ExtractResponse, ResumeData } from "@/lib/types";
+import { anthropic } from '@/lib/anthropic';
+import { NextRequest, NextResponse } from 'next/server';
+import type { ExtractRequest, ExtractResponse, ResumeData } from '@/lib/types';
 
 export const maxDuration = 9;
 
 export async function POST(req: NextRequest) {
-  const apiKey = req.headers.get("x-api-key");
-  if (!apiKey) {
-    return NextResponse.json({ error: "Anthropic API key required" }, { status: 401 });
-  }
-
-  const client = new Anthropic({ apiKey });
-
   let body: Partial<ExtractRequest>;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
   const { resume } = body;
 
   if (!resume) {
-    return NextResponse.json({ error: "resume is required" }, { status: 400 });
+    return NextResponse.json({ error: 'resume is required' }, { status: 400 });
   }
 
   let extractionMessage;
   try {
-    extractionMessage = await client.messages.create({
-      model: "claude-sonnet-4-6",
+    extractionMessage = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
       max_tokens: 2048,
       messages: [
         {
-          role: "user",
+          role: 'user',
           content: [
             {
-              type: "document",
+              type: 'document',
               source: {
-                type: "base64",
-                media_type: "application/pdf",
+                type: 'base64',
+                media_type: 'application/pdf',
                 data: resume,
               },
             },
             {
-              type: "text",
+              type: 'text',
               text: `Extract the following information from this resume and return it as valid JSON only, with no additional text or markdown:
 {
   "name": "full name",
@@ -72,30 +65,30 @@ export async function POST(req: NextRequest) {
       ],
     });
   } catch (error) {
-    if (error && typeof error === "object" && "status" in error && (error.status === 401 || error.status === 403)) {
-      return NextResponse.json({ error: "Invalid Anthropic API key" }, { status: 401 });
+    if (error && typeof error === 'object' && 'status' in error && (error.status === 401 || error.status === 403)) {
+      return NextResponse.json({ error: 'Invalid Anthropic API key' }, { status: 401 });
     }
     return NextResponse.json(
-      { error: "Claude API error during extraction" },
+      { error: 'Claude API error during extraction' },
       { status: 500 }
     );
   }
 
   const extractionText =
-    extractionMessage.content[0].type === "text"
+    extractionMessage.content[0].type === 'text'
       ? extractionMessage.content[0].text
-      : "";
+      : '';
 
   let resumeData: ResumeData;
   try {
     const cleaned = extractionText
-      .replace(/^```(?:json)?\n?/, "")
-      .replace(/\n?```$/, "")
+      .replace(/^```(?:json)?\n?/, '')
+      .replace(/\n?```$/, '')
       .trim();
     resumeData = JSON.parse(cleaned);
   } catch {
     return NextResponse.json(
-      { error: "Failed to parse resume extraction response" },
+      { error: 'Failed to parse resume extraction response' },
       { status: 500 }
     );
   }

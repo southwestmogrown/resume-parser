@@ -54,7 +54,7 @@ export default function JobDescription({ onChange, value: externalValue }: JobDe
         value={value}
         onChange={handleChange}
         placeholder="Paste the job description here…"
-        className="flex-1 resize-none rounded-xl border border-brand-border bg-brand-surface px-4 py-3 text-sm text-brand-text placeholder:text-brand-muted focus:border-brand-accent focus:outline-none transition-colors min-h-[200px]"
+        className="flex-1 resize-y rounded-xl border border-brand-border bg-brand-surface px-4 py-3 text-sm text-brand-text placeholder:text-brand-muted focus:border-brand-accent focus:outline-none transition-colors min-h-[200px] max-h-[400px] overflow-y-auto"
       />
     </div>
   );

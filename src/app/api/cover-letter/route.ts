@@ -1,41 +1,44 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { NextRequest, NextResponse } from "next/server";
-import type { CoverLetterRequest, CoverLetterResponse } from "@/lib/types";
+import { anthropic } from '@/lib/anthropic';
+import { NextRequest, NextResponse } from 'next/server';
+import { validateAndConsumeToken } from '@/lib/tokens';
+import type { CoverLetterRequest, CoverLetterResponse } from '@/lib/types';
 
 export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
-  const apiKey = req.headers.get("x-api-key");
-  if (!apiKey) {
-    return NextResponse.json({ error: "Anthropic API key required" }, { status: 401 });
+  const token = req.headers.get('x-analysis-token');
+  if (!token) {
+    return NextResponse.json({ error: 'Payment required' }, { status: 402 });
   }
-
-  const client = new Anthropic({ apiKey });
+  const valid = await validateAndConsumeToken(token);
+  if (!valid) {
+    return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
+  }
 
   let body: Partial<CoverLetterRequest>;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
   const { resumeData, matchResult, jobDescription } = body;
 
   if (!resumeData || !matchResult || !jobDescription) {
     return NextResponse.json(
-      { error: "resumeData, matchResult, and jobDescription are required" },
+      { error: 'resumeData, matchResult, and jobDescription are required' },
       { status: 400 }
     );
   }
 
   let coverLetterMessage;
   try {
-    coverLetterMessage = await client.messages.create({
-      model: "claude-sonnet-4-6",
+    coverLetterMessage = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
       max_tokens: 2048,
       messages: [
         {
-          role: "user",
+          role: 'user',
           content: `You are a developer career coach writing a cover letter for a software developer. Write a compelling, professional cover letter that:
 
 1. Highlights the candidate's matched skills and directly relevant experience
@@ -60,19 +63,19 @@ Return the cover letter as plain text (not markdown, no JSON wrapping). Use **bo
       ],
     });
   } catch (error) {
-    if (error && typeof error === "object" && "status" in error && (error.status === 401 || error.status === 403)) {
-      return NextResponse.json({ error: "Invalid Anthropic API key" }, { status: 401 });
+    if (error && typeof error === 'object' && 'status' in error && (error.status === 401 || error.status === 403)) {
+      return NextResponse.json({ error: 'Invalid Anthropic API key' }, { status: 401 });
     }
     return NextResponse.json(
-      { error: "Claude API error during cover letter generation" },
+      { error: 'Claude API error during cover letter generation' },
       { status: 500 }
     );
   }
 
   const coverLetter =
-    coverLetterMessage.content[0].type === "text"
+    coverLetterMessage.content[0].type === 'text'
       ? coverLetterMessage.content[0].text
-      : "";
+      : '';
 
   const response: CoverLetterResponse = { coverLetter };
   return NextResponse.json(response);
