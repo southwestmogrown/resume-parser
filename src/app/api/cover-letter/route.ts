@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { resumeData, matchResult, jobDescription } = body;
+  const { resumeData, matchResult, jobDescription, githubProfile } = body;
 
   if (!resumeData || !matchResult || !jobDescription) {
     return NextResponse.json(
@@ -35,11 +35,13 @@ export async function POST(req: NextRequest) {
   try {
     coverLetterMessage = await getAnthropic().messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 2048,
+      max_tokens: 4096,
+      system:
+        'You are an elite cover letter writer for software engineers. Your job is to help the candidate win interviews with writing that is specific, credible, and persuasive. Never invent facts, company knowledge, projects, metrics, or tools. Use the strongest truthful evidence available and avoid generic filler.',
       messages: [
         {
           role: 'user',
-          content: `You are a developer career coach writing a cover letter for a software developer. Write a compelling, professional cover letter that:
+          content: `Write a compelling cover letter for a software engineering candidate that is optimized for both recruiter readability and ATS alignment.
 
 1. Highlights the candidate's matched skills and directly relevant experience
 2. Proactively addresses 1-2 of the learnable gaps with a positive framing strategy (shows awareness and growth trajectory)
@@ -55,10 +57,21 @@ ${JSON.stringify(resumeData, null, 2)}
 Match analysis:
 ${JSON.stringify(matchResult, null, 2)}
 
-Job description:
+${githubProfile ? `GitHub profile evidence:
+${JSON.stringify(githubProfile, null, 2)}
+
+` : ''}Job description:
 ${jobDescription}
 
-Return the cover letter as plain text (not markdown, no JSON wrapping). Use **bold** for emphasis where appropriate. Address it to "Dear Hiring Team at [Company]" — extract the company name from the JD.`,
+Additional rules:
+- Keep it concise and high-signal, roughly 250-400 words.
+- Use concrete evidence from the resume and GitHub profile when available.
+- Do not claim the candidate already has a missing skill; frame learnable gaps as ramp-up strengths or active next steps.
+- Avoid bullet lists and section headers; this should read like a natural letter.
+- If the company name cannot be confidently determined from the JD, use "Dear Hiring Team".
+- Close with a direct, credible value proposition.
+
+Return the cover letter as plain text (not JSON and no code fences). Use **bold** sparingly for emphasis where appropriate.`,
         },
       ],
     });

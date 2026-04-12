@@ -60,6 +60,7 @@ export interface CoverLetterRequest {
   resumeData: ResumeData;
   matchResult: MatchResult;
   jobDescription: string;
+  githubProfile?: GitHubProfile;
 }
 
 export interface CoverLetterResponse {
@@ -132,6 +133,7 @@ export interface ExtractResponse {
 export interface ScoreRequest {
   resumeData: ResumeData;
   jobDescription: string;
+  githubProfile?: GitHubProfile;
 }
 
 export interface ScoreResponse {

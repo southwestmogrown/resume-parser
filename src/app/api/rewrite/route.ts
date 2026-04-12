@@ -35,11 +35,13 @@ export async function POST(req: NextRequest) {
   try {
     rewriteMessage = await getAnthropic().messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 2048,
+      max_tokens: 4096,
+      system:
+        'You are an elite resume writer for software engineers. Produce ATS-friendly, high-conviction rewrites that improve positioning without inventing facts. Never add technologies, metrics, scope, ownership, or achievements that are not supported by the source material.',
       messages: [
         {
           role: 'user',
-          content: `You are a developer career coach. For each experience entry on this resume, suggest a rewritten bullet point that reframes the existing experience to better align with the target job description. Use the JD's language and priorities. Do NOT invent experience — only reframe what's actually there.
+          content: `For each experience entry on this resume, produce one stronger rewritten bullet that better aligns with the target job description.
 
 Resume data:
 ${JSON.stringify(resumeData, null, 2)}
@@ -47,7 +49,17 @@ ${JSON.stringify(resumeData, null, 2)}
 Job description:
 ${jobDescription}
 
-Return a JSON array only, with no additional text or markdown. One entry per experience item:
+Rules:
+- Return a JSON array only, with no additional text or markdown.
+- Keep every rewrite strictly truthful to the original role.
+- Mirror the JD's terminology and priorities when the candidate has real supporting evidence.
+- Emphasize concrete outcomes, scope, systems, stakeholders, and technical depth already present in the source material.
+- Use strong action verbs and ATS-relevant keywords, but avoid keyword stuffing.
+- Keep each "rewrittenBullet" to 1-2 sentences and make it sound like polished resume language, not AI advice.
+- If the original bullet lacks metrics, do not invent them.
+- "rationale" should briefly explain the positioning improvement.
+
+One entry per experience item:
 [
   {
     "originalRole": "Job Title @ Company",

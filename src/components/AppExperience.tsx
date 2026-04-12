@@ -322,6 +322,7 @@ export default function AppExperience() {
             resumeData: extracted,
             matchResult: scoreResult,
             jobDescription,
+            ...(githubProfile ? { githubProfile } : {}),
           }),
         });
 
