@@ -1,3 +1,6 @@
+import ScoreRing from "@/components/ScoreRing";
+import SeverityPill from "@/components/SeverityPill";
+import SkeletonBlock from "@/components/SkeletonBlock";
 import type { MatchResult, MissingSkill } from "@/lib/types";
 
 interface MatchScoreProps {
@@ -5,62 +8,28 @@ interface MatchScoreProps {
   loading: boolean;
 }
 
-function Skeleton({ className }: { className?: string }) {
-  return (
-    <div
-      className={`animate-pulse rounded bg-brand-border ${className ?? ""}`}
-    />
-  );
-}
-
-function scoreColor(score: number): string {
-  if (score >= 80) return "text-brand-green";
-  if (score >= 60) return "text-brand-amber";
-  return "text-brand-red";
-}
-
-const SEVERITY_CONFIG = {
-  dealbreaker: {
-    label: "Dealbreakers",
-    emoji: "🔴",
-    border: "border-brand-red/30",
-    bg: "bg-brand-red/10",
-    text: "text-brand-red",
-    description: "Hard requirements you don\u0027t meet",
-  },
-  learnable: {
-    label: "Learnable Gaps",
-    emoji: "🟡",
-    border: "border-brand-amber/30",
-    bg: "bg-brand-amber/10",
-    text: "text-brand-amber",
-    description: "Skills you could pick up in weeks",
-  },
-  soft: {
-    label: "Soft Gaps",
-    emoji: "🟢",
-    border: "border-brand-green/30",
-    bg: "bg-brand-green/10",
-    text: "text-brand-green",
-    description: "Nice-to-haves or partially covered",
-  },
+const SECTION_LABELS = {
+  dealbreaker: "Dealbreakers",
+  learnable: "Learnable gaps",
+  soft: "Soft gaps",
 } as const;
 
-function GapSection({ gaps, severity }: { gaps: MissingSkill[]; severity: keyof typeof SEVERITY_CONFIG }) {
+function GapGroup({ severity, gaps }: { severity: keyof typeof SECTION_LABELS; gaps: MissingSkill[] }) {
   if (gaps.length === 0) return null;
-  const config = SEVERITY_CONFIG[severity];
 
   return (
-    <div className="flex flex-col gap-2">
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-brand-muted">
-        {config.emoji} {config.label}
-      </h3>
-      <p className="text-xs text-brand-muted">{config.description}</p>
-      <div className="flex flex-col gap-1.5">
-        {gaps.map((gap, i) => (
-          <div key={i} className={`flex items-start gap-2 rounded-lg border ${config.border} ${config.bg} px-3 py-2`}>
-            <span className={`text-xs font-medium ${config.text} shrink-0`}>{gap.skill}</span>
-            <span className="text-xs text-brand-muted">{gap.reason}</span>
+    <div className="result-block">
+      <div className="field-label">
+        <span>{SECTION_LABELS[severity]}</span>
+      </div>
+      <div style={{ display: "grid", gap: "var(--space-3)" }}>
+        {gaps.map((gap, index) => (
+          <div key={`${gap.skill}-${index}`} className={`gap-item gap-item--${severity}`} style={{ padding: "var(--space-4)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-3)", alignItems: "flex-start", flexWrap: "wrap" }}>
+              <p>{gap.skill}</p>
+              <SeverityPill severity={gap.severity} label={gap.severity} />
+            </div>
+            <p className="result-muted" style={{ marginTop: "var(--space-3)" }}>{gap.reason}</p>
           </div>
         ))}
       </div>
@@ -73,78 +42,74 @@ export default function MatchScore({ result, loading }: MatchScoreProps) {
 
   if (loading) {
     return (
-      <div className="flex flex-col gap-6 rounded-2xl border border-brand-border bg-brand-surface p-6">
-        <div className="flex flex-col items-center gap-2">
-          <Skeleton className="h-16 w-28" />
-          <Skeleton className="h-4 w-20" />
+      <div className="card result-card">
+        <div style={{ display: "grid", justifyItems: "center", gap: "var(--space-3)" }}>
+          <SkeletonBlock className="h-20 w-20 rounded-full" />
+          <SkeletonBlock className="h-4 w-24" />
         </div>
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-4 w-28" />
-          <div className="flex flex-wrap gap-2">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-6 w-16" />
+        <div>
+          <SkeletonBlock className="h-4 w-32" />
+          <div className="mt-3 flex flex-wrap gap-2">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <SkeletonBlock key={index} className="h-6 w-20" />
             ))}
           </div>
         </div>
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-4 w-28" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
+        <div className="grid gap-3">
+          <SkeletonBlock className="h-16 w-full" />
+          <SkeletonBlock className="h-16 w-full" />
         </div>
-        <Skeleton className="h-12 w-full" />
       </div>
     );
   }
 
   if (!result) return null;
 
-  const dealbreakers = result.missingSkills.filter((g) => g.severity === "dealbreaker");
-  const learnable = result.missingSkills.filter((g) => g.severity === "learnable");
-  const soft = result.missingSkills.filter((g) => g.severity === "soft");
+  const dealbreakers = result.missingSkills.filter((gap) => gap.severity === "dealbreaker");
+  const learnable = result.missingSkills.filter((gap) => gap.severity === "learnable");
+  const soft = result.missingSkills.filter((gap) => gap.severity === "soft");
 
   return (
-    <div className="flex flex-col gap-6 rounded-2xl border border-brand-border bg-brand-surface p-6">
-      {/* Score */}
-      <div className="flex flex-col items-center gap-1">
-        <span className={`text-6xl font-bold ${scoreColor(result.score)}`}>
-          {result.score}%
-        </span>
-        <span className="text-sm text-brand-muted">Match Score</span>
+    <div className="card result-card">
+      <div style={{ display: "grid", justifyItems: "center", gap: "var(--space-4)" }}>
+        <div className="eyebrow">phase 2</div>
+        <ScoreRing score={result.score} />
+        <div style={{ textAlign: "center" }}>
+          <div className="score-number">{result.score}</div>
+          <p className="result-muted">match score</p>
+        </div>
+        <div className="score-meta">
+          {dealbreakers.length > 0 ? <SeverityPill tone="red" label={`${dealbreakers.length} dealbreakers`} /> : null}
+          {learnable.length > 0 ? <SeverityPill tone="amber" label={`${learnable.length} learnable`} /> : null}
+          {soft.length > 0 ? <SeverityPill tone="green" label={`${soft.length} soft`} /> : null}
+        </div>
       </div>
 
-      {/* Matched Skills */}
-      {result.matchedSkills.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-brand-muted">
-            ✅ Matched Skills
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {result.matchedSkills.map((skill, i) => (
-              <span
-                key={i}
-                className="rounded-full border border-brand-green/30 bg-brand-green/10 px-3 py-1 text-xs text-brand-green"
-              >
-                {skill}
-              </span>
+      {result.matchedSkills.length > 0 ? (
+        <div className="result-block">
+          <div className="field-label">
+            <span>Matched skills</span>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
+            {result.matchedSkills.map((skill) => (
+              <SeverityPill key={skill} tone="sage" label={skill} />
             ))}
           </div>
         </div>
-      )}
+      ) : null}
 
-      {/* Tiered Missing Skills */}
-      <GapSection gaps={dealbreakers} severity="dealbreaker" />
-      <GapSection gaps={learnable} severity="learnable" />
-      <GapSection gaps={soft} severity="soft" />
+      <GapGroup severity="dealbreaker" gaps={dealbreakers} />
+      <GapGroup severity="learnable" gaps={learnable} />
+      <GapGroup severity="soft" gaps={soft} />
 
-      {/* Recommendation */}
-      {result.recommendation && (
-        <div className="flex flex-col gap-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-brand-muted">
-            Recommendation
-          </h3>
-          <p className="text-sm text-brand-muted">{result.recommendation}</p>
+      {result.recommendation ? (
+        <div className="accent-panel" style={{ padding: "var(--space-4)" }}>
+          <div className="field-label">
+            <span>Recommendation</span>
+          </div>
+          <p className="result-muted" style={{ marginTop: "var(--space-3)" }}>{result.recommendation}</p>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

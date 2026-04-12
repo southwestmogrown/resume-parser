@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '@/lib/stripe';
+import { getStripe } from '@/lib/stripe';
 
 export async function POST(req: NextRequest) {
   const origin = req.headers.get('origin') || 'http://localhost:3000';
 
-  const session = await stripe.checkout.sessions.create({
+  const session = await getStripe().checkout.sessions.create({
     mode: 'payment',
     line_items: [
       {
@@ -12,8 +12,8 @@ export async function POST(req: NextRequest) {
         quantity: 1,
       },
     ],
-    success_url: `${origin}/?token={CHECKOUT_SESSION_ID}&success=true`,
-    cancel_url: `${origin}/?canceled=true`,
+    success_url: `${origin}/app?token={CHECKOUT_SESSION_ID}&success=true`,
+    cancel_url: `${origin}/app?canceled=true`,
     metadata: {
       product: 'resume_analysis',
     },

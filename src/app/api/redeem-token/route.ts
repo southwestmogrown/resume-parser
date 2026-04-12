@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '@/lib/stripe';
+import { getStripe } from '@/lib/stripe';
 import { getTokenBySessionId, mintToken } from '@/lib/tokens';
 
 export async function POST(req: NextRequest) {
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     let session;
 
     try {
-      session = await stripe.checkout.sessions.retrieve(sessionId);
+      session = await getStripe().checkout.sessions.retrieve(sessionId);
     } catch (error) {
       console.error('Token redemption lookup failed:', error);
       return NextResponse.json(

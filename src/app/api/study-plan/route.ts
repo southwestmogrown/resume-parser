@@ -1,4 +1,4 @@
-import { anthropic } from '@/lib/anthropic';
+import { getAnthropic } from '@/lib/anthropic';
 import { NextRequest, NextResponse } from 'next/server';
 import { validateAndConsumeToken } from '@/lib/tokens';
 import type { StudyPlanRequest, StudyPlanResponse, StudyItem } from '@/lib/types';
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
 
   let studyMessage;
   try {
-    studyMessage = await anthropic.messages.create({
+    studyMessage = await getAnthropic().messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 2048,
       messages: [

@@ -27,13 +27,14 @@ export default class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex min-h-screen items-center justify-center bg-brand-bg">
-          <div className="rounded-2xl border border-brand-border bg-brand-surface p-8 text-center">
-            <p className="text-sm text-brand-red">{this.state.message}</p>
-            <button
-              onClick={() => this.setState({ hasError: false, message: "" })}
-              className="mt-4 text-xs text-brand-muted underline hover:text-brand-text"
-            >
+        <div className="app-shell" style={{ display: "grid", placeItems: "center", padding: "var(--space-6)" }}>
+          <div className="card card-accent result-card" style={{ maxWidth: "520px", width: "100%" }}>
+            <div>
+              <div className="eyebrow">runtime error</div>
+              <h2 style={{ fontSize: "1.4rem" }}>Something broke.</h2>
+            </div>
+            <p className="result-muted">{this.state.message}</p>
+            <button type="button" onClick={() => this.setState({ hasError: false, message: "" })} className="btn-ghost">
               Try again
             </button>
           </div>
