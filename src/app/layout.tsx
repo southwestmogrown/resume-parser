@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Resume Parser — Shane Wilkey",
-  description: "AI-powered resume analysis and job match scoring",
+  title: "Resume Parser — Application Toolkit for Developers",
+  description: "Stop guessing. Start applying strategically. Upload your resume, get a battle plan for every job you target — gap analysis, bullet rewrites, cover letter drafts, and more.",
 };
 
 export default function RootLayout({
