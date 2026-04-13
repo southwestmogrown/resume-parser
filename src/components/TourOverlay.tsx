@@ -353,7 +353,7 @@ export default function TourOverlay({
       clearAutoTimer();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clearActiveTarget, clearAutoTimer, clearRaf, clearSettleTimer, currentStep, highlightTarget, step, tooltipSize]);
+  }, [clearActiveTarget, clearAutoTimer, clearRaf, clearSettleTimer, currentStep, highlightTarget, steps, tooltipSize]);
 
   // Cleanup on unmount
   useEffect(() => {

@@ -54,6 +54,7 @@ describe("TourOverlay", () => {
   const originalInnerWidth = window.innerWidth;
   const originalGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect;
   const originalMutationObserver = global.MutationObserver;
+  const originalDocumentScrollHeight = Object.getOwnPropertyDescriptor(document.documentElement, "scrollHeight");
   let currentRect: DOMRect;
 
   const steps: TourStep[] = [
@@ -97,6 +98,10 @@ describe("TourOverlay", () => {
       configurable: true,
       writable: true,
       value: MockMutationObserver,
+    });
+    Object.defineProperty(document.documentElement, "scrollHeight", {
+      configurable: true,
+      value: 2400,
     });
     currentRect = {
       top: 140,
@@ -160,6 +165,9 @@ describe("TourOverlay", () => {
       writable: true,
       value: originalMutationObserver,
     });
+    if (originalDocumentScrollHeight) {
+      Object.defineProperty(document.documentElement, "scrollHeight", originalDocumentScrollHeight);
+    }
   });
 
   it("raises the highlighted target above the overlay and restores it on unmount", () => {
@@ -219,6 +227,6 @@ describe("TourOverlay", () => {
       jest.runAllTimers();
     });
 
-    expect(window.scrollTo).toHaveBeenCalled();
+    expect(window.scrollTo).toHaveBeenCalledWith({ top: 449, behavior: "smooth" });
   });
 });
