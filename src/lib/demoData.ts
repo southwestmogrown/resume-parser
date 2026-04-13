@@ -215,6 +215,28 @@ export const DEMO_STAR_QUESTIONS: StarQuestion[] = [
   },
 ];
 
+export const DEMO_OPTIMIZED_RESUME: string = `# Jordan Rivera
+[email] | github.com/jordev | linkedin.com/in/jordanrivera
+
+## Summary
+Full-stack engineer who shipped customer-facing features to 500+ enterprise clients on a B2B SaaS platform, owning systems end-to-end from database schema to deployed UI. Brings 4 years of hands-on TypeScript, React, and Node.js experience directly aligned with Nexova's workflow automation stack, and is actively closing cloud infrastructure gaps with AWS deployments.
+
+## Skills
+TypeScript, React, Next.js, Node.js, PostgreSQL, REST APIs, GraphQL, Docker, Tailwind CSS, Git
+
+## Experience
+
+### Software Engineer — Streamline Labs (Mar 2022 – Present)
+- Architected and shipped customer-facing features on a Next.js + Node.js platform serving 500+ enterprise clients, designing scalable REST and GraphQL APIs backed by PostgreSQL — directly aligned with Nexova's B2B SaaS workflow automation stack.
+- Owned a critical API performance project end-to-end: identified a bottleneck causing 3× p95 latency spikes under load, redesigned the query layer, and deployed the fix with zero downtime — cutting response times by 60% and unblocking a Q3 enterprise deal.
+
+### Frontend Developer — Pixel & Co. (Jun 2020 – Feb 2022)
+- Led frontend development across 6 client projects using React and TypeScript, delivering 30% improvement in Core Web Vitals — demonstrating the performance-first engineering mindset needed for enterprise workflow tooling.
+- Rapidly onboarded to a new animation framework mid-project when the original library was deprecated, delivered the feature on schedule by treating the constraint as a scoped learning sprint rather than a blocker.
+
+## Education
+B.S. Computer Science — State University, 2020`;
+
 export const DEMO_JOB_DESCRIPTION: string = `Nexova is seeking a Senior Full-Stack Engineer to join our growing team building the next generation of workflow automation for enterprises. You'll work on our B2B SaaS platform that helps Fortune 500 companies streamline their operational processes.
 
 Requirements:

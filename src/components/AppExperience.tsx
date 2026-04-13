@@ -1,5 +1,6 @@
 "use client";
 
+import OptimizedResume from "@/components/OptimizedResume";
 import JSZip from "jszip";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -28,6 +29,7 @@ import {
   DEMO_JOB_DESCRIPTION,
   DEMO_LINKEDIN_PROFILE,
   DEMO_MATCH_RESULT,
+  DEMO_OPTIMIZED_RESUME,
   DEMO_RESUME_DATA,
   DEMO_REWRITE_SUGGESTIONS,
   DEMO_STAR_QUESTIONS,
@@ -57,7 +59,7 @@ import type {
 
 const LS_KEY = "ps_workspace_v1";
 
-type ResultTab = "rewrites" | "study" | "cover" | "interview";
+type ResultTab = "rewrites" | "study" | "cover" | "interview" | "resume";
 
 // Keep these thresholds aligned with the ordered TOUR_STEPS config in lib/tourConfig.ts.
 // Steps 2–5 (job description, GitHub, LinkedIn, analyze) are pre-results input steps — they must
