@@ -33,6 +33,11 @@ const phases = [
     title: "STAR Interview Coaching",
     body: "Behavioral prep built from your actual gap analysis. Coach-guided, question by question. Build real STAR answers — not generic scripts.",
   },
+  {
+    number: "06",
+    title: "Optimized Resume",
+    body: "After coaching, PassStack synthesizes your enriched data, rewritten bullets, and strongest STAR outcomes into a polished, ATS-ready resume you can send directly to recruiters.",
+  },
 ] as const;
 
 const steps = [
@@ -207,7 +212,7 @@ export default function LandingPage() {
         <div className="container">
           <div className="eyebrow">what $5 gets you</div>
           <h2 style={{ fontSize: "clamp(2rem, 4vw, 2.6rem)", marginBottom: "var(--space-8)" }}>
-            Five phases. One run. No fluff.
+            Six phases. One run. No fluff.
           </h2>
           <div className="phase-grid">
             {phases.map((phase, index) => (
@@ -386,6 +391,34 @@ export default function LandingPage() {
             </div>
           </div>
 
+          {/* Phase 06 — Optimized Resume */}
+          <div className="phase-output-row phase-output-row--reverse" data-reveal>
+            <div className="phase-output__img">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://github.com/user-attachments/assets/b7576882-0e62-41cc-b6f2-5a71d08b7e3f"
+                alt="PassStack optimized resume output — polished ATS-ready document synthesized from coaching sessions"
+                className="screenshot-img"
+              />
+            </div>
+            <div className="phase-output__text">
+              <div className="eyebrow" style={{ marginBottom: "var(--space-3)" }}>phase 06 — optimized resume</div>
+              <h3 style={{ fontSize: "clamp(1.3rem, 3vw, 1.7rem)", lineHeight: 1.2, marginBottom: "var(--space-4)" }}>
+                Walk away with a resume that&apos;s actually ready to send.
+              </h3>
+              <p className="result-muted" style={{ marginBottom: "var(--space-4)" }}>
+                After your STAR coaching sessions, PassStack synthesizes everything — your enriched experience, rewritten bullets, and strongest outcomes — into a single polished document. ATS-optimized. No formatting gymnastics required.
+              </p>
+              <ul className="feature-list">
+                <li>Synthesizes your STAR answers, bullet rewrites, and enriched data</li>
+                <li>ATS-ready formatting — clean structure, no tables or columns</li>
+                <li>Includes a tailored summary aligned to the target role</li>
+                <li>Download as .txt — paste into Word or Google Docs to export as PDF</li>
+                <li>Included at no extra charge — no additional token use</li>
+              </ul>
+            </div>
+          </div>
+
           {/* Honest by Design — No-Go Callout */}
           <div className="phase-output-row phase-output-row--reverse" data-reveal>
             <div className="phase-output__img">
@@ -418,7 +451,7 @@ export default function LandingPage() {
 
           <div style={{ marginTop: "var(--space-8)", textAlign: "center" }}>
             <Link href="/app?demo" className="btn-ghost">
-              Try the demo — see all five phases →
+              Try the demo — see all six phases →
             </Link>
           </div>
         </div>
@@ -479,6 +512,7 @@ export default function LandingPage() {
                 <li>Personalized cover letter draft</li>
                 <li>Gap-based study plan with resources</li>
                 <li>STAR behavioral interview coaching</li>
+                <li>Optimized resume — synthesized and ATS-ready</li>
                 <li>GitHub + LinkedIn profile enrichment</li>
                 <li>Honest dealbreaker detection — no fake enthusiasm for roles you won&apos;t get</li>
               </ul>
