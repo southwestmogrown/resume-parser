@@ -113,6 +113,14 @@ export const TOUR_STEPS: TourStep[] = [
     autoAdvanceMs: 4000,
   },
   {
+    title: "Optimized Resume",
+    description:
+      "After STAR coaching, PassStack synthesizes everything — your enriched data, rewritten bullets, and strongest STAR outcomes — into a polished, ATS-ready resume document you can send directly to recruiters.",
+    targetSelector: ".tour-tab-resume",
+    placement: "bottom",
+    autoAdvanceMs: 4000,
+  },
+  {
     title: "Export everything",
     description:
       "Download a .zip with your cover letter, rewritten bullets, study plan, and match report. All your materials in one place, ready to use.",

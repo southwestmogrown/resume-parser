@@ -3,6 +3,7 @@
 import { NextRequest } from "next/server";
 import { POST as postCoverLetter } from "@/app/api/cover-letter/route";
 import { POST as postExtract } from "@/app/api/extract/route";
+import { POST as postOptimizedResume } from "@/app/api/optimized-resume/route";
 import { POST as postRewrite } from "@/app/api/rewrite/route";
 import { POST as postScore } from "@/app/api/score/route";
 import { POST as postStudyPlan } from "@/app/api/study-plan/route";
@@ -12,6 +13,7 @@ import { sampleGitHubProfile, sampleMatchResult, sampleResumeData, sampleStudyIt
 const mockCreateMessage = jest.fn();
 const mockStreamMessage = jest.fn();
 const mockValidateAndConsumeToken = jest.fn();
+const mockCheckStarPrepAccess = jest.fn();
 
 jest.mock("@/lib/anthropic", () => ({
   getAnthropic: () => ({
@@ -24,6 +26,7 @@ jest.mock("@/lib/anthropic", () => ({
 
 jest.mock("@/lib/tokens", () => ({
   validateAndConsumeToken: (...args: unknown[]) => mockValidateAndConsumeToken(...args),
+  checkStarPrepAccess: (...args: unknown[]) => mockCheckStarPrepAccess(...args),
 }));
 
 const jsonRequest = (body: string | object, headers?: Record<string, string>) =>
@@ -59,6 +62,7 @@ describe("AI-backed API routes", () => {
     jest.clearAllMocks();
     clearRateLimitStore();
     mockValidateAndConsumeToken.mockResolvedValue(true);
+    mockCheckStarPrepAccess.mockResolvedValue('allow');
   });
 
   describe("extract route", () => {
@@ -321,6 +325,58 @@ describe("AI-backed API routes", () => {
       );
       expect(response.status).toBe(200);
       await expect(response.text()).resolves.toBe("Dear Hiring Team");
+    });
+  });
+
+  describe("optimized resume route", () => {
+    const validBody = {
+      resumeData: sampleResumeData,
+      rewriteSuggestions: [{ originalRole: "Role", originalBullet: "Old", rewrittenBullet: "New", rationale: "Why" }],
+      starAnswers: [],
+      matchResult: sampleMatchResult,
+      jobDescription: "JD",
+    };
+
+    it("returns 402 when token header is missing", async () => {
+      const response = await postOptimizedResume(jsonRequest(validBody));
+      expect(response.status).toBe(402);
+    });
+
+    it("returns 401 when star prep access is denied", async () => {
+      mockCheckStarPrepAccess.mockResolvedValueOnce('deny');
+      const response = await postOptimizedResume(jsonRequest(validBody, { "x-analysis-token": "tok" }));
+      expect(response.status).toBe(401);
+    });
+
+    it("returns 403 when star prep has not been activated yet", async () => {
+      mockCheckStarPrepAccess.mockResolvedValueOnce('consume');
+      const response = await postOptimizedResume(jsonRequest(validBody, { "x-analysis-token": "tok" }));
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toMatchObject({ error: expect.stringContaining("STAR prep") });
+    });
+
+    it("returns 400 when required fields are missing", async () => {
+      let response = await postOptimizedResume(jsonRequest("{", { "x-analysis-token": "tok" }));
+      expect(response.status).toBe(400);
+
+      response = await postOptimizedResume(
+        jsonRequest({ resumeData: sampleResumeData }, { "x-analysis-token": "tok" })
+      );
+      expect(response.status).toBe(400);
+    });
+
+    it("returns 401 on Anthropic auth error", async () => {
+      mockStreamMessage.mockImplementationOnce(() => { throw { status: 401 }; });
+      const response = await postOptimizedResume(jsonRequest(validBody, { "x-analysis-token": "tok" }));
+      expect(response.status).toBe(401);
+    });
+
+    it("streams the optimized resume on success", async () => {
+      mockStreamMessage.mockReturnValueOnce(streamChunks("# Jordan Rivera\n", "\nSummary goes here"));
+      const response = await postOptimizedResume(jsonRequest(validBody, { "x-analysis-token": "tok" }));
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain("text/plain");
+      await expect(response.text()).resolves.toBe("# Jordan Rivera\n\nSummary goes here");
     });
   });
 });
