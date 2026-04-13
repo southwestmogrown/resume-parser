@@ -32,8 +32,11 @@ class MockResizeObserver implements ResizeObserver {
 }
 
 class MockMutationObserver implements MutationObserver {
+  private readonly callback: MutationCallback;
+
   constructor(callback: MutationCallback) {
-    void callback;
+    // The test only needs MutationObserver construction to succeed.
+    this.callback = callback;
   }
 
   disconnect() {}

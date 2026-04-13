@@ -18,13 +18,25 @@ interface SpotlightRect {
   height: number;
 }
 
+interface SavedTargetStyles {
+  element: HTMLElement;
+  position: string;
+  zIndex: string;
+  isolation: string;
+}
+
 const TOOLTIP_WIDTH = 340;
-const TOOLTIP_MIN_HEIGHT = 180;
+const TOOLTIP_INITIAL_HEIGHT = 180;
 const TOOLTIP_GAP = 16;
 const NAV_OFFSET = 96;
 const VIEWPORT_MARGIN = 24;
 const LAYOUT_SETTLE_MS = 350;
+// Backdrop opacity while the active target is lifted above the overlay.
 const OVERLAY_ALPHA = 0.58;
+// Max share of viewport height reserved so top/bottom tooltips stay visible with the target.
+const VERTICAL_TOOLTIP_BUFFER_RATIO = 0.34;
+// Smaller viewport reservation for side tooltips, which need less vertical clearance.
+const SIDE_TOOLTIP_BUFFER_RATIO = 0.28;
 
 function getTargetElement(selector: string): HTMLElement | null {
   if (selector === "body") return null;
@@ -159,8 +171,8 @@ function scrollTargetIntoView(
   const rect = target.getBoundingClientRect();
   const tooltipBuffer =
     placement === "top" || placement === "bottom"
-      ? Math.min(tooltipSize.height + TOOLTIP_GAP, Math.floor(window.innerHeight * 0.34))
-      : Math.min(Math.max(tooltipSize.height / 2, 120), Math.floor(window.innerHeight * 0.28));
+      ? Math.min(tooltipSize.height + TOOLTIP_GAP, Math.floor(window.innerHeight * VERTICAL_TOOLTIP_BUFFER_RATIO))
+      : Math.min(Math.max(tooltipSize.height / 2, 120), Math.floor(window.innerHeight * SIDE_TOOLTIP_BUFFER_RATIO));
   const topEdge = NAV_OFFSET + 12 + (placement === "top" ? tooltipBuffer : 0);
   const bottomEdge = window.innerHeight - VIEWPORT_MARGIN - (placement === "bottom" ? tooltipBuffer : 0);
   const needsScroll = rect.top < topEdge || rect.bottom > bottomEdge;
@@ -188,17 +200,12 @@ export default function TourOverlay({
   const totalSteps = steps.length;
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
-  const [tooltipSize, setTooltipSize] = useState({ width: TOOLTIP_WIDTH, height: TOOLTIP_MIN_HEIGHT });
+  const [tooltipSize, setTooltipSize] = useState({ width: TOOLTIP_WIDTH, height: TOOLTIP_INITIAL_HEIGHT });
   const autoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rafRef = useRef<number | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
-  const activeTargetRef = useRef<{
-    element: HTMLElement;
-    position: string;
-    zIndex: string;
-    isolation: string;
-  } | null>(null);
+  const activeTargetRef = useRef<SavedTargetStyles | null>(null);
 
   const clearAutoTimer = useCallback(() => {
     if (autoTimerRef.current !== null) {
