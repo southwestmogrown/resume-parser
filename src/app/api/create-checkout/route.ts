@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe';
+import { RESUME_ANALYSIS_PRODUCT } from '@/lib/stripePayments';
 
 export async function POST(req: NextRequest) {
-  const origin = req.headers.get('origin') || 'http://localhost:3000';
+  const origin = req.nextUrl.origin;
 
   const session = await getStripe().checkout.sessions.create({
     mode: 'payment',
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
     ],
     return_url: `${origin}/app?token={CHECKOUT_SESSION_ID}&success=true`,
     metadata: {
-      product: 'resume_analysis',
+      product: RESUME_ANALYSIS_PRODUCT,
     },
   });
 

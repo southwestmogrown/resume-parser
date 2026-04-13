@@ -1,10 +1,17 @@
 import { getAnthropic } from '@/lib/anthropic';
 import { NextRequest, NextResponse } from 'next/server';
 import type { ExtractRequest, ExtractResponse, ResumeData } from '@/lib/types';
+import { parseModelJson } from '@/lib/parseModelJson';
+import { isRateLimited } from '@/lib/rateLimit';
+import { isStringWithinLimit, MAX_RESUME_BASE64_CHARS } from '@/lib/requestValidation';
 
 export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
+  if (isRateLimited(req.headers, 'extract', 5, 60_000)) {
+    return NextResponse.json({ error: 'Too many extraction requests. Please wait a minute and try again.' }, { status: 429 });
+  }
+
   let body: Partial<ExtractRequest>;
   try {
     body = await req.json();
@@ -14,7 +21,7 @@ export async function POST(req: NextRequest) {
 
   const { resume } = body;
 
-  if (!resume) {
+  if (!isStringWithinLimit(resume, MAX_RESUME_BASE64_CHARS)) {
     return NextResponse.json({ error: 'resume is required' }, { status: 400 });
   }
 
@@ -94,11 +101,7 @@ Return this exact shape:
 
   let resumeData: ResumeData;
   try {
-    const cleaned = extractionText
-      .replace(/^```(?:json)?\n?/, '')
-      .replace(/\n?```$/, '')
-      .trim();
-    resumeData = JSON.parse(cleaned);
+    resumeData = parseModelJson<ResumeData>(extractionText);
   } catch {
     return NextResponse.json(
       { error: 'Failed to parse resume extraction response' },

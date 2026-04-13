@@ -2,6 +2,7 @@ import { getAnthropic } from '@/lib/anthropic';
 import { NextRequest, NextResponse } from 'next/server';
 import { validateAndConsumeToken } from '@/lib/tokens';
 import type { CoverLetterRequest } from '@/lib/types';
+import { isStringWithinLimit, MAX_JOB_DESCRIPTION_CHARS } from '@/lib/requestValidation';
 
 export const maxDuration = 60;
 
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
 
   const { resumeData, matchResult, jobDescription, githubProfile, linkedinProfile } = body;
 
-  if (!resumeData || !matchResult || !jobDescription) {
+  if (!resumeData || !matchResult || !isStringWithinLimit(jobDescription, MAX_JOB_DESCRIPTION_CHARS)) {
     return NextResponse.json(
       { error: 'resumeData, matchResult, and jobDescription are required' },
       { status: 400 }
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
       model: 'claude-sonnet-4-6',
       max_tokens: 500,
       system:
-        'You are an elite cover letter writer for software engineers. Your job is to help the candidate win interviews with writing that is specific, credible, and persuasive. Never invent facts, company knowledge, projects, metrics, or tools. Use the strongest truthful evidence available and avoid generic filler.',
+        'You are a careful cover letter writer for software engineers. Help the candidate win interviews with writing that is specific, credible, and persuasive. Never invent facts, company knowledge, projects, metrics, or tools. Use the strongest truthful evidence available and avoid generic filler.',
       messages: [
         {
           role: 'user',

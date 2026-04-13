@@ -11,16 +11,20 @@ describe("tokens", () => {
     const maybeSingle = jest.fn();
     const single = jest.fn();
     const insert = jest.fn();
-    const updateEq = jest.fn();
+    const updateMaybeSingle = jest.fn();
     const eq = jest.fn((field: string) => {
       if (field === "stripe_session_id") return { maybeSingle };
       return { single };
     });
     const select = jest.fn(() => ({ eq }));
-    const update = jest.fn(() => ({ eq: updateEq }));
+    const updateChain = {
+      eq: jest.fn().mockReturnThis(),
+      select: jest.fn(() => ({ maybeSingle: updateMaybeSingle })),
+    };
+    const update = jest.fn(() => updateChain);
     const from = jest.fn(() => ({ select, insert, update }));
 
-    return { from, maybeSingle, single, insert, update, updateEq };
+    return { from, maybeSingle, single, insert, update, updateChain, updateMaybeSingle };
   };
 
   beforeEach(() => {
@@ -170,7 +174,7 @@ describe("tokens", () => {
       data: { id: "1", uses_remaining: 2, expires_at: "2099-01-01T00:00:00.000Z" },
       error: null,
     });
-    supabase.updateEq.mockResolvedValue({ error: null });
+    supabase.updateMaybeSingle.mockResolvedValue({ data: { uses_remaining: 1 }, error: null });
     getSupabaseAdmin.mockReturnValue(supabase);
     const { validateAndConsumeToken } = await import("@/lib/tokens");
 
@@ -184,7 +188,7 @@ describe("tokens", () => {
       data: { id: "1", uses_remaining: 2, expires_at: "2099-01-01T00:00:00.000Z" },
       error: null,
     });
-    supabase.updateEq.mockResolvedValue({ error: { message: "update failed" } });
+    supabase.updateMaybeSingle.mockResolvedValue({ data: null, error: { message: "update failed" } });
     getSupabaseAdmin.mockReturnValue(supabase);
     const { validateAndConsumeToken } = await import("@/lib/tokens");
 

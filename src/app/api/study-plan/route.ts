@@ -2,6 +2,7 @@ import { getAnthropic } from '@/lib/anthropic';
 import { NextRequest, NextResponse } from 'next/server';
 import { validateAndConsumeToken } from '@/lib/tokens';
 import type { StudyPlanRequest, StudyPlanResponse, StudyItem, LinkedInProfile } from '@/lib/types';
+import { parseModelJson } from '@/lib/parseModelJson';
 
 export const maxDuration = 30;
 
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
       model: 'claude-sonnet-4-6',
       max_tokens: 4096,
       system:
-        'You are an elite career strategist for software engineers. Build study plans that close hiring gaps fast through practical, portfolio-worthy work. Be specific, current, and realistic. Do not recommend vague self-study, generic MOOCs, or long multi-month programs when a tighter project-based path would work better.',
+        'You are a practical career strategist for software engineers. Build study plans that close hiring gaps fast through practical, portfolio-worthy work. Be specific, current, and realistic. Do not recommend vague self-study, generic MOOCs, or long multi-month programs when a tighter project-based path would work better.',
       messages: [
         {
           role: 'user',
@@ -104,11 +105,7 @@ Return a JSON array only, with no additional text or markdown:
 
   let items: StudyItem[];
   try {
-    const cleaned = studyText
-      .replace(/^```(?:json)?\n?/, '')
-      .replace(/\n?```$/, '')
-      .trim();
-    items = JSON.parse(cleaned);
+    items = parseModelJson<StudyItem[]>(studyText);
   } catch {
     return NextResponse.json(
       { error: 'Failed to parse study plan response' },

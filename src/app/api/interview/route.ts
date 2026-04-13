@@ -1,6 +1,9 @@
 import { getAnthropic } from '@/lib/anthropic';
 import { NextRequest, NextResponse } from 'next/server';
 import type { InterviewRequest, InterviewResponse, InterviewBrief, ResumeData } from '@/lib/types';
+import { parseModelJson, stripJsonCodeFences } from '@/lib/parseModelJson';
+import { isRateLimited } from '@/lib/rateLimit';
+import { MAX_CONVERSATION_MESSAGES, MAX_MESSAGE_CHARS } from '@/lib/requestValidation';
 
 export const maxDuration = 30;
 
@@ -58,6 +61,10 @@ Required JSON shape:
 }
 
 export async function POST(req: NextRequest) {
+  if (isRateLimited(req.headers, 'interview', 12, 60_000)) {
+    return NextResponse.json({ error: 'Too many interview requests. Please wait a minute and try again.' }, { status: 429 });
+  }
+
   let body: Partial<InterviewRequest>;
   try {
     body = await req.json();
@@ -69,6 +76,20 @@ export async function POST(req: NextRequest) {
 
   if (!resumeData || !messages) {
     return NextResponse.json({ error: 'resumeData and messages are required' }, { status: 400 });
+  }
+
+  if (messages.length > MAX_CONVERSATION_MESSAGES) {
+    return NextResponse.json(
+      { error: `Conversation exceeds ${MAX_CONVERSATION_MESSAGES} messages` },
+      { status: 400 }
+    );
+  }
+
+  if (messages.some((message) => !message.content || message.content.length > MAX_MESSAGE_CHARS)) {
+    return NextResponse.json(
+      { error: `Conversation contains a message longer than ${MAX_MESSAGE_CHARS} characters` },
+      { status: 400 }
+    );
   }
 
   const systemPrompt = buildInterviewerPrompt(resumeData);
@@ -92,14 +113,10 @@ export async function POST(req: NextRequest) {
     aiMessage.content[0].type === 'text' ? aiMessage.content[0].text : '';
 
   // JSON completion detection — strip markdown fences, attempt parse
-  const stripped = content
-    .trim()
-    .replace(/^```json?\n?/, '')
-    .replace(/```$/, '')
-    .trim();
+  const stripped = stripJsonCodeFences(content);
 
   try {
-    const brief: InterviewBrief = JSON.parse(stripped);
+    const brief = parseModelJson<InterviewBrief>(stripped);
     if (brief.interview_complete) {
       const response: InterviewResponse = { message: '', brief, interview_complete: true };
       return NextResponse.json(response);

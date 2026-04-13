@@ -1,10 +1,17 @@
 import { getAnthropic } from '@/lib/anthropic';
 import { NextRequest, NextResponse } from 'next/server';
 import type { ScoreRequest, ScoreResponse, MatchResult } from '@/lib/types';
+import { parseModelJson } from '@/lib/parseModelJson';
+import { isRateLimited } from '@/lib/rateLimit';
+import { isStringWithinLimit, MAX_JOB_DESCRIPTION_CHARS } from '@/lib/requestValidation';
 
 export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
+  if (isRateLimited(req.headers, 'score', 10, 60_000)) {
+    return NextResponse.json({ error: 'Too many scoring requests. Please wait a minute and try again.' }, { status: 429 });
+  }
+
   let body: Partial<ScoreRequest>;
   try {
     body = await req.json();
@@ -14,7 +21,7 @@ export async function POST(req: NextRequest) {
 
   const { resumeData, jobDescription, githubProfile, linkedinProfile } = body;
 
-  if (!resumeData || !jobDescription) {
+  if (!resumeData || !isStringWithinLimit(jobDescription, MAX_JOB_DESCRIPTION_CHARS)) {
     return NextResponse.json(
       { error: 'resumeData and jobDescription are required' },
       { status: 400 }
@@ -27,7 +34,7 @@ export async function POST(req: NextRequest) {
       model: 'claude-sonnet-4-6',
       max_tokens: 4096,
       system:
-        "You are an elite software engineering resume strategist. Your job is to maximize the candidate's chance of getting interviews while staying 100% truthful. Optimize for ATS alignment, recruiter clarity, and actionable guidance. Never invent evidence, never treat equivalent experience as a gap when the match is credible, and never overrate a weak fit just to sound positive.",
+        "You are a precise software-engineering resume strategist. Maximize the candidate's chance of getting interviews while staying 100% truthful. Optimize for ATS alignment, recruiter clarity, and actionable guidance. Never invent evidence, never treat equivalent experience as a gap when the match is credible, and never overrate a weak fit just to sound positive.",
       messages: [
         {
           role: 'user',
@@ -93,11 +100,7 @@ Return a JSON object only, with no additional text or markdown:
 
   let matchResult: MatchResult;
   try {
-    const cleaned = scoringText
-      .replace(/^```(?:json)?\n?/, '')
-      .replace(/\n?```$/, '')
-      .trim();
-    matchResult = JSON.parse(cleaned);
+    matchResult = parseModelJson<MatchResult>(scoringText);
   } catch {
     return NextResponse.json(
       { error: 'Failed to parse scoring response' },

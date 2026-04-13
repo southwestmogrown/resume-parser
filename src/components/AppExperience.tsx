@@ -118,7 +118,6 @@ export default function AppExperience() {
 
   // Phase 0 — Experience Interviewer
   const [showInterviewer, setShowInterviewer] = useState(false);
-  const [interviewMessages, setInterviewMessages] = useState<ConversationMessage[]>([]);
   const [interviewBrief, setInterviewBrief] = useState<InterviewBrief | null>(null);
   const [enrichedResumeData, setEnrichedResumeData] = useState<ResumeData | null>(null);
 
@@ -165,7 +164,7 @@ export default function AppExperience() {
     if (loadingCoverLetter) setActiveTab("cover");
   }, [loadingCoverLetter]);
 
-  // ── localStorage persistence ──────────────────────────────────────────────
+  // ── workspace persistence ────────────────────────────────────────────────
 
   // Load demo fixtures or restore from localStorage — mutually exclusive, reactive to URL changes
   useEffect(() => {
@@ -186,7 +185,6 @@ export default function AppExperience() {
       setTokenExpiresAt(null);
       setPaymentState("idle");
       setActiveTab("rewrites");
-      setInterviewMessages([]);
       setInterviewBrief(null);
       setEnrichedResumeData(null);
       setStarQuestions([]);
@@ -202,7 +200,7 @@ export default function AppExperience() {
       return;
     }
 
-    // Restore on mount (skip if coming back from Stripe redirect — sessionStorage handles that)
+      // Restore on mount (skip if coming back from Stripe redirect — sessionStorage handles that)
     const params = new URLSearchParams(window.location.search);
     if (params.get("success") || params.get("canceled")) return;
 
@@ -219,11 +217,6 @@ export default function AppExperience() {
       if (Array.isArray(d.jobDescriptions) && (d.jobDescriptions as string[]).length > 0) {
         setJobDescriptions(d.jobDescriptions as string[]);
       }
-      if (d.githubProfile) setGithubProfile(d.githubProfile as GitHubProfile);
-      if (d.linkedinProfile) setLinkedinProfile(d.linkedinProfile as LinkedInProfile);
-      if (d.analysisToken) setAnalysisToken(d.analysisToken as string);
-      if (d.tokenExpiresAt) setTokenExpiresAt(d.tokenExpiresAt as string);
-      if (d.interviewMessages) setInterviewMessages(d.interviewMessages as ConversationMessage[]);
       if (d.interviewBrief) setInterviewBrief(d.interviewBrief as InterviewBrief);
       if (d.enrichedResumeData) setEnrichedResumeData(d.enrichedResumeData as ResumeData);
       if (d.starQuestions) setStarQuestions(d.starQuestions as StarQuestion[]);
@@ -246,11 +239,6 @@ export default function AppExperience() {
         studyItems,
         coverLetter,
         jobDescriptions,
-        githubProfile,
-        linkedinProfile,
-        analysisToken,
-        tokenExpiresAt,
-        interviewMessages,
         interviewBrief,
         enrichedResumeData,
         starQuestions,
@@ -259,7 +247,7 @@ export default function AppExperience() {
     } catch {
       // Storage unavailable or full
     }
-  }, [analysisToken, batchResults, coverLetter, enrichedResumeData, githubProfile, interviewBrief, interviewMessages, isDemo, jobDescriptions, linkedinProfile, matchResult, resumeData, rewriteSuggestions, starAnswers, starQuestions, studyItems, tokenExpiresAt]);
+  }, [batchResults, coverLetter, enrichedResumeData, interviewBrief, isDemo, jobDescriptions, matchResult, resumeData, rewriteSuggestions, starAnswers, starQuestions, studyItems]);
 
   const canAnalyze = Boolean((resumeFile || resumeData) && jobDescriptions.length > 0);
   const isBusy = loadingExtraction || loadingScore || loadingRewrite || loadingCoverLetter || loadingStudyPlan || loadingBatch;
@@ -320,7 +308,6 @@ export default function AppExperience() {
     setCheckoutClientSecret(null);
     setError(null);
     setShowInterviewer(false);
-    setInterviewMessages([]);
     setInterviewBrief(null);
     setEnrichedResumeData(null);
 
@@ -859,6 +846,8 @@ export default function AppExperience() {
     setMatchResult(null);
     setResumeData(null);
     setResumeFile(null);
+    setGithubProfile(null);
+    setLinkedinProfile(null);
     setRewriteSuggestions(null);
     setCoverLetter(null);
     setCoverLetterBlocked(null);
@@ -869,13 +858,16 @@ export default function AppExperience() {
     setError(null);
     setActiveTab("rewrites");
     setShowInterviewer(false);
-    setInterviewMessages([]);
     setInterviewBrief(null);
     setEnrichedResumeData(null);
     setStarQuestions([]);
     setStarAnswers([]);
     setActiveStarQuestion(null);
     setStarMessages([]);
+    setAnalysisToken(null);
+    setTokenExpiresAt(null);
+    setPaymentState("idle");
+    setCheckoutClientSecret(null);
     try { localStorage.removeItem(LS_KEY); } catch { /* ignore */ }
   }, []);
 

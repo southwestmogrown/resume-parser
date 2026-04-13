@@ -1,6 +1,8 @@
 import { randomBytes } from 'crypto';
 import { getSupabaseAdmin } from './supabaseAdmin';
 
+const MAX_TOKEN_UPDATE_RETRIES = 2;
+
 export interface AnalysisTokenRecord {
   token: string;
   uses_remaining: number;
@@ -58,22 +60,31 @@ export async function mintToken(stripeSessionId: string): Promise<{ token: strin
 
 export async function validateAndConsumeToken(token: string): Promise<boolean> {
   const supabaseAdmin = getSupabaseAdmin();
-  const { data, error } = await supabaseAdmin
-    .from('analysis_tokens')
-    .select('id, uses_remaining, expires_at')
-    .eq('token', token)
-    .single();
+  for (let attempt = 0; attempt < MAX_TOKEN_UPDATE_RETRIES; attempt += 1) {
+    const { data, error } = await supabaseAdmin
+      .from('analysis_tokens')
+      .select('id, uses_remaining, expires_at')
+      .eq('token', token)
+      .single();
 
-  if (error || !data) return false;
-  if (data.uses_remaining <= 0) return false;
-  if (new Date(data.expires_at) < new Date()) return false;
+    if (error || !data) return false;
+    if (data.uses_remaining <= 0) return false;
+    if (new Date(data.expires_at) < new Date()) return false;
 
-  const { error: updateError } = await supabaseAdmin
-    .from('analysis_tokens')
-    .update({ uses_remaining: data.uses_remaining - 1 })
-    .eq('token', token);
+    const { data: updatedToken, error: updateError } = await supabaseAdmin
+      .from('analysis_tokens')
+      .update({ uses_remaining: data.uses_remaining - 1 })
+      .eq('token', token)
+      .eq('uses_remaining', data.uses_remaining)
+      .select('uses_remaining')
+      .maybeSingle();
 
-  return !updateError;
+    if (!updateError && updatedToken?.uses_remaining === data.uses_remaining - 1) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export async function validateTokenOnly(token: string): Promise<boolean> {
@@ -122,21 +133,35 @@ export async function checkStarPrepAccess(
 
 export async function activateStarPrep(token: string): Promise<boolean> {
   const supabaseAdmin = getSupabaseAdmin();
-  const { data, error } = await supabaseAdmin
-    .from('analysis_tokens')
-    .select('id, uses_remaining')
-    .eq('token', token)
-    .single();
+  for (let attempt = 0; attempt < MAX_TOKEN_UPDATE_RETRIES; attempt += 1) {
+    const { data, error } = await supabaseAdmin
+      .from('analysis_tokens')
+      .select('id, uses_remaining')
+      .eq('token', token)
+      .single();
 
-  if (error || !data || data.uses_remaining <= 0) return false;
+    if (error || !data || data.uses_remaining <= 0) return false;
 
-  const { error: updateError } = await supabaseAdmin
-    .from('analysis_tokens')
-    .update({
-      uses_remaining: data.uses_remaining - 1,
-      star_prep_unlocked: true,
-    })
-    .eq('token', token);
+    const { data: updatedToken, error: updateError } = await supabaseAdmin
+      .from('analysis_tokens')
+      .update({
+        uses_remaining: data.uses_remaining - 1,
+        star_prep_unlocked: true,
+      })
+      .eq('token', token)
+      .eq('uses_remaining', data.uses_remaining)
+      .eq('star_prep_unlocked', false)
+      .select('uses_remaining, star_prep_unlocked')
+      .maybeSingle();
 
-  return !updateError;
+    if (
+      !updateError &&
+      updatedToken?.uses_remaining === data.uses_remaining - 1 &&
+      updatedToken.star_prep_unlocked === true
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 }
