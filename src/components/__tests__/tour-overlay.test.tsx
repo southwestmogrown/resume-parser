@@ -32,7 +32,9 @@ class MockResizeObserver implements ResizeObserver {
 }
 
 class MockMutationObserver implements MutationObserver {
-  constructor(_: MutationCallback) {}
+  constructor(callback: MutationCallback) {
+    void callback;
+  }
 
   disconnect() {}
   observe() {}
