@@ -259,7 +259,7 @@ describe("AI-backed API routes", () => {
     });
 
     it("blocks cover letters for dealbreaker roles", async () => {
-      let response = await postCoverLetter(
+      const response = await postCoverLetter(
         jsonRequest(
           { resumeData: sampleResumeData, matchResult: sampleMatchResult, jobDescription: "JD" },
           { "x-analysis-token": "good" }
