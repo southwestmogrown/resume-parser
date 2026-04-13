@@ -75,7 +75,7 @@ export const TOUR_STEPS: TourStep[] = [
     description:
       "A one-time $5 payment unlocks bullet rewrites tailored to the JD, a structured study plan, a cover letter draft, and STAR interview coaching. The score is always free.",
     targetSelector: ".tour-pay-button",
-    placement: "right",
+    placement: "bottom",
     autoAdvanceMs: 3500,
     // NOTE: do NOT auto-click the unlock button — that would open the payment modal mid-tour.
     // analysisToken is set via handleTourNext directly (no onActivate here).
@@ -117,7 +117,7 @@ export const TOUR_STEPS: TourStep[] = [
     description:
       "Download a .zip with your cover letter, rewritten bullets, study plan, and match report. All your materials in one place, ready to use.",
     targetSelector: ".tour-export-btn",
-    placement: "right",
+    placement: "bottom",
     autoAdvanceMs: 0, // manual end
   },
 ];
