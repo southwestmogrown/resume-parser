@@ -31,6 +31,10 @@ import {
   DEMO_STAR_QUESTIONS,
   DEMO_STUDY_ITEMS,
 } from "@/lib/demoData";
+import {
+  TOUR_STEPS,
+} from "@/lib/tourConfig";
+import TourOverlay from "@/components/TourOverlay";
 import type {
   BatchScoreResult,
   ConversationMessage,
@@ -113,6 +117,15 @@ export default function AppExperience() {
   const [starMessages, setStarMessages] = useState<ConversationMessage[]>([]);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
+  // Tour state
+  const [isTourActive, setIsTourActive] = useState(false);
+  const [tourStep, setTourStep] = useState(0);
+  const [tourCompleted, setTourCompleted] = useState(false);
+  // Tour drives these directly to simulate the user's happy path
+  const [tourResumeSet, setTourResumeSet] = useState(false);
+  const [tourJdSet, setTourJdSet] = useState(false);
+  const [tourAnalyzed, setTourAnalyzed] = useState(false);
+
   const jobDescriptionsRef = useRef(jobDescriptions);
   const resumeDataRef = useRef(resumeData);
   const matchResultRef = useRef(matchResult);
@@ -149,16 +162,11 @@ export default function AppExperience() {
   // Load demo fixtures or restore from localStorage — mutually exclusive, reactive to URL changes
   useEffect(() => {
     if (isDemo) {
-      setResumeData(DEMO_RESUME_DATA);
-      setMatchResult(DEMO_MATCH_RESULT);
-      setRewriteSuggestions(DEMO_REWRITE_SUGGESTIONS);
-      setStudyItems(DEMO_STUDY_ITEMS);
-      setCoverLetter(DEMO_COVER_LETTER);
+      // In demo mode, the tour drives state changes step by step.
+      // Start with just the JD preloaded so the Analyze button is enabled.
+      setCheckoutClientSecret(null); // clear any stale modal state
       setJobDescriptions([DEMO_JOB_DESCRIPTION]);
-      setAnalysisToken("demo");
-      setPaymentState("paid");
-      setStarQuestions(DEMO_STAR_QUESTIONS);
-      setActiveStarQuestion(DEMO_STAR_QUESTIONS[0]);
+      setIsTourActive(true);
       return;
     }
 
@@ -225,7 +233,7 @@ export default function AppExperience() {
 
   const canAnalyze = Boolean((resumeFile || resumeData) && jobDescriptions.length > 0);
   const isBusy = loadingExtraction || loadingScore || loadingRewrite || loadingCoverLetter || loadingStudyPlan || loadingBatch;
-  const showPayGate = !analysisToken && Boolean(matchResult) && !loadingScore && !loadingExtraction;
+  const showPayGate = !analysisToken && Boolean(matchResult) && !loadingScore && !loadingExtraction && !isTourActive;
   const hasPaidContent = Boolean(rewriteSuggestions) || Boolean(studyItems) || Boolean(coverLetter) || Boolean(coverLetterBlocked);
   const loadingPaid = loadingRewrite || loadingStudyPlan || loadingCoverLetter;
   const showResults =
@@ -640,6 +648,7 @@ export default function AppExperience() {
   }, []);
 
   const handlePay = useCallback(async () => {
+    if (isTourActive) return; // block pay triggers during demo tour
     try {
       const response = await fetch("/api/create-payment-intent", { method: "POST" });
       if (!response.ok) throw new Error("Checkout setup failed.");
@@ -755,9 +764,109 @@ export default function AppExperience() {
 
   const canExport = (hasPaidContent || Boolean(batchResults)) && !loadingPaid && !loadingBatch;
 
+  // ── Tour handlers ────────────────────────────────────────────────────────────
+
+  const handleTourNext = useCallback(() => {
+    const nextStep = tourStep + 1;
+
+    if (nextStep === 1 && !tourResumeSet) {
+      // Step 0 → 1: pre-load resume data into state (simulates PDF extraction)
+      setResumeData(DEMO_RESUME_DATA);
+      setTourResumeSet(true);
+    } else if (nextStep === 2 && !tourJdSet) {
+      // Step 1 → 2: JD is already pre-loaded; just mark it
+      setTourJdSet(true);
+    } else if (nextStep === 3) {
+      // Step 2 → 3: user is at GitHub/LinkedIn — just advance
+    } else if (nextStep === 4 && !tourAnalyzed) {
+      // Step 3 → 4: "Analyze" button fires — set score + unlock token + run paid phases
+      setTourAnalyzed(true);
+      setResumeData(DEMO_RESUME_DATA);
+      setMatchResult(DEMO_MATCH_RESULT);
+      // Skip setting analysisToken here — we want the PayGate to show first (step 5)
+      // analysisToken will be set in step 5
+    } else if (nextStep === 5) {
+      // Step 4 → 5: show paygate — unlock token and auto-fire paid phases
+      setAnalysisToken("demo");
+      setPaymentState("paid");
+      setRewriteSuggestions(DEMO_REWRITE_SUGGESTIONS);
+      setStudyItems(DEMO_STUDY_ITEMS);
+      setCoverLetter(DEMO_COVER_LETTER);
+      setStarQuestions(DEMO_STAR_QUESTIONS);
+      setActiveStarQuestion(DEMO_STAR_QUESTIONS[0]);
+    } else if (nextStep === 6) {
+      // Step 5 → 6: rewrites tab is shown, switch to it
+      setActiveTab("rewrites");
+    } else if (nextStep === 7) {
+      // Step 6 → 7: study plan tab
+      setActiveTab("study");
+    } else if (nextStep === 8) {
+      // Step 7 → 8: cover letter tab
+      setActiveTab("cover");
+    } else if (nextStep === 9) {
+      // Step 8 → 9: interview prep tab
+      setActiveTab("interview");
+    }
+
+    if (nextStep >= TOUR_STEPS.length) {
+      setIsTourActive(false);
+      setTourCompleted(true);
+    } else {
+      setTourStep(nextStep);
+    }
+  }, [tourStep, tourResumeSet, tourJdSet, tourAnalyzed]);
+
+  const handleTourPrev = useCallback(() => {
+    setTourStep((s) => Math.max(0, s - 1));
+  }, []);
+
+  const handleTourSkip = useCallback(() => {
+    // Complete the entire demo flow and dismiss the tour
+    setIsTourActive(false);
+    setTourCompleted(true);
+    setResumeData(DEMO_RESUME_DATA);
+    setMatchResult(DEMO_MATCH_RESULT);
+    setAnalysisToken("demo");
+    setPaymentState("paid");
+    setRewriteSuggestions(DEMO_REWRITE_SUGGESTIONS);
+    setStudyItems(DEMO_STUDY_ITEMS);
+    setCoverLetter(DEMO_COVER_LETTER);
+    setStarQuestions(DEMO_STAR_QUESTIONS);
+    setActiveStarQuestion(DEMO_STAR_QUESTIONS[0]);
+  }, []);
+
+  const handleRestartTour = useCallback(() => {
+    setResumeData(null);
+    setMatchResult(null);
+    setRewriteSuggestions(null);
+    setCoverLetter(null);
+    setCoverLetterBlocked(null);
+    setStudyItems(null);
+    setAnalysisToken(null);
+    setPaymentState("idle");
+    setStarQuestions([]);
+    setActiveStarQuestion(null);
+    setJobDescriptions([DEMO_JOB_DESCRIPTION]);
+    setTourResumeSet(false);
+    setTourJdSet(false);
+    setTourAnalyzed(false);
+    setTourStep(0);
+    setIsTourActive(true);
+  }, []);
+
   return (
     <ErrorBoundary>
       <main className="app-shell">
+        {isTourActive && (
+          <TourOverlay
+            steps={TOUR_STEPS}
+            currentStep={tourStep}
+            onNext={handleTourNext}
+            onPrev={handleTourPrev}
+            onSkip={handleTourSkip}
+          />
+        )}
+
         {checkoutClientSecret && (
           <CheckoutModal
             clientSecret={checkoutClientSecret}
@@ -830,6 +939,11 @@ export default function AppExperience() {
               {showResults && (
                 <button type="button" onClick={() => setShowResetConfirm(true)} className="btn-ghost">
                   ↩ New analysis
+                </button>
+              )}
+              {showResults && !isTourActive && tourCompleted && (
+                <button type="button" onClick={handleRestartTour} className="btn-ghost">
+                  ↺ Take a tour
                 </button>
               )}
               {!analysisToken && !checkoutClientSecret && (
@@ -1028,10 +1142,20 @@ export default function AppExperience() {
                       <button
                         type="button"
                         onClick={() => void handleExportZip()}
-                        className="btn-ghost btn-inline"
+                        className="btn-ghost btn-inline tour-export-btn"
                         style={{ alignSelf: "flex-start", fontSize: "11px" }}
                       >
                         ↓ Export .zip
+                      </button>
+                    )}
+                    {!isTourActive && tourCompleted && (
+                      <button
+                        type="button"
+                        onClick={handleRestartTour}
+                        className="btn-ghost btn-inline"
+                        style={{ alignSelf: "flex-start", fontSize: "11px" }}
+                      >
+                        ↺ Take a tour
                       </button>
                     )}
                   </div>

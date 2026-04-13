@@ -14,7 +14,7 @@ interface PayGateProps {
 
 export default function PayGate({ resumeData, score, paymentState, onPay }: PayGateProps) {
   return (
-    <div className="card card-accent result-card">
+    <div className="card card-accent result-card paygate-card">
       <div>
         <div className="eyebrow" style={{ color: "var(--ps-accent)" }}>
           your score
