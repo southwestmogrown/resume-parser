@@ -18,12 +18,71 @@ interface SpotlightRect {
   height: number;
 }
 
-function getSpotlightRect(selector: string): SpotlightRect | null {
+const TOOLTIP_WIDTH = 340;
+const TOOLTIP_HEIGHT = 180;
+const TOOLTIP_GAP = 16;
+const NAV_OFFSET = 96;
+
+function getTargetElement(selector: string): HTMLElement | null {
   if (selector === "body") return null;
-  const el = document.querySelector(selector);
-  if (!el) return null;
-  const r = el.getBoundingClientRect();
+  return document.querySelector<HTMLElement>(selector);
+}
+
+function getSpotlightRect(target: HTMLElement | null): SpotlightRect | null {
+  if (!target) return null;
+  const r = target.getBoundingClientRect();
   return { top: r.top, left: r.left, width: r.width, height: r.height };
+}
+
+function getTooltipPosition(
+  rect: SpotlightRect | null,
+  placement: TourStep["placement"]
+): { top: number; left: number } {
+  if (!rect || placement === "center") {
+    return {
+      top: window.innerHeight / 2 - TOOLTIP_HEIGHT / 2,
+      left: window.innerWidth / 2 - TOOLTIP_WIDTH / 2,
+    };
+  }
+
+  let top = 0;
+  let left = 0;
+
+  if (placement === "bottom") {
+    top = rect.top + rect.height + TOOLTIP_GAP;
+    left = rect.left + rect.width / 2 - TOOLTIP_WIDTH / 2;
+  } else if (placement === "top") {
+    top = rect.top - TOOLTIP_HEIGHT - TOOLTIP_GAP;
+    left = rect.left + rect.width / 2 - TOOLTIP_WIDTH / 2;
+  } else if (placement === "right") {
+    top = rect.top + rect.height / 2 - TOOLTIP_HEIGHT / 2;
+    left = rect.left + rect.width + TOOLTIP_GAP;
+  } else if (placement === "left") {
+    top = rect.top + rect.height / 2 - TOOLTIP_HEIGHT / 2;
+    left = rect.left - TOOLTIP_WIDTH - TOOLTIP_GAP;
+  } else {
+    top = window.innerHeight / 2 - TOOLTIP_HEIGHT / 2;
+    left = window.innerWidth / 2 - TOOLTIP_WIDTH / 2;
+  }
+
+  return {
+    top: Math.max(12, Math.min(top, window.innerHeight - TOOLTIP_HEIGHT - 12)),
+    left: Math.max(12, Math.min(left, window.innerWidth - TOOLTIP_WIDTH - 12)),
+  };
+}
+
+function scrollTargetIntoView(target: HTMLElement | null) {
+  if (!target) return;
+  const rect = target.getBoundingClientRect();
+  const topEdge = NAV_OFFSET + 12;
+  const bottomEdge = window.innerHeight - 24;
+  const needsScroll = rect.top < topEdge || rect.bottom > bottomEdge;
+  if (!needsScroll) return;
+
+  const absoluteTop = window.scrollY + rect.top;
+  const centeredOffset = Math.max(NAV_OFFSET, (window.innerHeight - rect.height) / 2);
+  const targetTop = Math.max(0, absoluteTop - centeredOffset);
+  window.scrollTo({ top: targetTop, behavior: "smooth" });
 }
 
 export default function TourOverlay({
@@ -37,7 +96,9 @@ export default function TourOverlay({
   const totalSteps = steps.length;
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
-  const autoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoTimerRef = useRef<number | null>(null);
+  const settleTimerRef = useRef<number | null>(null);
+  const rafRef = useRef<number | null>(null);
 
   const clearAutoTimer = useCallback(() => {
     if (autoTimerRef.current !== null) {
@@ -46,68 +107,72 @@ export default function TourOverlay({
     }
   }, []);
 
-  // Compute spotlight rect + tooltip position on step change
+  const clearSettleTimer = useCallback(() => {
+    if (settleTimerRef.current !== null) {
+      window.clearTimeout(settleTimerRef.current);
+      settleTimerRef.current = null;
+    }
+  }, []);
+
+  const clearRaf = useCallback(() => {
+    if (rafRef.current !== null) {
+      window.cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+  }, []);
+
   useEffect(() => {
     clearAutoTimer();
-    // Small delay to let DOM update after state changes
-    const raf = requestAnimationFrame(() => {
-      const r = getSpotlightRect(step.targetSelector);
-      setSpotlightRect(r);
-      if (r) {
-        // Position tooltip relative to target
-        const PLACEMENT = step.placement ?? "bottom";
-        const TOOLTIP_W = 340;
-        const TOOLTIP_H = 180;
-        const GAP = 16;
-        let top = 0;
-        let left = 0;
+    clearSettleTimer();
+    clearRaf();
 
-        if (PLACEMENT === "center" || !r) {
-          // Center tooltip on screen
-          top = window.innerHeight / 2 - TOOLTIP_H / 2;
-          left = window.innerWidth / 2 - TOOLTIP_W / 2;
-        } else if (PLACEMENT === "bottom") {
-          top = r.top + r.height + GAP;
-          left = r.left + r.width / 2 - TOOLTIP_W / 2;
-        } else if (PLACEMENT === "top") {
-          top = r.top - TOOLTIP_H - GAP;
-          left = r.left + r.width / 2 - TOOLTIP_W / 2;
-        } else if (PLACEMENT === "right") {
-          top = r.top + r.height / 2 - TOOLTIP_H / 2;
-          left = r.left + r.width + GAP;
-        } else if (PLACEMENT === "left") {
-          top = r.top + r.height / 2 - TOOLTIP_H / 2;
-          left = r.left - TOOLTIP_W - GAP;
-        }
+    let resizeObserver: ResizeObserver | null = null;
 
-        // Clamp to viewport
-        top = Math.max(12, Math.min(top, window.innerHeight - TOOLTIP_H - 12));
-        left = Math.max(12, Math.min(left, window.innerWidth - TOOLTIP_W - 12));
+    const updatePosition = () => {
+      const target = getTargetElement(step.targetSelector);
+      const rect = getSpotlightRect(target);
+      setSpotlightRect(rect);
+      setTooltipPos(getTooltipPosition(rect, step.placement ?? "bottom"));
+    };
 
-        setTooltipPos({ top, left });
-      } else {
-        setTooltipPos(null);
-      }
+    const scheduleUpdate = () => {
+      clearRaf();
+      rafRef.current = window.requestAnimationFrame(updatePosition);
+    };
 
-      // Fire step's onActivate (e.g., populating form fields, clicking buttons)
-      step.onActivate?.();
+    step.onActivate?.();
 
-      // Auto-advance via onNext (handleTourNext in AppExperience).
-      // NOTE: We intentionally do NOT include handleTourNext in the deps array.
-      // handleTourNext is recreated every time tourStep changes, but that only
-      // matters for the click handler (which fires synchronously). The auto-advance
-      // effect fires once per currentStep value, and each time it reads the
-      // CURRENT onNext from the closure — which has the latest state values
-      // because onNext (handleTourNext) is stable across the single async wait.
-      if (step.autoAdvanceMs && step.autoAdvanceMs > 0) {
-        autoTimerRef.current = setTimeout(() => {
-          onNext();
-        }, step.autoAdvanceMs);
+    rafRef.current = window.requestAnimationFrame(() => {
+      const target = getTargetElement(step.targetSelector);
+      scrollTargetIntoView(target);
+      updatePosition();
+
+      if (typeof ResizeObserver !== "undefined") {
+        resizeObserver = new ResizeObserver(() => scheduleUpdate());
+        if (target) resizeObserver.observe(target);
+        resizeObserver.observe(document.body);
       }
     });
 
+    window.addEventListener("scroll", scheduleUpdate, { passive: true });
+    window.addEventListener("resize", scheduleUpdate);
+
+    settleTimerRef.current = window.setTimeout(() => {
+      scheduleUpdate();
+    }, 350);
+
+    if (step.autoAdvanceMs && step.autoAdvanceMs > 0) {
+      autoTimerRef.current = window.setTimeout(() => {
+        onNext();
+      }, step.autoAdvanceMs);
+    }
+
     return () => {
-      cancelAnimationFrame(raf);
+      resizeObserver?.disconnect();
+      window.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", scheduleUpdate);
+      clearRaf();
+      clearSettleTimer();
       clearAutoTimer();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -115,8 +180,12 @@ export default function TourOverlay({
 
   // Cleanup on unmount
   useEffect(() => {
-    return () => clearAutoTimer();
-  }, [clearAutoTimer]);
+    return () => {
+      clearAutoTimer();
+      clearSettleTimer();
+      clearRaf();
+    };
+  }, [clearAutoTimer, clearRaf, clearSettleTimer]);
 
   if (!step) return null;
 
@@ -131,11 +200,11 @@ export default function TourOverlay({
         style={{
           position: "fixed",
           inset: 0,
-          background: spotlightRect
-            ? "transparent"
-            : "rgba(0,0,0,0.72)",
+          background: "rgba(0,0,0,0.72)",
           zIndex: 899,
           pointerEvents: spotlightRect ? "none" : "auto",
+          opacity: spotlightRect ? 0 : 1,
+          transition: "opacity 0.25s ease",
         }}
       />
 
@@ -150,7 +219,7 @@ export default function TourOverlay({
             height: spotlightRect.height + 8,
             borderRadius: 10,
             border: "2.5px solid var(--ps-accent)",
-            boxShadow: "0 0 0 4px rgba(57,217,184,0.25), 0 0 32px 8px rgba(57,217,184,0.18)",
+            boxShadow: "0 0 0 9999px rgba(0,0,0,0.72), 0 0 0 4px rgba(57,217,184,0.22), 0 0 32px 8px rgba(57,217,184,0.18)",
             zIndex: 901,
             pointerEvents: "none",
             transition: "all 0.35s ease",
@@ -165,7 +234,7 @@ export default function TourOverlay({
             position: "fixed",
             top: tooltipPos.top,
             left: tooltipPos.left,
-            width: 340,
+            width: TOOLTIP_WIDTH,
             background: "var(--ps-bg-card)",
             border: "1px solid var(--ps-border-mid)",
             borderRadius: 12,

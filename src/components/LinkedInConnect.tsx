@@ -1,27 +1,33 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import SkeletonBlock from "@/components/SkeletonBlock";
 import SeverityPill from "@/components/SeverityPill";
 import type { LinkedInProfile } from "@/lib/types";
 
 interface LinkedInConnectProps {
   onProfile: (profile: LinkedInProfile | null) => void;
+  initialProfile?: LinkedInProfile | null;
 }
 
 type Step = "paste" | "done";
 
-export default function LinkedInConnect({ onProfile }: LinkedInConnectProps) {
+export default function LinkedInConnect({ onProfile, initialProfile = null }: LinkedInConnectProps) {
   const [profileUrl, setProfileUrl] = useState("");
   const [profileText, setProfileText] = useState("");
-  const [step, setStep] = useState<Step>("paste");
-  const [profile, setProfile] = useState<LinkedInProfile | null>(null);
+  const [step, setStep] = useState<Step>(initialProfile ? "done" : "paste");
+  const [profile, setProfile] = useState<LinkedInProfile | null>(initialProfile);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const openHref = profileUrl.trim()
     ? profileUrl.startsWith("http") ? profileUrl : `https://${profileUrl}`
     : "https://www.linkedin.com";
+
+  useEffect(() => {
+    setProfile(initialProfile);
+    setStep(initialProfile ? "done" : "paste");
+  }, [initialProfile]);
 
   const handleParse = useCallback(async () => {
     const trimmed = profileText.trim();

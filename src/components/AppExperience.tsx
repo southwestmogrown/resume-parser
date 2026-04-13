@@ -24,7 +24,9 @@ import { mergeEnrichedResume } from "@/lib/mergeEnrichedResume";
 import { extractPdfBase64 } from "@/lib/extractPdfText";
 import {
   DEMO_COVER_LETTER,
+  DEMO_GITHUB_PROFILE,
   DEMO_JOB_DESCRIPTION,
+  DEMO_LINKEDIN_PROFILE,
   DEMO_MATCH_RESULT,
   DEMO_RESUME_DATA,
   DEMO_REWRITE_SUGGESTIONS,
@@ -121,10 +123,6 @@ export default function AppExperience() {
   const [isTourActive, setIsTourActive] = useState(false);
   const [tourStep, setTourStep] = useState(0);
   const [tourCompleted, setTourCompleted] = useState(false);
-  // Tour drives these directly to simulate the user's happy path
-  const [tourResumeSet, setTourResumeSet] = useState(false);
-  const [tourJdSet, setTourJdSet] = useState(false);
-  const [tourAnalyzed, setTourAnalyzed] = useState(false);
 
   const jobDescriptionsRef = useRef(jobDescriptions);
   const resumeDataRef = useRef(resumeData);
@@ -163,9 +161,30 @@ export default function AppExperience() {
   useEffect(() => {
     if (isDemo) {
       // In demo mode, the tour drives state changes step by step.
-      // Start with just the JD preloaded so the Analyze button is enabled.
-      setCheckoutClientSecret(null); // clear any stale modal state
+      setResumeFile(null);
+      setResumeData(null);
+      setMatchResult(null);
+      setRewriteSuggestions(null);
+      setCoverLetter(null);
+      setCoverLetterBlocked(null);
+      setStudyItems(null);
+      setGithubProfile(null);
+      setLinkedinProfile(null);
+      setBatchResults(null);
+      setSelectedBatchJD(null);
+      setAnalysisToken(null);
+      setTokenExpiresAt(null);
+      setPaymentState("idle");
+      setActiveTab("rewrites");
+      setStarQuestions([]);
+      setStarAnswers([]);
+      setActiveStarQuestion(null);
+      setStarMessages([]);
+      setError(null);
+      setCheckoutClientSecret(null);
       setJobDescriptions([DEMO_JOB_DESCRIPTION]);
+      setTourStep(0);
+      setTourCompleted(false);
       setIsTourActive(true);
       return;
     }
@@ -199,8 +218,6 @@ export default function AppExperience() {
     } catch {
       localStorage.removeItem(LS_KEY);
     }
-  // isDemo is derived from useSearchParams — reactive to URL changes without remount
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDemo]);
 
   // Save whenever key state changes (skip demo mode and skip if nothing to save)
@@ -229,11 +246,11 @@ export default function AppExperience() {
     } catch {
       // Storage unavailable or full
     }
-  }, [resumeData, matchResult, batchResults, rewriteSuggestions, studyItems, coverLetter, jobDescriptions, githubProfile, linkedinProfile, analysisToken, tokenExpiresAt, interviewMessages, interviewBrief, enrichedResumeData, starQuestions, starAnswers]);
+  }, [analysisToken, batchResults, coverLetter, enrichedResumeData, githubProfile, interviewBrief, interviewMessages, isDemo, jobDescriptions, linkedinProfile, matchResult, resumeData, rewriteSuggestions, starAnswers, starQuestions, studyItems, tokenExpiresAt]);
 
   const canAnalyze = Boolean((resumeFile || resumeData) && jobDescriptions.length > 0);
   const isBusy = loadingExtraction || loadingScore || loadingRewrite || loadingCoverLetter || loadingStudyPlan || loadingBatch;
-  const showPayGate = !analysisToken && Boolean(matchResult) && !loadingScore && !loadingExtraction && !isTourActive;
+  const showPayGate = !analysisToken && Boolean(matchResult) && !loadingScore && !loadingExtraction;
   const hasPaidContent = Boolean(rewriteSuggestions) || Boolean(studyItems) || Boolean(coverLetter) || Boolean(coverLetterBlocked);
   const loadingPaid = loadingRewrite || loadingStudyPlan || loadingCoverLetter;
   const showResults =
@@ -246,6 +263,65 @@ export default function AppExperience() {
     loadingCoverLetter ||
     loadingStudyPlan ||
     loadingBatch;
+
+  const applyDemoPaidFixtures = useCallback(() => {
+    setAnalysisToken("demo");
+    setTokenExpiresAt(null);
+    setPaymentState("paid");
+    setCheckoutClientSecret(null);
+    setRewriteSuggestions(DEMO_REWRITE_SUGGESTIONS);
+    setStudyItems(DEMO_STUDY_ITEMS);
+    setCoverLetter(DEMO_COVER_LETTER);
+    setCoverLetterBlocked(null);
+    setStarQuestions(DEMO_STAR_QUESTIONS);
+    setActiveStarQuestion(DEMO_STAR_QUESTIONS[0] ?? null);
+    setActiveTab("rewrites");
+  }, []);
+
+  const syncTourState = useCallback((stepIndex: number) => {
+    const hasResume = stepIndex >= 2;
+    const hasGithub = stepIndex >= 4;
+    const hasLinkedIn = stepIndex >= 5;
+    const hasScore = stepIndex >= 6;
+    const hasPaidDemo = stepIndex >= 8;
+
+    setResumeFile(null);
+    setJobDescriptions([DEMO_JOB_DESCRIPTION]);
+    setResumeData(hasResume ? DEMO_RESUME_DATA : null);
+    setGithubProfile(hasGithub ? DEMO_GITHUB_PROFILE : null);
+    setLinkedinProfile(hasLinkedIn ? DEMO_LINKEDIN_PROFILE : null);
+    setMatchResult(hasScore ? DEMO_MATCH_RESULT : null);
+    setBatchResults(null);
+    setSelectedBatchJD(null);
+    setAnalysisToken(hasPaidDemo ? "demo" : null);
+    setTokenExpiresAt(null);
+    setPaymentState(hasPaidDemo ? "paid" : "idle");
+    setRewriteSuggestions(hasPaidDemo ? DEMO_REWRITE_SUGGESTIONS : null);
+    setStudyItems(hasPaidDemo ? DEMO_STUDY_ITEMS : null);
+    setCoverLetter(hasPaidDemo ? DEMO_COVER_LETTER : null);
+    setCoverLetterBlocked(null);
+    setStarQuestions(hasPaidDemo ? DEMO_STAR_QUESTIONS : []);
+    setStarAnswers([]);
+    setActiveStarQuestion(hasPaidDemo ? (DEMO_STAR_QUESTIONS[0] ?? null) : null);
+    setStarMessages([]);
+    setCheckoutClientSecret(null);
+    setError(null);
+    setShowInterviewer(false);
+
+    if (stepIndex >= 11) {
+      setActiveTab("interview");
+    } else if (stepIndex >= 10) {
+      setActiveTab("cover");
+    } else if (stepIndex >= 9) {
+      setActiveTab("study");
+    } else if (stepIndex >= 8) {
+      setActiveTab("rewrites");
+    } else if (stepIndex >= 6) {
+      setActiveTab("interview");
+    } else {
+      setActiveTab("rewrites");
+    }
+  }, []);
 
   // Redirect handling: restore session state and poll for token after Stripe redirect
   useEffect(() => {
@@ -355,6 +431,10 @@ export default function AppExperience() {
   const runPaidPhases = useCallback(
     async (resumeDataArg: ResumeData, matchResultArg: MatchResult, jd: string) => {
       if (!analysisToken) return;
+      if (isDemo) {
+        applyDemoPaidFixtures();
+        return;
+      }
 
       // Prefer enriched data if available
       const effectiveResumeData = enrichedResumeDataRef.current ?? resumeDataArg;
@@ -451,12 +531,13 @@ export default function AppExperience() {
       }
       setLoadingCoverLetter(false);
     },
-    [analysisToken, githubProfile, linkedinProfile]
+    [analysisToken, applyDemoPaidFixtures, githubProfile, isDemo, linkedinProfile]
   );
 
   // Auto-trigger paid phases when token arrives and score is ready.
   // Skips batch drill-down — user explicitly triggers via handleBatchAnalyze button.
   useEffect(() => {
+    if (isDemo) return;
     if (!analysisToken || !resumeData || !matchResult) return;
     if (selectedBatchJD) return; // batch drill-down uses explicit button, not auto-trigger
     if (rewriteSuggestions !== null || studyItems !== null || coverLetter !== null) return;
@@ -464,16 +545,38 @@ export default function AppExperience() {
     const jd = jobDescriptionsRef.current[0];
     if (!jd) return;
     void runPaidPhases(resumeData, matchResult, jd);
-  }, [analysisToken, matchResult, resumeData, selectedBatchJD, rewriteSuggestions, studyItems, coverLetter, loadingRewrite, loadingStudyPlan, loadingCoverLetter, runPaidPhases]);
+  }, [analysisToken, coverLetter, isDemo, loadingCoverLetter, loadingRewrite, loadingStudyPlan, matchResult, resumeData, rewriteSuggestions, runPaidPhases, selectedBatchJD, studyItems]);
 
   const handleBatchAnalyze = useCallback(() => {
     if (!resumeData || !matchResult || !selectedBatchJD || !analysisToken) return;
+    if (isDemo) {
+      applyDemoPaidFixtures();
+      return;
+    }
     void runPaidPhases(resumeData, matchResult, selectedBatchJD);
-  }, [resumeData, matchResult, selectedBatchJD, analysisToken, runPaidPhases]);
+  }, [analysisToken, applyDemoPaidFixtures, isDemo, matchResult, resumeData, runPaidPhases, selectedBatchJD]);
 
   const handleAnalyze = useCallback(async () => {
     const currentJDs = jobDescriptionsRef.current;
     if (currentJDs.length === 0) return;
+
+    if (isDemo) {
+      setError(null);
+      setResumeData(DEMO_RESUME_DATA);
+      setGithubProfile(DEMO_GITHUB_PROFILE);
+      setLinkedinProfile(DEMO_LINKEDIN_PROFILE);
+      setMatchResult(DEMO_MATCH_RESULT);
+      setRewriteSuggestions(null);
+      setCoverLetter(null);
+      setCoverLetterBlocked(null);
+      setStudyItems(null);
+      setBatchResults(null);
+      setSelectedBatchJD(null);
+      setAnalysisToken(null);
+      setPaymentState("idle");
+      setActiveTab("interview");
+      return;
+    }
 
     const currentResumeData = resumeDataRef.current;
     setError(null);
@@ -597,7 +700,7 @@ export default function AppExperience() {
     setLoadingScore(false);
     // Paid phases fire via the auto-trigger effect when matchResult + analysisToken are both set.
     // No direct call here — avoids double-invocation with the effect.
-  }, [resumeFile]);
+  }, [isDemo, resumeFile]);
 
   // Batch drill-down: keep batchResults visible, track selected JD
   const handleBatchDrillDown = useCallback(
@@ -648,6 +751,10 @@ export default function AppExperience() {
   }, []);
 
   const handlePay = useCallback(async () => {
+    if (isDemo) {
+      applyDemoPaidFixtures();
+      return;
+    }
     if (isTourActive) return; // block pay triggers during demo tour
     try {
       const response = await fetch("/api/create-payment-intent", { method: "POST" });
@@ -657,7 +764,7 @@ export default function AppExperience() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Checkout setup failed.");
     }
-  }, []);
+  }, [applyDemoPaidFixtures, isDemo, isTourActive]);
 
   // ── Export ────────────────────────────────────────────────────────────────
 
@@ -764,49 +871,15 @@ export default function AppExperience() {
 
   const canExport = (hasPaidContent || Boolean(batchResults)) && !loadingPaid && !loadingBatch;
 
+  useEffect(() => {
+    if (!isDemo || !isTourActive) return;
+    syncTourState(tourStep);
+  }, [isDemo, isTourActive, syncTourState, tourStep]);
+
   // ── Tour handlers ────────────────────────────────────────────────────────────
 
   const handleTourNext = useCallback(() => {
     const nextStep = tourStep + 1;
-
-    if (nextStep === 1 && !tourResumeSet) {
-      // Step 0 → 1: pre-load resume data into state (simulates PDF extraction)
-      setResumeData(DEMO_RESUME_DATA);
-      setTourResumeSet(true);
-    } else if (nextStep === 2 && !tourJdSet) {
-      // Step 1 → 2: JD is already pre-loaded; just mark it
-      setTourJdSet(true);
-    } else if (nextStep === 3) {
-      // Step 2 → 3: user is at GitHub/LinkedIn — just advance
-    } else if (nextStep === 4 && !tourAnalyzed) {
-      // Step 3 → 4: "Analyze" button fires — set score + unlock token + run paid phases
-      setTourAnalyzed(true);
-      setResumeData(DEMO_RESUME_DATA);
-      setMatchResult(DEMO_MATCH_RESULT);
-      // Skip setting analysisToken here — we want the PayGate to show first (step 5)
-      // analysisToken will be set in step 5
-    } else if (nextStep === 5) {
-      // Step 4 → 5: show paygate — unlock token and auto-fire paid phases
-      setAnalysisToken("demo");
-      setPaymentState("paid");
-      setRewriteSuggestions(DEMO_REWRITE_SUGGESTIONS);
-      setStudyItems(DEMO_STUDY_ITEMS);
-      setCoverLetter(DEMO_COVER_LETTER);
-      setStarQuestions(DEMO_STAR_QUESTIONS);
-      setActiveStarQuestion(DEMO_STAR_QUESTIONS[0]);
-    } else if (nextStep === 6) {
-      // Step 5 → 6: rewrites tab is shown, switch to it
-      setActiveTab("rewrites");
-    } else if (nextStep === 7) {
-      // Step 6 → 7: study plan tab
-      setActiveTab("study");
-    } else if (nextStep === 8) {
-      // Step 7 → 8: cover letter tab
-      setActiveTab("cover");
-    } else if (nextStep === 9) {
-      // Step 8 → 9: interview prep tab
-      setActiveTab("interview");
-    }
 
     if (nextStep >= TOUR_STEPS.length) {
       setIsTourActive(false);
@@ -814,7 +887,7 @@ export default function AppExperience() {
     } else {
       setTourStep(nextStep);
     }
-  }, [tourStep, tourResumeSet, tourJdSet, tourAnalyzed]);
+  }, [tourStep]);
 
   const handleTourPrev = useCallback(() => {
     setTourStep((s) => Math.max(0, s - 1));
@@ -822,37 +895,17 @@ export default function AppExperience() {
 
   const handleTourSkip = useCallback(() => {
     // Complete the entire demo flow and dismiss the tour
+    syncTourState(TOUR_STEPS.length - 1);
     setIsTourActive(false);
     setTourCompleted(true);
-    setResumeData(DEMO_RESUME_DATA);
-    setMatchResult(DEMO_MATCH_RESULT);
-    setAnalysisToken("demo");
-    setPaymentState("paid");
-    setRewriteSuggestions(DEMO_REWRITE_SUGGESTIONS);
-    setStudyItems(DEMO_STUDY_ITEMS);
-    setCoverLetter(DEMO_COVER_LETTER);
-    setStarQuestions(DEMO_STAR_QUESTIONS);
-    setActiveStarQuestion(DEMO_STAR_QUESTIONS[0]);
-  }, []);
+  }, [syncTourState]);
 
   const handleRestartTour = useCallback(() => {
-    setResumeData(null);
-    setMatchResult(null);
-    setRewriteSuggestions(null);
-    setCoverLetter(null);
-    setCoverLetterBlocked(null);
-    setStudyItems(null);
-    setAnalysisToken(null);
-    setPaymentState("idle");
-    setStarQuestions([]);
-    setActiveStarQuestion(null);
-    setJobDescriptions([DEMO_JOB_DESCRIPTION]);
-    setTourResumeSet(false);
-    setTourJdSet(false);
-    setTourAnalyzed(false);
+    syncTourState(0);
     setTourStep(0);
+    setTourCompleted(false);
     setIsTourActive(true);
-  }, []);
+  }, [syncTourState]);
 
   return (
     <ErrorBoundary>
@@ -867,7 +920,7 @@ export default function AppExperience() {
           />
         )}
 
-        {checkoutClientSecret && (
+        {checkoutClientSecret && !isDemo && !isTourActive && (
           <CheckoutModal
             clientSecret={checkoutClientSecret}
             onSuccess={handlePaymentSuccess}
@@ -946,7 +999,7 @@ export default function AppExperience() {
                   ↺ Take a tour
                 </button>
               )}
-              {!analysisToken && !checkoutClientSecret && (
+              {!isDemo && !isTourActive && !analysisToken && !checkoutClientSecret && (
                 <button type="button" onClick={() => void handlePay()} className="btn-primary">
                   Unlock — $5 →
                 </button>
@@ -998,21 +1051,21 @@ export default function AppExperience() {
 
               <div className="panel-grid">
                 <div className="panel-stack">
-                  <div className="card">
+                  <div className="card tour-anchor-resume">
                     <ResumeUpload
                       onChange={setResumeFile}
                       sessionResumeName={!resumeFile ? (resumeData?.name ?? null) : null}
                     />
                   </div>
-                  <div className="card card-sage">
-                    <GitHubConnect onProfile={setGithubProfile} />
+                  <div className="card card-sage tour-anchor-github">
+                    <GitHubConnect onProfile={setGithubProfile} initialProfile={githubProfile} />
                   </div>
-                  <div className="card card-sage">
-                    <LinkedInConnect onProfile={setLinkedinProfile} />
+                  <div className="card card-sage tour-anchor-linkedin">
+                    <LinkedInConnect onProfile={setLinkedinProfile} initialProfile={linkedinProfile} />
                   </div>
                 </div>
 
-                <div className="card">
+                <div className="card tour-anchor-job-description">
                   <JobDescriptionList
                     value={jobDescriptions}
                     onChange={setJobDescriptions}
@@ -1077,7 +1130,7 @@ export default function AppExperience() {
                     type="button"
                     onClick={() => void handleAnalyze()}
                     disabled={!canAnalyze || isBusy}
-                    className="btn-primary btn-large"
+                    className="btn-primary btn-large tour-analyze-button"
                   >
                     {isBusy && <Spinner />}
                     {getAnalyzeButtonText()}
@@ -1090,7 +1143,7 @@ export default function AppExperience() {
           ) : (
             <div className="workspace-results">
               {/* Left sidebar — score + paygate + session info */}
-              <div className="workspace-sidebar">
+              <div className="workspace-sidebar tour-anchor-score">
                 <MatchScore result={matchResult} loading={loadingExtraction || loadingScore} />
 
                 {showPayGate && matchResult && resumeData ? (
@@ -1195,7 +1248,7 @@ export default function AppExperience() {
                         <>
                           <button
                             type="button"
-                            className={`result-tab ${activeTab === "rewrites" ? "result-tab--active" : ""}`.trim()}
+                            className={`result-tab tour-tab-rewrites ${activeTab === "rewrites" ? "result-tab--active" : ""}`.trim()}
                             onClick={() => setActiveTab("rewrites")}
                           >
                             Bullet Rewrites
@@ -1206,7 +1259,7 @@ export default function AppExperience() {
                           </button>
                           <button
                             type="button"
-                            className={`result-tab ${activeTab === "study" ? "result-tab--active" : ""}`.trim()}
+                            className={`result-tab tour-tab-study ${activeTab === "study" ? "result-tab--active" : ""}`.trim()}
                             onClick={() => setActiveTab("study")}
                           >
                             Study Plan
@@ -1217,7 +1270,7 @@ export default function AppExperience() {
                           </button>
                           <button
                             type="button"
-                            className={`result-tab ${activeTab === "cover" ? "result-tab--active" : ""}`.trim()}
+                            className={`result-tab tour-tab-cover ${activeTab === "cover" ? "result-tab--active" : ""}`.trim()}
                             onClick={() => setActiveTab("cover")}
                           >
                             Cover Letter
@@ -1227,7 +1280,7 @@ export default function AppExperience() {
                       )}
                       <button
                         type="button"
-                        className={`result-tab ${activeTab === "interview" ? "result-tab--active" : ""}`.trim()}
+                        className={`result-tab tour-tab-interview ${activeTab === "interview" ? "result-tab--active" : ""}`.trim()}
                         onClick={() => setActiveTab("interview")}
                       >
                         Interview Prep

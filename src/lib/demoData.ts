@@ -1,4 +1,12 @@
-import type { ResumeData, MatchResult, RewriteSuggestion, StudyItem, StarQuestion } from "@/lib/types";
+import type {
+  GitHubProfile,
+  LinkedInProfile,
+  MatchResult,
+  ResumeData,
+  RewriteSuggestion,
+  StarQuestion,
+  StudyItem,
+} from "@/lib/types";
 
 export const DEMO_RESUME_DATA: ResumeData = {
   name: "Jordan Rivera",
@@ -75,6 +83,48 @@ export const DEMO_MATCH_RESULT: MatchResult = {
   ],
   recommendation:
     "GOOD_FIT — Jordan matches 9 of 12 technical requirements and the gaps are addressable. The experience gap is the only real risk — lead with impact and scope rather than years. Frame Docker experience as cloud infrastructure exposure and start an AWS side project to close that gap before interviews.",
+};
+
+export const DEMO_GITHUB_PROFILE: GitHubProfile = {
+  username: "jordev",
+  bio: "Full-stack engineer shipping React, Node.js, and DX tooling for fast-moving product teams.",
+  publicRepos: 24,
+  followers: 182,
+  topLanguages: ["TypeScript", "JavaScript", "SQL"],
+  repos: [
+    {
+      name: "workflow-ops",
+      description: "Internal tooling for workflow automation teams.",
+      language: "TypeScript",
+      stars: 64,
+      url: "https://github.com/jordev/workflow-ops",
+    },
+    {
+      name: "deploy-pipeline-demo",
+      description: "CI/CD demo project with GitHub Actions and Docker.",
+      language: "TypeScript",
+      stars: 29,
+      url: "https://github.com/jordev/deploy-pipeline-demo",
+    },
+    {
+      name: "postgres-playbook",
+      description: "Notes and examples for production Postgres tuning.",
+      language: "SQL",
+      stars: 17,
+      url: "https://github.com/jordev/postgres-playbook",
+    },
+  ],
+};
+
+export const DEMO_LINKEDIN_PROFILE: LinkedInProfile = {
+  name: "Jordan Rivera",
+  headline: "Full-Stack Engineer building React + Node.js SaaS products",
+  currentRole: "Software Engineer",
+  currentCompany: "Streamline Labs",
+  skills: ["TypeScript", "React", "Node.js", "PostgreSQL", "GraphQL", "Product Thinking"],
+  summary:
+    "Engineer focused on customer-facing SaaS products, API design, frontend performance, and pragmatic systems work.",
+  education: ["B.S. Computer Science, State University, 2020"],
 };
 
 export const DEMO_REWRITE_SUGGESTIONS: RewriteSuggestion[] = [
