@@ -1172,30 +1172,15 @@ export default function AppExperience() {
                 <MatchScore result={matchResult} loading={loadingExtraction || loadingScore} />
 
                 {showPayGate && matchResult && resumeData ? (
-                  <div className="tour-anchor-paygate">
-                    <PayGate
-                      resumeData={resumeData}
-                      score={matchResult.score}
-                      paymentState={paymentState}
-                      onPay={() => void handlePay()}
-                    />
-                  </div>
+                  <PayGate
+                    resumeData={resumeData}
+                    score={matchResult.score}
+                    paymentState={paymentState}
+                    onPay={() => void handlePay()}
+                  />
                 ) : null}
 
-                {selectedBatchJD && analysisToken && matchResult && !showPayGate && !hasPaidContent && !loadingPaid ? (
-                  <div className="card" style={{ display: "grid", gap: "var(--space-3)" }}>
-                    <p style={{ fontSize: "13px", fontWeight: 500 }}>Ready to go deeper on this role?</p>
-                    <p className="result-muted" style={{ fontSize: "12px" }}>Generate bullet rewrites, a study plan, and a cover letter draft for this specific JD.</p>
-                    <button
-                      type="button"
-                      onClick={handleBatchAnalyze}
-                      className="btn-primary"
-                      style={{ width: "100%" }}
-                    >
-                      Generate full analysis
-                    </button>
-                  </div>
-                ) : null}
+
 
                 <div className="card card-soft" style={{ display: "grid", gap: "var(--space-3)" }}>
                   <div className="eyebrow" style={{ marginBottom: "var(--space-1)" }}>session</div>
@@ -1297,12 +1282,14 @@ export default function AppExperience() {
                     {activeTab === "interview" && (
                       !analysisToken ? (
                         matchResult && resumeData ? (
-                          <PayGate
-                            resumeData={enrichedResumeData ?? resumeData}
-                            score={matchResult.score}
-                            paymentState={paymentState}
-                            onPay={() => void handlePay()}
-                          />
+                          <div className="tour-anchor-interview-paygate">
+                            <PayGate
+                              resumeData={enrichedResumeData ?? resumeData}
+                              score={matchResult.score}
+                              paymentState={paymentState}
+                              onPay={() => void handlePay()}
+                            />
+                          </div>
                         ) : null
                       ) : (
                         matchResult && resumeData ? (
