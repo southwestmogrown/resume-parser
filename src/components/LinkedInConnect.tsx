@@ -9,27 +9,19 @@ interface LinkedInConnectProps {
   onProfile: (profile: LinkedInProfile | null) => void;
 }
 
-type Step = "url" | "paste" | "done";
-
-function isLinkedInUrl(value: string): boolean {
-  return /linkedin\.com\/in\//i.test(value);
-}
+type Step = "paste" | "done";
 
 export default function LinkedInConnect({ onProfile }: LinkedInConnectProps) {
-  const [url, setUrl] = useState("");
+  const [profileUrl, setProfileUrl] = useState("");
   const [profileText, setProfileText] = useState("");
-  const [step, setStep] = useState<Step>("url");
+  const [step, setStep] = useState<Step>("paste");
   const [profile, setProfile] = useState<LinkedInProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleContinue = () => {
-    if (isLinkedInUrl(url)) {
-      setStep("paste");
-    } else {
-      setError("Enter a valid LinkedIn profile URL (e.g. linkedin.com/in/yourname)");
-    }
-  };
+  const openHref = profileUrl.trim()
+    ? profileUrl.startsWith("http") ? profileUrl : `https://${profileUrl}`
+    : "https://www.linkedin.com";
 
   const handleParse = useCallback(async () => {
     const trimmed = profileText.trim();
@@ -62,9 +54,9 @@ export default function LinkedInConnect({ onProfile }: LinkedInConnectProps) {
   }, [onProfile, profileText]);
 
   const handleClear = () => {
-    setUrl("");
+    setProfileUrl("");
     setProfileText("");
-    setStep("url");
+    setStep("paste");
     setProfile(null);
     setError(null);
     onProfile(null);
@@ -77,40 +69,32 @@ export default function LinkedInConnect({ onProfile }: LinkedInConnectProps) {
         <h2 style={{ fontSize: "1.15rem" }}>Add your LinkedIn profile</h2>
       </div>
 
-      {step === "url" && (
-        <>
-          <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
-            <input
-              type="url"
-              value={url}
-              onChange={(e) => { setUrl(e.target.value); setError(null); }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") { e.preventDefault(); handleContinue(); }
-              }}
-              placeholder="linkedin.com/in/yourname"
-              className="text-input"
-              style={{ flex: 1 }}
-            />
-            <button
-              type="button"
-              onClick={handleContinue}
-              disabled={!url.trim()}
-              className="btn-primary"
-            >
-              Continue
-            </button>
-          </div>
-          {error && <p style={{ color: "var(--ps-red)" }}>{error}</p>}
-        </>
-      )}
-
       {step === "paste" && (
         <>
           <div
             className="subcard"
-            style={{ padding: "var(--space-4)", display: "grid", gap: "var(--space-2)" }}
+            style={{ padding: "var(--space-4)", display: "grid", gap: "var(--space-3)" }}
           >
-            <p style={{ fontSize: "12px", fontWeight: 500 }}>How to copy your profile:</p>
+            <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center", flexWrap: "wrap" }}>
+              <input
+                type="url"
+                value={profileUrl}
+                onChange={(e) => setProfileUrl(e.target.value)}
+                placeholder="linkedin.com/in/yourname (optional)"
+                className="text-input"
+                style={{ flex: 1, minWidth: "180px", fontSize: "12px" }}
+              />
+              <a
+                href={openHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-ghost"
+                style={{ whiteSpace: "nowrap", fontSize: "12px" }}
+              >
+                Open profile →
+              </a>
+            </div>
+
             <ol
               style={{
                 margin: 0,
@@ -121,27 +105,18 @@ export default function LinkedInConnect({ onProfile }: LinkedInConnectProps) {
                 color: "var(--ps-text-secondary)",
               }}
             >
-              <li>
-                Open{" "}
-                <a
-                  href={url.startsWith("http") ? url : `https://${url}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ color: "var(--ps-accent)" }}
-                >
-                  your LinkedIn profile
-                </a>{" "}
-                in a new tab
-              </li>
-              <li>Press Ctrl+A (or ⌘+A on Mac) to select all text</li>
-              <li>Press Ctrl+C (or ⌘+C) to copy</li>
-              <li>Paste below with Ctrl+V (or ⌘+V)</li>
+              <li>Press <kbd style={{ fontFamily: "inherit" }}>Ctrl+A</kbd> (or <kbd style={{ fontFamily: "inherit" }}>⌘+A</kbd>) to select all text on the page</li>
+              <li>Press <kbd style={{ fontFamily: "inherit" }}>Ctrl+C</kbd> (or <kbd style={{ fontFamily: "inherit" }}>⌘+C</kbd>) to copy</li>
+              <li>Paste below</li>
             </ol>
           </div>
 
           <textarea
             value={profileText}
             onChange={(e) => setProfileText(e.target.value)}
+            onPaste={() => {
+              // Give the paste event time to populate the value before enabling submit
+            }}
             placeholder="Paste your LinkedIn profile text here…"
             disabled={loading}
             rows={6}
@@ -151,7 +126,7 @@ export default function LinkedInConnect({ onProfile }: LinkedInConnectProps) {
 
           <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "flex-end" }}>
             <button type="button" onClick={handleClear} className="btn-ghost">
-              Cancel
+              Clear
             </button>
             <button
               type="button"

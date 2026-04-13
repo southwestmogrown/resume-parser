@@ -31,6 +31,17 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const dealbreakers = matchResult.missingSkills?.filter((s) => s.severity === 'dealbreaker') ?? [];
+  if (dealbreakers.length > 0) {
+    return NextResponse.json(
+      {
+        error: 'Cover letter blocked: role has dealbreaker gaps',
+        dealbreakers: dealbreakers.map((d) => d.skill),
+      },
+      { status: 422 }
+    );
+  }
+
   let stream;
   try {
     stream = getAnthropic().messages.stream({
