@@ -27,6 +27,11 @@ const phases = [
     title: "Cover Letter + Study Plan",
     body: "A tailored cover letter draft and a concrete study plan for the gaps worth closing.",
   },
+  {
+    number: "05",
+    title: "STAR Interview Coaching",
+    body: "Behavioral prep built from your actual gap analysis. Coach-guided, question by question. Build real STAR answers — not generic scripts.",
+  },
 ] as const;
 
 const steps = [
@@ -149,19 +154,51 @@ export default function LandingPage() {
       <section className="section">
         <div className="container">
           <div className="eyebrow">the problem</div>
-          <div className="prose-block">
-            <h2 style={{ fontSize: "clamp(2.2rem, 5vw, 2.9rem)", lineHeight: 1.05 }}>
-              ATS systems reject 75% of resumes before a human reads them.
-            </h2>
-            <p>
-              Most resume tools charge $20–$50 a month for glorified keyword counters. They don&apos;t tell you why you&apos;re getting filtered. They don&apos;t rewrite your bullets. They don&apos;t generate a cover letter that actually fits the role.
-            </p>
-            <p>You&apos;re not underqualified. You&apos;re under-optimized.</p>
-            <p>
-              PassStack runs the full analysis for $5. One time. No subscription. No account required.
-            </p>
+          <div className="problem-grid">
+            <div className="card" style={{ alignSelf: "start" }}>
+              <div className="eyebrow" style={{ marginBottom: "var(--space-4)" }}>what others charge</div>
+              <div className="price-compare">
+                <div className="price-compare__row">
+                  <span>Resume.io</span>
+                  <span className="result-muted">$10 / mo</span>
+                </div>
+                <div className="price-compare__row">
+                  <span>Jobscan</span>
+                  <span className="result-muted">$49 / mo</span>
+                </div>
+                <div className="price-compare__row">
+                  <span>Teal</span>
+                  <span className="result-muted">$29 / mo</span>
+                </div>
+                <div className="price-compare__row">
+                  <span>TopResume (human rewrite)</span>
+                  <span className="result-muted">$149+</span>
+                </div>
+                <div className="price-compare__row price-compare__row--highlight">
+                  <span>PassStack</span>
+                  <span>$5. Once.</span>
+                </div>
+              </div>
+              <p className="fine-print" style={{ marginTop: "var(--space-4)" }}>
+                Full analysis. No subscription. No account. No data farming.
+              </p>
+            </div>
+            <div>
+              <div className="prose-block">
+                <h2 style={{ fontSize: "clamp(2.2rem, 5vw, 2.9rem)", lineHeight: 1.05 }}>
+                  ATS systems reject 75% of resumes before a human reads them.
+                </h2>
+                <p>
+                  Most resume tools charge $20–$50 a month for glorified keyword counters. They don&apos;t tell you why you&apos;re getting filtered. They don&apos;t rewrite your bullets. They don&apos;t generate a cover letter that actually fits the role.
+                </p>
+                <p>You&apos;re not underqualified. You&apos;re under-optimized.</p>
+                <p>
+                  PassStack runs the full analysis for $5. One time. No subscription. No account required.
+                </p>
+              </div>
+              <div className="pull-quote">&quot;You&apos;re not underqualified. You&apos;re under-optimized.&quot;</div>
+            </div>
           </div>
-          <div className="pull-quote">&quot;You&apos;re not underqualified. You&apos;re under-optimized.&quot;</div>
         </div>
       </section>
 
@@ -169,7 +206,7 @@ export default function LandingPage() {
         <div className="container">
           <div className="eyebrow">what $5 gets you</div>
           <h2 style={{ fontSize: "clamp(2rem, 4vw, 2.6rem)", marginBottom: "var(--space-8)" }}>
-            Four phases. One run. No fluff.
+            Five phases. One run. No fluff.
           </h2>
           <div className="phase-grid">
             {phases.map((phase, index) => (
@@ -198,66 +235,171 @@ export default function LandingPage() {
             Real output. Not a keyword report — a full battle plan.
           </p>
 
-          <div className="screenshot-gallery" data-reveal>
-            <div className="screenshot-item">
-              <div className="eyebrow" style={{ marginBottom: "var(--space-3)" }}>phase 02 — gap analysis</div>
+          {/* Phase 02 — Gap Analysis */}
+          <div className="phase-output-row" data-reveal>
+            <div className="phase-output__img">
               <img
                 src="/assets/images/PassStack-Score-Results.png"
                 alt="PassStack gap analysis scorecard showing matched skills and severity-tiered gaps"
                 className="screenshot-img"
               />
             </div>
-            <div className="screenshot-item">
-              <div className="eyebrow" style={{ marginBottom: "var(--space-3)" }}>phase 03 — bullet rewrites</div>
+            <div className="phase-output__text">
+              <div className="eyebrow" style={{ marginBottom: "var(--space-3)" }}>phase 02 — gap analysis</div>
+              <h3 style={{ fontSize: "clamp(1.3rem, 3vw, 1.7rem)", lineHeight: 1.2, marginBottom: "var(--space-4)" }}>
+                See exactly where you stand before you apply.
+              </h3>
+              <p className="result-muted" style={{ marginBottom: "var(--space-4)" }}>
+                Every missing skill ranked by severity — dealbreaker, learnable, or soft. No more guessing what&apos;s killing your application.
+              </p>
+              <ul className="feature-list">
+                <li>Percentage match score against the job description</li>
+                <li>Dealbreaker gaps highlighted in red — hard stops that will get you filtered</li>
+                <li>Learnable gaps in amber — skills worth investing time in</li>
+                <li>Soft gaps in green — nice-to-have optimizations</li>
+                <li>Specific reasons why each gap matters to the role</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Phase 03 — Bullet Rewrites */}
+          <div className="phase-output-row phase-output-row--reverse" data-reveal>
+            <div className="phase-output__img">
               <img
                 src="/assets/images/PassStack-Bullet-Rewrites.png"
                 alt="PassStack bullet rewrite output showing before and after resume bullets"
                 className="screenshot-img"
               />
             </div>
-            <div className="screenshot-item">
-              <div className="eyebrow" style={{ marginBottom: "var(--space-3)" }}>phase 03 — study plan</div>
+            <div className="phase-output__text">
+              <div className="eyebrow" style={{ marginBottom: "var(--space-3)" }}>phase 03 — bullet rewrites</div>
+              <h3 style={{ fontSize: "clamp(1.3rem, 3vw, 1.7rem)", lineHeight: 1.2, marginBottom: "var(--space-4)" }}>
+                Your experience, reframed for the role.
+              </h3>
+              <p className="result-muted" style={{ marginBottom: "var(--space-4)" }}>
+                Before and after for every relevant bullet. Copy and paste directly into your resume.
+              </p>
+              <ul className="feature-list">
+                <li>Original bullet preserved so you see exactly what changed</li>
+                <li>Rewritten bullet tailored to the job description keywords</li>
+                <li>One-paragraph rationale explaining the rewrite strategy</li>
+                <li>All relevant bullets covered — not just a sample</li>
+                <li>Copy-paste ready — no export friction</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Phase 03 — Study Plan */}
+          <div className="phase-output-row" data-reveal>
+            <div className="phase-output__img">
               <img
                 src="/assets/images/PassStack-Study-Plan.png"
                 alt="PassStack study plan showing actionable gap-closing recommendations"
                 className="screenshot-img"
               />
             </div>
-            <div className="screenshot-item">
-              <div className="eyebrow" style={{ marginBottom: "var(--space-3)" }}>phase 04 — cover letter</div>
+            <div className="phase-output__text">
+              <div className="eyebrow" style={{ marginBottom: "var(--space-3)" }}>phase 03 — study plan</div>
+              <h3 style={{ fontSize: "clamp(1.3rem, 3vw, 1.7rem)", lineHeight: 1.2, marginBottom: "var(--space-4)" }}>
+                Close the gaps that are actually worth closing.
+              </h3>
+              <p className="result-muted" style={{ marginBottom: "var(--space-4)" }}>
+                Actionable steps for the gaps worth investing time in. Specific resources, not vague suggestions.
+              </p>
+              <ul className="feature-list">
+                <li>One to two sentence action plan per learnable gap</li>
+                <li>Specific resource recommendations — courses, docs, projects</li>
+                <li>Prioritized by impact on the role, not just gap severity</li>
+                <li>Filters out dealbreakers — no study plan for hard requirements</li>
+                <li>LinkedIn profile integration for context-aware suggestions</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Phase 04 — Cover Letter */}
+          <div className="phase-output-row phase-output-row--reverse" data-reveal>
+            <div className="phase-output__img">
               <img
                 src="/assets/images/PassStack-Cover-Letter.png"
                 alt="PassStack cover letter draft tailored to the job description"
                 className="screenshot-img"
               />
             </div>
+            <div className="phase-output__text">
+              <div className="eyebrow" style={{ marginBottom: "var(--space-3)" }}>phase 04 — cover letter</div>
+              <h3 style={{ fontSize: "clamp(1.3rem, 3vw, 1.7rem)", lineHeight: 1.2, marginBottom: "var(--space-4)" }}>
+                A tailored draft in under 30 seconds.
+              </h3>
+              <p className="result-muted" style={{ marginBottom: "var(--space-4)" }}>
+                If dealbreakers exist, we tell you — and suggest a better target instead.
+              </p>
+              <ul className="feature-list">
+                <li>Streaming response — letter appears word by word</li>
+                <li>Hard-capped at 300 words / 500 tokens — reads naturally, not padded</li>
+                <li>Dealbreaker guard returns 422 before generation — no wasted time</li>
+                <li>Honest redirect if the role isn&apos;t a fit, with suggested alternatives</li>
+                <li>Copy button for easy paste into your application</li>
+              </ul>
+            </div>
           </div>
 
-          <div className="no-go-callout" data-reveal style={{ marginTop: "var(--space-12)" }}>
-            <div className="no-go-callout__text">
-              <div className="eyebrow" style={{ color: "var(--ps-red)", marginBottom: "var(--space-3)" }}>honest by design</div>
-              <h3 style={{ fontSize: "clamp(1.4rem, 3vw, 1.8rem)", lineHeight: 1.2, marginBottom: "var(--space-4)" }}>
-                Sometimes the analysis tells you not to apply.
-              </h3>
-              <p className="result-muted">
-                When dealbreaker gaps exist — hard requirements you genuinely don&apos;t meet — PassStack says so. No manufactured enthusiasm. No cover letter for a role you won&apos;t get. Just the honest verdict, and a better target.
-              </p>
-              <p className="result-muted" style={{ marginTop: "var(--space-3)" }}>
-                That&apos;s not a bug. That&apos;s the whole point.
-              </p>
+          {/* Phase 05 — STAR Coaching */}
+          <div className="phase-output-row" data-reveal>
+            <div className="phase-output__img">
+              <img
+                src="/assets/images/PassStack-STAR-Coach.png"
+                alt="PassStack STAR interview coaching panel with gap-sourced behavioral questions"
+                className="screenshot-img"
+              />
             </div>
-            <div className="no-go-callout__img">
+            <div className="phase-output__text">
+              <div className="eyebrow" style={{ marginBottom: "var(--space-3)" }}>phase 05 — STAR Coaching</div>
+              <h3 style={{ fontSize: "clamp(1.3rem, 3vw, 1.7rem)", lineHeight: 1.2, marginBottom: "var(--space-4)" }}>
+                Now it coaches you through the interview.
+              </h3>
+              <p className="result-muted" style={{ marginBottom: "var(--space-4)" }}>
+                After the gap analysis, PassStack generates targeted behavioral questions from your actual gaps — then walks you through building a STAR-format answer, question by question. Not a template. Not generic questions. Your gaps. Your story. Your answers.
+              </p>
+              <ul className="feature-list">
+                <li>Questions sourced from your specific gap analysis</li>
+                <li>Coach-guided STAR structure: Situation, Task, Action, Result</li>
+                <li>Work through every question at your own pace</li>
+                <li>Export your answers as a formatted prep sheet</li>
+                <li>Included with your $5 analysis — one token use, unlimited coaching</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Honest by Design — No-Go Callout */}
+          <div className="phase-output-row phase-output-row--reverse" data-reveal>
+            <div className="phase-output__img">
               <img
                 src="/assets/images/PassStack-No-Go-Cover-Letter.png"
                 alt="PassStack no-go cover letter blocked by dealbreaker gaps"
                 className="screenshot-img"
               />
             </div>
+            <div className="phase-output__text">
+              <div className="eyebrow" style={{ color: "var(--ps-red)", marginBottom: "var(--space-3)" }}>honest by design</div>
+              <h3 style={{ fontSize: "clamp(1.3rem, 3vw, 1.7rem)", lineHeight: 1.2, marginBottom: "var(--space-4)" }}>
+                Sometimes the analysis tells you not to apply.
+              </h3>
+              <p className="result-muted" style={{ marginBottom: "var(--space-4)" }}>
+                When dealbreaker gaps exist — hard requirements you genuinely don&apos;t meet — PassStack says so. No manufactured enthusiasm. No cover letter for a role you won&apos;t get. Just the honest verdict, and a better target.
+              </p>
+              <ul className="feature-list">
+                <li>Dealbreaker detection before any content is generated</li>
+                <li>422 response blocks cover letter generation for unqualified roles</li>
+                <li>Honest redirect — suggests a better target instead of false hope</li>
+                <li>No manufactured enthusiasm that sets you up to fail</li>
+                <li>That&apos;s not a bug. That&apos;s the whole point.</li>
+              </ul>
+            </div>
           </div>
 
           <div style={{ marginTop: "var(--space-8)", textAlign: "center" }}>
             <Link href="/app?demo" className="btn-ghost">
-              Try the demo — see all four phases →
+              Try the demo — see all five phases →
             </Link>
           </div>
         </div>
@@ -283,37 +425,54 @@ export default function LandingPage() {
       <section className="section section-surface">
         <div className="container">
           <div className="eyebrow">why passstack exists</div>
-          <div className="prose-block">
-            <h2 className="display" style={{ fontSize: "clamp(2rem, 4vw, 2.4rem)" }}>
-              I&apos;m still working production shifts. I built this while I was working them.
-            </h2>
-            <p>
-              I manage 45 operators at a manufacturing plant. It&apos;s honest work. It&apos;s not where I&apos;m headed.
-            </p>
-            <p>
-              I was laid off from App Academy — not as a student, as an instructor. I had the skills. What I didn&apos;t have was a resume that said &ldquo;Software Developer&rdquo; to an ATS. I was filtered out before a human ever saw my name. I gave up for a while.
-            </p>
-            <p>
-              Then I built a piece of software for my plant. A real one — production dashboard, role-based views, live tracking across six lines. They didn&apos;t want it. That stung. But it also settled something I&apos;d stopped believing: I could still build. I started again. I needed two things at once: a portfolio project worth showing, and a way to stop getting screened out before I even got a conversation.
-            </p>
-            <p>
-              I tried the resume tools. They weren&apos;t built for someone in my position. They optimize keywords, hide behind a dark-pattern subscription, sell your contact information to ad networks, and call it a career service. I know exactly what kind of calls I started getting.
-            </p>
-            <p>
-              PassStack costs $5. One time. No account. No subscription. No data farming. It&apos;s built for the person who can&apos;t afford to be exploited while they&apos;re trying to get ahead — who&apos;s just starting out, needs a real hand up, and deserves to have somebody in their corner who isn&apos;t just running a business on their desperation.
-            </p>
-            <p>
-              I know exactly who I&apos;m building it for.
-            </p>
-            <p className="subtle-note" style={{ marginTop: "var(--space-4)" }}>
-              Wilkey Digital Solutions
-            </p>
+          <div className="why-grid">
+            <div className="prose-block">
+              <h2 className="display" style={{ fontSize: "clamp(2rem, 4vw, 2.4rem)" }}>
+                I&apos;m still working production shifts. I built this while I was working them.
+              </h2>
+              <p>
+                I manage 45 operators at a manufacturing plant. It&apos;s honest work. It&apos;s not where I&apos;m headed.
+              </p>
+              <p>
+                I was laid off from App Academy — not as a student, as an instructor. I had the skills. What I didn&apos;t have was a resume that said &ldquo;Software Developer&rdquo; to an ATS. I was filtered out before a human ever saw my name. I gave up for a while.
+              </p>
+              <p>
+                Then I built a piece of software for my plant. A real one — production dashboard, role-based views, live tracking across six lines. They didn&apos;t want it. That stung. But it also settled something I&apos;d stopped believing: I could still build. I started again. I needed two things at once: a portfolio project worth showing, and a way to stop getting screened out before I even got a conversation.
+              </p>
+              <p>
+                I tried the resume tools. They weren&apos;t built for someone in my position. They optimize keywords, hide behind a dark-pattern subscription, sell your contact information to ad networks, and call it a career service. I know exactly what kind of calls I started getting.
+              </p>
+              <p>
+                PassStack costs $5. One time. No account. No subscription. No data farming. It&apos;s built for the person who can&apos;t afford to be exploited while they&apos;re trying to get ahead — who&apos;s just starting out, needs a real hand up, and deserves to have somebody in their corner who isn&apos;t just running a business on their desperation.
+              </p>
+              <p>
+                I know exactly who I&apos;m building it for.
+              </p>
+              <p className="subtle-note" style={{ marginTop: "var(--space-4)" }}>
+                Wilkey Digital Solutions
+              </p>
+            </div>
+            <div className="card" style={{ alignSelf: "start", padding: "var(--space-6) var(--space-8)" }}>
+              <div className="eyebrow" style={{ marginBottom: "var(--space-4)" }}>what you get for $5</div>
+              <ul className="feature-list">
+                <li>Match score + severity-tiered gap analysis</li>
+                <li>Bullet rewrites — before &amp; after, per role</li>
+                <li>Personalized cover letter draft</li>
+                <li>Gap-based study plan with resources</li>
+                <li>STAR behavioral interview coaching</li>
+                <li>GitHub + LinkedIn profile enrichment</li>
+                <li>Honest dealbreaker detection — no fake enthusiasm for roles you won&apos;t get</li>
+              </ul>
+              <p className="fine-print" style={{ marginTop: "var(--space-5)" }}>
+                One time. No account. No subscription. No data farming.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
       <section className="section">
-        <div className="container" style={{ textAlign: "center" }}>
+        <div className="container early-access-inner">
           <div className="eyebrow">early access</div>
           <h2 style={{ fontSize: "clamp(2rem, 4vw, 2.6rem)" }}>Not ready to upload your resume?</h2>
           <p className="result-muted" style={{ maxWidth: "520px", margin: "var(--space-4) auto 0" }}>
@@ -333,9 +492,11 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="section">
-        <div className="container" style={{ display: "grid", gap: "var(--space-6)" }}>
-          <p className="subtle-note">PassStack · Wilkey Digital Solutions · Springfield, MO</p>
+      <footer className="site-footer">
+        <div className="container footer-inner">
+          <Link href="/" className="brand-mark" aria-label="PassStack home" style={{ display: "inline-flex", justifyContent: "center" }}>
+            <PassStackLogo />
+          </Link>
           <div className="footer-links">
             <Link href="/app" className="btn-ghost">
               Open App
@@ -346,7 +507,20 @@ export default function LandingPage() {
             <a href={githubUrl} target="_blank" rel="noreferrer" className="btn-ghost">
               GitHub ↗
             </a>
+            <a href="https://shanewilkey.com" target="_blank" rel="noreferrer" className="btn-ghost">
+              Portfolio ↗
+            </a>
+            <a href="https://linkedin.com/in/shane-wilkey" target="_blank" rel="noreferrer" className="btn-ghost">
+              LinkedIn ↗
+            </a>
           </div>
+          <p className="subtle-note">
+            Built by{" "}
+            <a href="https://shanewilkey.com" target="_blank" rel="noreferrer" style={{ color: "var(--ps-teal)", textDecoration: "none" }}>
+              Shane Wilkey
+            </a>
+            {" "}· Wilkey Digital Solutions · Springfield, MO
+          </p>
           <p className="subtle-note">No subscription. No account. No data farming.</p>
         </div>
       </footer>

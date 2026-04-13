@@ -2,6 +2,7 @@
 
 import JSZip from "jszip";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import BatchResults from "@/components/BatchResults";
 import CheckoutModal from "@/components/CheckoutModal";
@@ -27,6 +28,7 @@ import {
   DEMO_MATCH_RESULT,
   DEMO_RESUME_DATA,
   DEMO_REWRITE_SUGGESTIONS,
+  DEMO_STAR_QUESTIONS,
   DEMO_STUDY_ITEMS,
 } from "@/lib/demoData";
 import type {
@@ -95,9 +97,8 @@ export default function AppExperience() {
   const [paymentState, setPaymentState] = useState<"idle" | "pending" | "paid" | "canceled">("idle");
   const [activeTab, setActiveTab] = useState<ResultTab>("rewrites");
   const [checkoutClientSecret, setCheckoutClientSecret] = useState<string | null>(null);
-  const [isDemo] = useState(() =>
-    typeof window !== "undefined" && new URLSearchParams(window.location.search).has("demo")
-  );
+  const searchParams = useSearchParams();
+  const isDemo = searchParams.has("demo");
 
   // Phase 0 — Experience Interviewer
   const [showInterviewer, setShowInterviewer] = useState(false);
@@ -145,23 +146,23 @@ export default function AppExperience() {
 
   // ── localStorage persistence ──────────────────────────────────────────────
 
-  // Load demo fixtures when ?demo is present
+  // Load demo fixtures or restore from localStorage — mutually exclusive, reactive to URL changes
   useEffect(() => {
-    if (!isDemo) return;
-    setResumeData(DEMO_RESUME_DATA);
-    setMatchResult(DEMO_MATCH_RESULT);
-    setRewriteSuggestions(DEMO_REWRITE_SUGGESTIONS);
-    setStudyItems(DEMO_STUDY_ITEMS);
-    setCoverLetter(DEMO_COVER_LETTER);
-    setJobDescriptions([DEMO_JOB_DESCRIPTION]);
-    setAnalysisToken("demo");
-    setPaymentState("paid");
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (isDemo) {
+      setResumeData(DEMO_RESUME_DATA);
+      setMatchResult(DEMO_MATCH_RESULT);
+      setRewriteSuggestions(DEMO_REWRITE_SUGGESTIONS);
+      setStudyItems(DEMO_STUDY_ITEMS);
+      setCoverLetter(DEMO_COVER_LETTER);
+      setJobDescriptions([DEMO_JOB_DESCRIPTION]);
+      setAnalysisToken("demo");
+      setPaymentState("paid");
+      setStarQuestions(DEMO_STAR_QUESTIONS);
+      setActiveStarQuestion(DEMO_STAR_QUESTIONS[0]);
+      return;
+    }
 
-  // Restore on mount (skip if coming back from Stripe redirect — sessionStorage handles that)
-  useEffect(() => {
-    if (isDemo) return;
+    // Restore on mount (skip if coming back from Stripe redirect — sessionStorage handles that)
     const params = new URLSearchParams(window.location.search);
     if (params.get("success") || params.get("canceled")) return;
 
@@ -190,8 +191,9 @@ export default function AppExperience() {
     } catch {
       localStorage.removeItem(LS_KEY);
     }
+  // isDemo is derived from useSearchParams — reactive to URL changes without remount
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isDemo]);
 
   // Save whenever key state changes (skip demo mode and skip if nothing to save)
   useEffect(() => {
@@ -1142,6 +1144,7 @@ export default function AppExperience() {
                             answers={starAnswers}
                             activeQuestion={activeStarQuestion}
                             starMessages={starMessages}
+                            isDemo={isDemo}
                             onQuestionsLoaded={setStarQuestions}
                             onAnswerComplete={(a) => setStarAnswers((prev) => [...prev, a])}
                             onQuestionChange={(q) => {

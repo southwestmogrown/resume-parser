@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import SeverityPill from '@/components/SeverityPill';
+import { DEMO_STAR_QUESTIONS } from '@/lib/demoData';
 import type {
   ResumeData,
   MatchResult,
@@ -25,6 +26,7 @@ interface StarPrepPanelProps {
   onAnswerComplete: (answer: StarAnswer) => void;
   onQuestionChange: (question: StarQuestion) => void;
   onMessageSend: (messages: ConversationMessage[]) => void;
+  isDemo?: boolean;
 }
 
 // ── Inline markdown renderer ──────────────────────────────────────────────────
@@ -143,6 +145,7 @@ export default function StarPrepPanel({
   onAnswerComplete,
   onQuestionChange,
   onMessageSend,
+  isDemo = false,
 }: StarPrepPanelProps) {
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [loadingTurn, setLoadingTurn] = useState(false);
@@ -169,6 +172,11 @@ export default function StarPrepPanel({
   }, [starMessages, loadingTurn]);
 
   async function generateQuestions() {
+    if (isDemo) {
+      onQuestionsLoaded(DEMO_STAR_QUESTIONS);
+      onQuestionChange(DEMO_STAR_QUESTIONS[0]);
+      return;
+    }
     setLoadingQuestions(true);
     setError(null);
     try {
@@ -194,6 +202,18 @@ export default function StarPrepPanel({
     if (!activeQuestion) return;
     setLoadingTurn(true);
     onMessageSend(history);
+
+    if (isDemo) {
+      await new Promise((r) => setTimeout(r, 600));
+      const demoReply =
+        history.length <= 1
+          ? `Great — let's work through this together using the **STAR** format.\n\n**Situation** — Set the scene. What was the context?\n**Task** — What were you responsible for?\n**Action** — What did *you* specifically do?\n**Result** — What was the measurable outcome?\n\nThis is a demo, so coaching responses are pre-loaded. In the full version, Claude reads your actual answer and gives you targeted feedback.\n\nGo ahead and type a practice answer — I'll walk you through it.`
+          : `Nice work. In the full version, Claude would analyze your answer here and give you specific feedback on clarity, impact quantification, and alignment with what the interviewer is looking for.\n\n*Upgrade to unlock real-time coaching.*`;
+      onMessageSend([...history, { role: 'assistant' as const, content: demoReply }]);
+      setLoadingTurn(false);
+      return;
+    }
+
     try {
       const res = await fetch('/api/star-prep', {
         method: 'POST',

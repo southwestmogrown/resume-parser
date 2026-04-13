@@ -148,8 +148,8 @@ Saved fields: `resumeData`, `matchResult`, `batchResults`, `rewriteSuggestions`,
 | `components/CoverLetter.tsx` | Streaming cover letter with "writing…" indicator + copy button |
 | `components/BatchResults.tsx` | Sortable batch results table with drill-down |
 | `components/PayGate.tsx` | Payment gate — shows score %, unlocks rewrites/study/cover letter/STAR prep |
-| `components/LandingPage.tsx` | Marketing landing page with product screenshots and founder story |
-| `public/assets/images/` | Product screenshots used in landing page (9 PNGs) |
+| `components/LandingPage.tsx` | Marketing landing page — vertical phase output sections with screenshot + text + bullets, "Honest by Design" no-go section, founder story, feature list |
+| `public/assets/images/` | Product screenshots used in landing page: PassStack-Score-Results.png, PassStack-Bullet-Rewrites.png, PassStack-Study-Plan.png, PassStack-Cover-Letter.png, PassStack-STAR-Coach.png, PassStack-No-Go-Cover-Letter.png, + legacy gallery screenshots |
 
 ### TypeScript Interfaces (lib/types.ts)
 
@@ -417,8 +417,15 @@ Returns 400/404/410 on error. Returns `{ token: "<analysis-token>" }` on success
 - `.workspace-results`: `grid-template-columns: 360px 1fr` — post-analysis split layout
 - `.workspace-sidebar`: sticky at `top: 72px`, scrollable with hidden scrollbar
 - `.result-tabs` / `.result-tab` / `.result-tab--active`: mono uppercase tab bar, teal active underline
-- `.screenshot-gallery`: 2-col grid for landing page product screenshots
-- `.no-go-callout`: 2-col grid with red-tinted border for the dealbreaker callout section
+- `.phase-output-row`: full-width horizontal layout for landing page phase sections. `grid-template-columns: 1fr 1fr`, `gap: var(--space-16)`, `padding: var(--space-12) 0`, `margin-bottom: var(--space-8)`. Alternates image/text via `.phase-output-row--reverse` (uses `direction: rtl` trick).
+- `.phase-output__img`: flex container, centers screenshot. `.screenshot-img` inside uses `max-width: 480px`, `height: auto`, `object-fit: contain`.
+- `.phase-output__text`: flex column with eyebrow, h3, paragraph, and `.feature-list` bullets.
+- `.why-grid`: 2-col grid (`1.4fr 1fr`) for the "Why PassStack Exists" founder story section, `gap: var(--space-16)`, `padding-top: var(--space-8)`.
+- `.no-go-callout`: 2-col grid with `gap: var(--space-16)` and red-tinted border — used for dealbreaker callout in app workflow.
+- `.site-footer`: landing page footer — `background: var(--ps-bg-elevated)`, `border-top: 1px solid var(--ps-border-mid)` for visual separation from the early access section; contains `PassStackLogo` + `.footer-links` + attribution text
+- `.footer-inner`: grid wrapper inside `.site-footer` — `text-align: center`, `gap: var(--space-6)`
+- `.footer-links`: centered flex row of footer nav buttons — `justify-content: center`, `width: 100%`, collapses to full-width column at 480px
+- `.early-access-inner`: flex column with `align-items: center`, `text-align: center` — wraps the early access CTA section.
 - `.chat-messages` / `.chat-bubble` / `.chat-bubble--assistant` / `.chat-bubble--user` / `.chat-input-bar`: Phase 0 + Phase 5 conversation UI
 - `.typing-indicator` + `@keyframes typing-bounce`: 3-dot loading animation for assistant responses
 - `.star-prep-layout`: `grid-template-columns: 260px 1fr` — Phase 5 two-column layout

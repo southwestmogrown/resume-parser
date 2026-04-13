@@ -1,4 +1,4 @@
-import type { ResumeData, MatchResult, RewriteSuggestion, StudyItem } from "@/lib/types";
+import type { ResumeData, MatchResult, RewriteSuggestion, StudyItem, StarQuestion } from "@/lib/types";
 
 export const DEMO_RESUME_DATA: ResumeData = {
   name: "Jordan Rivera",
@@ -133,6 +133,37 @@ I'd love to discuss how my experience building B2B SaaS products maps to Nexova'
 
 Best regards,
 Jordan Rivera`;
+
+export const DEMO_STAR_QUESTIONS: StarQuestion[] = [
+  {
+    id: "demo-q1",
+    question:
+      "Tell me about a time you had to quickly learn a new technology to deliver a critical feature.",
+    targetSkill: "AWS",
+    difficulty: "standard",
+  },
+  {
+    id: "demo-q2",
+    question:
+      "Describe a situation where a deployment went wrong. What happened and how did you fix it?",
+    targetSkill: "CI/CD pipelines",
+    difficulty: "probing",
+  },
+  {
+    id: "demo-q3",
+    question:
+      "Give me an example of a significant performance improvement you drove. What was the impact?",
+    targetSkill: "System performance",
+    difficulty: "standard",
+  },
+  {
+    id: "demo-q4",
+    question:
+      "Tell me about a time you owned a complex technical project end-to-end. How did you handle the ambiguity?",
+    targetSkill: "System architecture",
+    difficulty: "probing",
+  },
+];
 
 export const DEMO_JOB_DESCRIPTION: string = `Nexova is seeking a Senior Full-Stack Engineer to join our growing team building the next generation of workflow automation for enterprises. You'll work on our B2B SaaS platform that helps Fortune 500 companies streamline their operational processes.
 
