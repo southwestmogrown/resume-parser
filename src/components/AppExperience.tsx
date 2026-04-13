@@ -118,7 +118,6 @@ export default function AppExperience() {
 
   // Phase 0 — Experience Interviewer
   const [showInterviewer, setShowInterviewer] = useState(false);
-  const [interviewMessages, setInterviewMessages] = useState<ConversationMessage[]>([]);
   const [interviewBrief, setInterviewBrief] = useState<InterviewBrief | null>(null);
   const [enrichedResumeData, setEnrichedResumeData] = useState<ResumeData | null>(null);
 
@@ -186,7 +185,6 @@ export default function AppExperience() {
       setTokenExpiresAt(null);
       setPaymentState("idle");
       setActiveTab("rewrites");
-      setInterviewMessages([]);
       setInterviewBrief(null);
       setEnrichedResumeData(null);
       setStarQuestions([]);
@@ -310,7 +308,6 @@ export default function AppExperience() {
     setCheckoutClientSecret(null);
     setError(null);
     setShowInterviewer(false);
-    setInterviewMessages([]);
     setInterviewBrief(null);
     setEnrichedResumeData(null);
 
@@ -861,7 +858,6 @@ export default function AppExperience() {
     setError(null);
     setActiveTab("rewrites");
     setShowInterviewer(false);
-    setInterviewMessages([]);
     setInterviewBrief(null);
     setEnrichedResumeData(null);
     setStarQuestions([]);

@@ -54,10 +54,11 @@ const jsonRequest = (body: string | object, headers?: Record<string, string>) =>
 describe("service API routes", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    process.env.STRIPE_PRICE_ID = "price_123";
+    mockRetrievePrice.mockResolvedValue({ unit_amount: 500, currency: "usd" });
   });
 
   it("creates a checkout session", async () => {
-    process.env.STRIPE_PRICE_ID = "price_123";
     mockCreateSession.mockResolvedValue({ client_secret: "seti_123_secret_456" });
 
     const response = await postCreateCheckout(
@@ -72,14 +73,13 @@ describe("service API routes", () => {
       expect.objectContaining({
         mode: "payment",
         ui_mode: "embedded_page",
-        return_url: "https://resume-parser.app/app?token={CHECKOUT_SESSION_ID}&success=true",
+        return_url: "http://localhost/app?token={CHECKOUT_SESSION_ID}&success=true",
         metadata: { product: "resume_analysis" },
       })
     );
   });
 
   it("creates a payment intent for the configured analysis price", async () => {
-    process.env.STRIPE_PRICE_ID = "price_123";
     mockRetrievePrice.mockResolvedValueOnce({ unit_amount: 500, currency: "usd" });
     mockCreatePaymentIntent.mockResolvedValueOnce({
       id: "pi_123",
@@ -187,7 +187,6 @@ describe("service API routes", () => {
   });
 
   it("redeems tokens across the payment lifecycle", async () => {
-    process.env.STRIPE_PRICE_ID = "price_123";
     let response = await postRedeemToken(jsonRequest({}));
     expect(response.status).toBe(400);
 
@@ -341,8 +340,6 @@ describe("service API routes", () => {
   });
 
   it("verifies payment intents before minting tokens", async () => {
-    process.env.STRIPE_PRICE_ID = "price_123";
-
     let response = await postMintFromPaymentIntent(jsonRequest({}));
     expect(response.status).toBe(400);
 
