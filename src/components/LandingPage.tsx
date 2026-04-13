@@ -190,34 +190,74 @@ export default function LandingPage() {
 
       <section className="section section-surface">
         <div className="container">
-          <div className="eyebrow">phase 03 — bullet rewrites</div>
+          <div className="eyebrow">the output</div>
           <h2 style={{ fontSize: "clamp(2rem, 4vw, 2.6rem)", marginBottom: "var(--space-2)" }}>
-            See what a rewrite actually looks like.
+            What you actually get.
           </h2>
           <p className="result-muted" style={{ marginBottom: "var(--space-8)", maxWidth: "560px" }}>
-            This is real output for a software engineer applying to a senior full-stack role. Same experience. Better positioning.
+            Real output. Not a keyword report — a full battle plan.
           </p>
-          <div className="rewrite-example" data-reveal>
-            <div className="rewrite-example__col">
-              <div className="eyebrow" style={{ color: "var(--ps-red)", marginBottom: "var(--space-3)" }}>before</div>
-              <p className="result-muted" style={{ lineHeight: 1.7 }}>
-                &ldquo;Built and maintained customer-facing Next.js features, designed REST and GraphQL APIs in Node.js, and managed PostgreSQL schemas for a B2B SaaS product serving 500+ clients.&rdquo;
-              </p>
+
+          <div className="screenshot-gallery" data-reveal>
+            <div className="screenshot-item">
+              <div className="eyebrow" style={{ marginBottom: "var(--space-3)" }}>phase 02 — gap analysis</div>
+              <img
+                src="/assets/images/PassStack-Scorecard.png"
+                alt="PassStack gap analysis scorecard showing matched skills and severity-tiered gaps"
+                className="screenshot-img"
+              />
             </div>
-            <div className="rewrite-example__divider" aria-hidden="true">→</div>
-            <div className="rewrite-example__col">
-              <div className="eyebrow" style={{ color: "var(--ps-green)", marginBottom: "var(--space-3)" }}>after</div>
-              <p style={{ lineHeight: 1.7 }}>
-                &ldquo;Architected and shipped customer-facing features on a Next.js + Node.js platform serving 500+ enterprise clients, designing scalable REST and GraphQL APIs backed by PostgreSQL — directly aligned with the target role&apos;s B2B SaaS workflow automation stack.&rdquo;
-              </p>
-              <p className="subtle-note" style={{ marginTop: "var(--space-3)" }}>
-                Rationale: mirrors the JD&apos;s emphasis on &ldquo;scalable REST APIs&rdquo; and &ldquo;system architecture&rdquo; while surfacing B2B SaaS context that maps directly to the role.
-              </p>
+            <div className="screenshot-item">
+              <div className="eyebrow" style={{ marginBottom: "var(--space-3)" }}>phase 03 — bullet rewrites</div>
+              <img
+                src="/assets/images/PassStack-Bullet-Rewrites.png"
+                alt="PassStack bullet rewrite output showing before and after resume bullets"
+                className="screenshot-img"
+              />
+            </div>
+            <div className="screenshot-item">
+              <div className="eyebrow" style={{ marginBottom: "var(--space-3)" }}>phase 03 — study plan</div>
+              <img
+                src="/assets/images/PassStack-Study-Plan.png"
+                alt="PassStack study plan showing actionable gap-closing recommendations"
+                className="screenshot-img"
+              />
+            </div>
+            <div className="screenshot-item">
+              <div className="eyebrow" style={{ marginBottom: "var(--space-3)" }}>phase 04 — cover letter</div>
+              <img
+                src="/assets/images/PassStack-Cover-Letter.png"
+                alt="PassStack cover letter draft tailored to the job description"
+                className="screenshot-img"
+              />
             </div>
           </div>
+
+          <div className="no-go-callout" data-reveal style={{ marginTop: "var(--space-12)" }}>
+            <div className="no-go-callout__text">
+              <div className="eyebrow" style={{ color: "var(--ps-red)", marginBottom: "var(--space-3)" }}>honest by design</div>
+              <h3 style={{ fontSize: "clamp(1.4rem, 3vw, 1.8rem)", lineHeight: 1.2, marginBottom: "var(--space-4)" }}>
+                Sometimes the analysis tells you not to apply.
+              </h3>
+              <p className="result-muted">
+                When dealbreaker gaps exist — hard requirements you genuinely don&apos;t meet — PassStack says so. No manufactured enthusiasm. No cover letter for a role you won&apos;t get. Just the honest verdict, and a better target.
+              </p>
+              <p className="result-muted" style={{ marginTop: "var(--space-3)" }}>
+                That&apos;s not a bug. That&apos;s the whole point.
+              </p>
+            </div>
+            <div className="no-go-callout__img">
+              <img
+                src="/assets/images/PassStack-No-Go-Scorecard.png"
+                alt="PassStack dealbreaker analysis showing why a candidate should not apply for a role"
+                className="screenshot-img"
+              />
+            </div>
+          </div>
+
           <div style={{ marginTop: "var(--space-8)", textAlign: "center" }}>
             <Link href="/app?demo" className="btn-ghost">
-              See the full demo analysis →
+              Try the demo — see all four phases →
             </Link>
           </div>
         </div>

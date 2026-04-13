@@ -396,15 +396,22 @@ export default function AppExperience() {
     [analysisToken, githubProfile, linkedinProfile]
   );
 
-  // Auto-trigger paid phases when token arrives and score is ready
+  // Auto-trigger paid phases when token arrives and score is ready.
+  // Skips batch drill-down — user explicitly triggers via handleBatchAnalyze button.
   useEffect(() => {
     if (!analysisToken || !resumeData || !matchResult) return;
+    if (selectedBatchJD) return; // batch drill-down uses explicit button, not auto-trigger
     if (rewriteSuggestions !== null || studyItems !== null || coverLetter !== null) return;
     if (loadingRewrite || loadingStudyPlan || loadingCoverLetter) return;
     const jd = jobDescriptionsRef.current[0];
     if (!jd) return;
     void runPaidPhases(resumeData, matchResult, jd);
-  }, [analysisToken, matchResult, resumeData, rewriteSuggestions, studyItems, coverLetter, loadingRewrite, loadingStudyPlan, loadingCoverLetter, runPaidPhases]);
+  }, [analysisToken, matchResult, resumeData, selectedBatchJD, rewriteSuggestions, studyItems, coverLetter, loadingRewrite, loadingStudyPlan, loadingCoverLetter, runPaidPhases]);
+
+  const handleBatchAnalyze = useCallback(() => {
+    if (!resumeData || !matchResult || !selectedBatchJD || !analysisToken) return;
+    void runPaidPhases(resumeData, matchResult, selectedBatchJD);
+  }, [resumeData, matchResult, selectedBatchJD, analysisToken, runPaidPhases]);
 
   const handleAnalyze = useCallback(async () => {
     const currentJDs = jobDescriptionsRef.current;
@@ -529,14 +536,9 @@ export default function AppExperience() {
       return;
     }
     setLoadingScore(false);
-
-    if (!analysisToken) {
-      setPaymentState("idle");
-      return;
-    }
-
-    await runPaidPhases(extracted, scoreResult, jd);
-  }, [analysisToken, resumeFile, runPaidPhases]);
+    // Paid phases fire via the auto-trigger effect when matchResult + analysisToken are both set.
+    // No direct call here — avoids double-invocation with the effect.
+  }, [resumeFile]);
 
   // Batch drill-down: keep batchResults visible, track selected JD
   const handleBatchDrillDown = useCallback(
@@ -796,6 +798,21 @@ export default function AppExperience() {
                     paymentState={paymentState}
                     onPay={() => void handlePay()}
                   />
+                ) : null}
+
+                {selectedBatchJD && analysisToken && matchResult && !showPayGate && !hasPaidContent && !loadingPaid ? (
+                  <div className="card" style={{ display: "grid", gap: "var(--space-3)" }}>
+                    <p style={{ fontSize: "13px", fontWeight: 500 }}>Ready to go deeper on this role?</p>
+                    <p className="result-muted" style={{ fontSize: "12px" }}>Generate bullet rewrites, a study plan, and a cover letter draft for this specific JD.</p>
+                    <button
+                      type="button"
+                      onClick={handleBatchAnalyze}
+                      className="btn-primary"
+                      style={{ width: "100%" }}
+                    >
+                      Generate full analysis
+                    </button>
+                  </div>
                 ) : null}
 
                 <div className="card card-soft" style={{ display: "grid", gap: "var(--space-3)" }}>
