@@ -87,7 +87,7 @@ export default function LinkedInConnect({ onProfile, initialProfile = null }: Li
                 value={profileUrl}
                 onChange={(e) => setProfileUrl(e.target.value)}
                 placeholder="linkedin.com/in/yourname (optional)"
-                className="text-input"
+                className="text-input tour-target-linkedin-url"
                 style={{ flex: 1, minWidth: "180px", fontSize: "12px" }}
               />
               <a

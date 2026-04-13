@@ -79,7 +79,7 @@ export default function GitHubConnect({ onProfile, initialProfile = null }: GitH
           }}
           placeholder="username"
           disabled={loading}
-          className="text-input"
+          className="text-input tour-target-github-input"
           style={{ flex: 1 }}
         />
         {profile ? (

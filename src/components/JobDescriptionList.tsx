@@ -106,7 +106,7 @@ export default function JobDescriptionList({ value, onChange, disabled }: JobDes
             }
             disabled={disabled}
             rows={6}
-            className="text-input"
+            className="text-input tour-target-job-input"
             style={{ width: "100%", resize: "vertical", minHeight: "120px" }}
           />
 
