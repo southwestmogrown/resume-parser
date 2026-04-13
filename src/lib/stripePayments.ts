@@ -35,6 +35,7 @@ export function isExpectedResumeAnalysisPayment(details: {
   return (
     details.amount === expected.amount &&
     details.currency?.toLowerCase() === expected.currency &&
-    details.metadata?.product === RESUME_ANALYSIS_PRODUCT
+    details.metadata?.product === RESUME_ANALYSIS_PRODUCT &&
+    (!details.metadata?.price_id || details.metadata.price_id === expected.priceId)
   );
 }

@@ -30,7 +30,14 @@ export async function POST(req: NextRequest) {
         expectedPrice
       )
     ) {
-      return NextResponse.json({ error: 'Webhook payment verification failed' }, { status: 400 });
+      console.error('Webhook payment verification failed', {
+        paymentStatus: session.payment_status,
+        amountTotal: session.amount_total,
+        currency: session.currency,
+        product: session.metadata?.product,
+        priceId: session.metadata?.price_id,
+      });
+      return NextResponse.json({ received: true });
     }
 
     try {

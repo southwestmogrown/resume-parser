@@ -5,6 +5,10 @@ type RateLimitEntry = {
 
 const rateLimitStore = new Map<string, RateLimitEntry>();
 
+// Best-effort protection for single-instance/serverful deployments.
+// For horizontally scaled or serverless production environments, replace this
+// with a shared store such as Redis.
+
 export function clearRateLimitStore() {
   rateLimitStore.clear();
 }

@@ -73,10 +73,10 @@ export async function validateAndConsumeToken(token: string): Promise<boolean> {
     .update({ uses_remaining: data.uses_remaining - 1 })
     .eq('token', token)
     .eq('uses_remaining', data.uses_remaining)
-    .select('token')
+    .select('uses_remaining')
     .maybeSingle();
 
-  return !updateError && Boolean(updatedToken);
+  return !updateError && updatedToken?.uses_remaining === data.uses_remaining - 1;
 }
 
 export async function validateTokenOnly(token: string): Promise<boolean> {
@@ -142,8 +142,12 @@ export async function activateStarPrep(token: string): Promise<boolean> {
     .eq('token', token)
     .eq('uses_remaining', data.uses_remaining)
     .eq('star_prep_unlocked', false)
-    .select('token')
+    .select('uses_remaining, star_prep_unlocked')
     .maybeSingle();
 
-  return !updateError && Boolean(updatedToken);
+  return (
+    !updateError &&
+    updatedToken?.uses_remaining === data.uses_remaining - 1 &&
+    updatedToken.star_prep_unlocked === true
+  );
 }

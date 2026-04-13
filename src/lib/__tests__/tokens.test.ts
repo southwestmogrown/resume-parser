@@ -174,7 +174,7 @@ describe("tokens", () => {
       data: { id: "1", uses_remaining: 2, expires_at: "2099-01-01T00:00:00.000Z" },
       error: null,
     });
-    supabase.updateMaybeSingle.mockResolvedValue({ data: { token: "abc" }, error: null });
+    supabase.updateMaybeSingle.mockResolvedValue({ data: { uses_remaining: 1 }, error: null });
     getSupabaseAdmin.mockReturnValue(supabase);
     const { validateAndConsumeToken } = await import("@/lib/tokens");
 

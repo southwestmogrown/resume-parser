@@ -111,7 +111,10 @@ export async function POST(req: NextRequest) {
     messages.length > MAX_CONVERSATION_MESSAGES ||
     messages.some((message) => !message.content || message.content.length > MAX_MESSAGE_CHARS)
   ) {
-    return NextResponse.json({ error: 'Conversation is too large' }, { status: 400 });
+    return NextResponse.json(
+      { error: `Conversation exceeds ${MAX_CONVERSATION_MESSAGES} messages or contains a message longer than ${MAX_MESSAGE_CHARS} characters` },
+      { status: 400 }
+    );
   }
 
   // Star-prep costs one token use total — consumed on first ever activation.
