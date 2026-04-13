@@ -246,7 +246,8 @@ describe("AppExperience demo tour", () => {
     expect(screen.queryByText(/TourStep:/)).not.toBeInTheDocument();
     expect(screen.getByText("StarPrepPanel")).toBeInTheDocument();
 
-    await user.click(screen.getAllByRole("button", { name: /Take a tour/i })[0]);
+    // Only one "Take a tour" button now — sidebar no longer has it
+    await user.click(screen.getByRole("button", { name: /Take a tour/i }));
 
     expect(screen.getByText("TourStep:0")).toBeInTheDocument();
     expect(screen.queryByText("StarPrepPanel")).not.toBeInTheDocument();
@@ -274,5 +275,70 @@ describe("AppExperience demo tour", () => {
 
     expect(screen.getAllByText("PayGate:idle:Jordan Rivera")).toHaveLength(2);
     expect(screen.queryByText(/Persisted/)).not.toBeInTheDocument();
+  });
+});
+
+describe("AppExperience nav button visibility", () => {
+  const originalFetch = global.fetch;
+
+  beforeEach(() => {
+    window.localStorage.clear();
+    global.fetch = jest.fn() as typeof fetch;
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    jest.clearAllMocks();
+    window.history.replaceState({}, "", "/");
+  });
+
+  it("shows the pay button in the nav on initial load when user has not paid", () => {
+    window.history.replaceState({}, "", "/app");
+    render(<AppExperience />);
+    expect(screen.getByRole("button", { name: /Unlock/i })).toBeInTheDocument();
+  });
+
+  it("hides the pay button in the nav when in demo mode", () => {
+    window.history.replaceState({}, "", "/app?demo");
+    render(<AppExperience />);
+    expect(screen.queryByRole("button", { name: /Unlock/i })).not.toBeInTheDocument();
+  });
+
+  it("shows the export button in the nav after demo payment and content load", async () => {
+    const user = userEvent.setup();
+    window.history.replaceState({}, "", "/app?demo");
+    render(<AppExperience />);
+
+    await user.click(screen.getByRole("button", { name: "Tour skip" }));
+
+    expect(screen.getByRole("button", { name: /Export .zip/i })).toBeInTheDocument();
+  });
+
+  it("hides the export button in the nav before content is available", () => {
+    window.history.replaceState({}, "", "/app");
+    render(<AppExperience />);
+    expect(screen.queryByRole("button", { name: /Export .zip/i })).not.toBeInTheDocument();
+  });
+
+  it("sidebar session card has no action buttons — only one New analysis button (in nav)", async () => {
+    const user = userEvent.setup();
+    window.history.replaceState({}, "", "/app?demo");
+    render(<AppExperience />);
+
+    await user.click(screen.getByRole("button", { name: "Tour skip" }));
+
+    // Nav is the sole source of "New analysis" — sidebar no longer duplicates it
+    expect(screen.getAllByRole("button", { name: /New analysis/i })).toHaveLength(1);
+  });
+
+  it("sidebar session card has no action buttons — only one Take a tour button (in nav)", async () => {
+    const user = userEvent.setup();
+    window.history.replaceState({}, "", "/app?demo");
+    render(<AppExperience />);
+
+    await user.click(screen.getByRole("button", { name: "Tour skip" }));
+
+    // Nav is the sole source of "Take a tour" — sidebar no longer duplicates it
+    expect(screen.getAllByRole("button", { name: /Take a tour/i })).toHaveLength(1);
   });
 });

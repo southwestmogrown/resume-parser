@@ -1010,8 +1010,22 @@ export default function AppExperience() {
                   ↺ Take a tour
                 </button>
               )}
-              {!isDemo && !isTourActive && !analysisToken && !checkoutClientSecret && (
-                <button type="button" onClick={() => void handlePay()} className="btn-primary">
+              {canExport && (
+                <button
+                  type="button"
+                  onClick={() => void handleExportZip()}
+                  className="btn-ghost tour-export-btn"
+                >
+                  ↓ Export .zip
+                </button>
+              )}
+              {!isDemo && !analysisToken && !checkoutClientSecret && (
+                <button
+                  type="button"
+                  onClick={() => void handlePay()}
+                  disabled={isTourActive}
+                  className="btn-primary tour-pay-button"
+                >
                   Unlock — $5 →
                 </button>
               )}
@@ -1184,47 +1198,15 @@ export default function AppExperience() {
                 ) : null}
 
                 <div className="card card-soft" style={{ display: "grid", gap: "var(--space-3)" }}>
-                  <div>
-                    <div className="eyebrow" style={{ marginBottom: "var(--space-2)" }}>session</div>
-                    {resumeData?.name && (
-                      <p style={{ fontSize: "13px", fontWeight: 500 }}>{resumeData.name}</p>
-                    )}
-                    <p className="result-muted" style={{ fontSize: "12px", marginTop: "var(--space-1)" }}>
-                      {jobDescriptions.length} job{jobDescriptions.length !== 1 ? "s" : ""}
-                      {githubProfile ? ` · @${githubProfile.username}` : ""}
-                      {linkedinProfile?.currentCompany ? ` · ${linkedinProfile.currentCompany}` : ""}
-                    </p>
-                  </div>
-                  <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
-                    <button
-                      type="button"
-                      onClick={() => setShowResetConfirm(true)}
-                      className="btn-ghost btn-inline"
-                      style={{ alignSelf: "flex-start", fontSize: "11px" }}
-                    >
-                      ↩ New analysis
-                    </button>
-                    {canExport && (
-                      <button
-                        type="button"
-                        onClick={() => void handleExportZip()}
-                        className="btn-ghost btn-inline tour-export-btn"
-                        style={{ alignSelf: "flex-start", fontSize: "11px" }}
-                      >
-                        ↓ Export .zip
-                      </button>
-                    )}
-                    {!isTourActive && tourCompleted && (
-                      <button
-                        type="button"
-                        onClick={handleRestartTour}
-                        className="btn-ghost btn-inline"
-                        style={{ alignSelf: "flex-start", fontSize: "11px" }}
-                      >
-                        ↺ Take a tour
-                      </button>
-                    )}
-                  </div>
+                  <div className="eyebrow" style={{ marginBottom: "var(--space-1)" }}>session</div>
+                  {resumeData?.name && (
+                    <p style={{ fontSize: "13px", fontWeight: 500 }}>{resumeData.name}</p>
+                  )}
+                  <p className="result-muted" style={{ fontSize: "12px" }}>
+                    {jobDescriptions.length} job{jobDescriptions.length !== 1 ? "s" : ""}
+                    {githubProfile ? ` · @${githubProfile.username}` : ""}
+                    {linkedinProfile?.currentCompany ? ` · ${linkedinProfile.currentCompany}` : ""}
+                  </p>
                 </div>
               </div>
 
