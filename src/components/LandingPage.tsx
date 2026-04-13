@@ -254,7 +254,7 @@ export default function LandingPage() {
               I was laid off from App Academy — not as a student, as an instructor. I had the skills. What I didn&apos;t have was a resume that said &ldquo;Software Developer&rdquo; to an ATS. I was filtered out before a human ever saw my name. I gave up for a while.
             </p>
             <p>
-              Then I built a piece of software for my plant. Internal tool, nothing complicated. They didn&apos;t want it. But something clicked — I could still do this. I started building again. I needed two things at once: a portfolio project worth showing, and a way to stop getting screened out before I even got a conversation.
+              Then I built a piece of software for my plant. A real one — production dashboard, role-based views, live tracking across six lines. They didn&apos;t want it. That stung. But it also settled something I&apos;d stopped believing: I could still build. I started again. I needed two things at once: a portfolio project worth showing, and a way to stop getting screened out before I even got a conversation.
             </p>
             <p>
               I tried the resume tools. They weren&apos;t built for someone in my position. They optimize keywords, hide behind a dark-pattern subscription, sell your contact information to ad networks, and call it a career service. I know exactly what kind of calls I started getting.
