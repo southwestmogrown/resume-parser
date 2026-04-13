@@ -74,7 +74,7 @@ export const TOUR_STEPS: TourStep[] = [
     title: "Unlock the full analysis",
     description:
       "A one-time $5 payment unlocks bullet rewrites tailored to the JD, a structured study plan, a cover letter draft, and STAR interview coaching. The score is always free.",
-    targetSelector: ".tour-anchor-paygate .tour-pay-button",
+    targetSelector: ".tour-anchor-interview-paygate .tour-pay-button",
     placement: "bottom",
     autoAdvanceMs: 3500,
     // NOTE: do NOT auto-click the unlock button — that would open the payment modal mid-tour.
