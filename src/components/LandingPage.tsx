@@ -245,7 +245,7 @@ export default function LandingPage() {
                 className="screenshot-img"
                 width={1200}
                 height={900}
-                sizes="(max-width: 960px) 100vw, 480px"
+                sizes="(max-width: 960px) 100vw, 960px"
               />
             </div>
             <div className="phase-output__text">
@@ -275,7 +275,7 @@ export default function LandingPage() {
                 className="screenshot-img"
                 width={1200}
                 height={900}
-                sizes="(max-width: 960px) 100vw, 480px"
+                sizes="(max-width: 960px) 100vw, 960px"
               />
             </div>
             <div className="phase-output__text">
@@ -305,7 +305,7 @@ export default function LandingPage() {
                 className="screenshot-img"
                 width={1200}
                 height={900}
-                sizes="(max-width: 960px) 100vw, 480px"
+                sizes="(max-width: 960px) 100vw, 960px"
               />
             </div>
             <div className="phase-output__text">
@@ -335,7 +335,7 @@ export default function LandingPage() {
                 className="screenshot-img"
                 width={1200}
                 height={900}
-                sizes="(max-width: 960px) 100vw, 480px"
+                sizes="(max-width: 960px) 100vw, 960px"
               />
             </div>
             <div className="phase-output__text">
@@ -365,7 +365,7 @@ export default function LandingPage() {
                 className="screenshot-img"
                 width={1200}
                 height={900}
-                sizes="(max-width: 960px) 100vw, 480px"
+                sizes="(max-width: 960px) 100vw, 960px"
               />
             </div>
             <div className="phase-output__text">
@@ -395,7 +395,7 @@ export default function LandingPage() {
                 className="screenshot-img"
                 width={1200}
                 height={900}
-                sizes="(max-width: 960px) 100vw, 480px"
+                sizes="(max-width: 960px) 100vw, 960px"
               />
             </div>
             <div className="phase-output__text">

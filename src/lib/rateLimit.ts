@@ -30,6 +30,13 @@ export function isRateLimited(
   windowMs: number
 ): boolean {
   const now = Date.now();
+
+  for (const [entryKey, entry] of rateLimitStore.entries()) {
+    if (entry.resetAt <= now) {
+      rateLimitStore.delete(entryKey);
+    }
+  }
+
   const clientKey = `${key}:${getClientIp(headers)}`;
   const existing = rateLimitStore.get(clientKey);
 
