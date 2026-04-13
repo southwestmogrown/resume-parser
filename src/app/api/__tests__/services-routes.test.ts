@@ -46,7 +46,7 @@ describe("service API routes", () => {
 
   it("creates a checkout session", async () => {
     process.env.STRIPE_PRICE_ID = "price_123";
-    mockCreateSession.mockResolvedValue({ url: "https://checkout.stripe.test/session" });
+    mockCreateSession.mockResolvedValue({ client_secret: "seti_123_secret_456" });
 
     const response = await postCreateCheckout(
       new NextRequest("http://localhost/api/create-checkout", {
@@ -55,11 +55,12 @@ describe("service API routes", () => {
       })
     );
 
-    await expect(response.json()).resolves.toEqual({ url: "https://checkout.stripe.test/session" });
+    await expect(response.json()).resolves.toEqual({ clientSecret: "seti_123_secret_456" });
     expect(mockCreateSession).toHaveBeenCalledWith(
       expect.objectContaining({
-        success_url: "https://resume-parser.app/app?token={CHECKOUT_SESSION_ID}&success=true",
-        cancel_url: "https://resume-parser.app/app?canceled=true",
+        mode: "payment",
+        ui_mode: "embedded_page",
+        return_url: "https://resume-parser.app/app?token={CHECKOUT_SESSION_ID}&success=true",
       })
     );
   });

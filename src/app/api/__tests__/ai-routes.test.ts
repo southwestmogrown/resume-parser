@@ -9,11 +9,15 @@ import { POST as postStudyPlan } from "@/app/api/study-plan/route";
 import { sampleGitHubProfile, sampleMatchResult, sampleResumeData, sampleStudyItems } from "@/test-utils/fixtures";
 
 const mockCreateMessage = jest.fn();
+const mockStreamMessage = jest.fn();
 const mockValidateAndConsumeToken = jest.fn();
 
 jest.mock("@/lib/anthropic", () => ({
   getAnthropic: () => ({
-    messages: { create: (...args: unknown[]) => mockCreateMessage(...args) },
+    messages: {
+      create: (...args: unknown[]) => mockCreateMessage(...args),
+      stream: (...args: unknown[]) => mockStreamMessage(...args),
+    },
   }),
 }));
 
@@ -34,6 +38,20 @@ const jsonRequest = (body: string | object, headers?: Record<string, string>) =>
 const textMessage = (text: string) => ({
   content: [{ type: "text", text }],
 });
+
+const coverLetterReadyMatchResult = {
+  ...sampleMatchResult,
+  missingSkills: sampleMatchResult.missingSkills.filter((skill) => skill.severity !== "dealbreaker"),
+};
+
+async function* streamChunks(...chunks: string[]) {
+  for (const chunk of chunks) {
+    yield {
+      type: "content_block_delta",
+      delta: { type: "text_delta", text: chunk },
+    };
+  }
+}
 
 describe("AI-backed API routes", () => {
   beforeEach(() => {
@@ -76,59 +94,30 @@ describe("AI-backed API routes", () => {
   });
 
   describe("score route", () => {
-    it("enforces the analysis token", async () => {
-      let response = await postScore(jsonRequest({}));
-      expect(response.status).toBe(402);
-
-      mockValidateAndConsumeToken.mockResolvedValueOnce(false);
-      response = await postScore(jsonRequest({}, { "x-analysis-token": "bad" }));
-      expect(response.status).toBe(401);
-    });
-
     it("validates input and handles Anthropic failures", async () => {
-      let response = await postScore(jsonRequest("{", { "x-analysis-token": "good" }));
+      let response = await postScore(jsonRequest("{"));
       expect(response.status).toBe(400);
 
-      response = await postScore(
-        jsonRequest({ resumeData: sampleResumeData }, { "x-analysis-token": "good" })
-      );
+      response = await postScore(jsonRequest({ resumeData: sampleResumeData }));
       expect(response.status).toBe(400);
 
       mockCreateMessage.mockRejectedValueOnce({ status: 403 });
-      response = await postScore(
-        jsonRequest(
-          { resumeData: sampleResumeData, jobDescription: "JD" },
-          { "x-analysis-token": "good" }
-        )
-      );
+      response = await postScore(jsonRequest({ resumeData: sampleResumeData, jobDescription: "JD" }));
       expect(response.status).toBe(401);
 
       mockCreateMessage.mockRejectedValueOnce(new Error("boom"));
-      response = await postScore(
-        jsonRequest(
-          { resumeData: sampleResumeData, jobDescription: "JD" },
-          { "x-analysis-token": "good" }
-        )
-      );
+      response = await postScore(jsonRequest({ resumeData: sampleResumeData, jobDescription: "JD" }));
       expect(response.status).toBe(500);
     });
 
     it("returns a match result and handles parse failures", async () => {
       mockCreateMessage.mockResolvedValueOnce(textMessage("not json"));
-      let response = await postScore(
-        jsonRequest(
-          { resumeData: sampleResumeData, jobDescription: "JD" },
-          { "x-analysis-token": "good" }
-        )
-      );
+      let response = await postScore(jsonRequest({ resumeData: sampleResumeData, jobDescription: "JD" }));
       expect(response.status).toBe(500);
 
       mockCreateMessage.mockResolvedValueOnce(textMessage(JSON.stringify(sampleMatchResult)));
       response = await postScore(
-        jsonRequest(
-          { resumeData: sampleResumeData, jobDescription: "JD", githubProfile: sampleGitHubProfile },
-          { "x-analysis-token": "good" }
-        )
+        jsonRequest({ resumeData: sampleResumeData, jobDescription: "JD", githubProfile: sampleGitHubProfile })
       );
 
       expect(response.status).toBe(200);
@@ -269,40 +258,59 @@ describe("AI-backed API routes", () => {
       expect(response.status).toBe(400);
     });
 
-    it("handles Anthropic failures and returns the cover letter", async () => {
-      mockCreateMessage.mockRejectedValueOnce({ status: 403 });
+    it("blocks cover letters for dealbreaker roles", async () => {
       let response = await postCoverLetter(
         jsonRequest(
           { resumeData: sampleResumeData, matchResult: sampleMatchResult, jobDescription: "JD" },
           { "x-analysis-token": "good" }
         )
       );
+      expect(response.status).toBe(422);
+      await expect(response.json()).resolves.toEqual({
+        error: "Cover letter blocked: role has dealbreaker gaps",
+        dealbreakers: ["5+ years experience"],
+      });
+    });
+
+    it("handles Anthropic failures and streams the cover letter", async () => {
+      mockStreamMessage.mockImplementationOnce(() => {
+        throw { status: 403 };
+      });
+      let response = await postCoverLetter(
+        jsonRequest(
+          { resumeData: sampleResumeData, matchResult: coverLetterReadyMatchResult, jobDescription: "JD" },
+          { "x-analysis-token": "good" }
+        )
+      );
       expect(response.status).toBe(401);
 
-      mockCreateMessage.mockRejectedValueOnce(new Error("boom"));
+      mockStreamMessage.mockImplementationOnce(() => {
+        throw new Error("boom");
+      });
       response = await postCoverLetter(
         jsonRequest(
-          { resumeData: sampleResumeData, matchResult: sampleMatchResult, jobDescription: "JD" },
+          { resumeData: sampleResumeData, matchResult: coverLetterReadyMatchResult, jobDescription: "JD" },
           { "x-analysis-token": "good" }
         )
       );
       expect(response.status).toBe(500);
 
-      mockCreateMessage.mockResolvedValueOnce({ content: [{ type: "not-text", text: "ignored" }] });
+      mockStreamMessage.mockReturnValueOnce(streamChunks());
       response = await postCoverLetter(
         jsonRequest(
-          { resumeData: sampleResumeData, matchResult: sampleMatchResult, jobDescription: "JD" },
+          { resumeData: sampleResumeData, matchResult: coverLetterReadyMatchResult, jobDescription: "JD" },
           { "x-analysis-token": "good" }
         )
       );
-      await expect(response.json()).resolves.toEqual({ coverLetter: "" });
+      expect(response.status).toBe(200);
+      await expect(response.text()).resolves.toBe("");
 
-      mockCreateMessage.mockResolvedValueOnce(textMessage("Dear Hiring Team"));
+      mockStreamMessage.mockReturnValueOnce(streamChunks("Dear ", "Hiring Team"));
       response = await postCoverLetter(
         jsonRequest(
           {
             resumeData: sampleResumeData,
-            matchResult: sampleMatchResult,
+            matchResult: coverLetterReadyMatchResult,
             jobDescription: "JD",
             githubProfile: sampleGitHubProfile,
           },
@@ -310,7 +318,7 @@ describe("AI-backed API routes", () => {
         )
       );
       expect(response.status).toBe(200);
-      await expect(response.json()).resolves.toEqual({ coverLetter: "Dear Hiring Team" });
+      await expect(response.text()).resolves.toBe("Dear Hiring Team");
     });
   });
 });
