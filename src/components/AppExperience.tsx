@@ -60,7 +60,10 @@ const LS_KEY = "ps_workspace_v1";
 type ResultTab = "rewrites" | "study" | "cover" | "interview";
 
 // Keep these thresholds aligned with the ordered TOUR_STEPS config in lib/tourConfig.ts.
-const TOUR_STEP_RESUME_READY = 2;
+// Steps 2–5 (job description, GitHub, LinkedIn, analyze) are pre-results input steps — they must
+// keep showResults=false so the panel-grid (and the three input elements) stays in the DOM for
+// the spotlight. resumeData + matchResult are injected together at the score step (6).
+const TOUR_STEP_RESUME_READY = 6;
 const TOUR_STEP_GITHUB_READY = 4;
 const TOUR_STEP_LINKEDIN_READY = 5;
 const TOUR_STEP_SCORE_READY = 6;
