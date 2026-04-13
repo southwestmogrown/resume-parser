@@ -1024,7 +1024,7 @@ export default function AppExperience() {
                   type="button"
                   onClick={() => void handlePay()}
                   disabled={isTourActive}
-                  className="btn-primary tour-pay-button"
+                  className="btn-primary"
                 >
                   Unlock — $5 →
                 </button>
