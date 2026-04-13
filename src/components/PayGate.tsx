@@ -49,7 +49,7 @@ export default function PayGate({ resumeData, score, paymentState, onPay }: PayG
       ) : (
         <div style={{ display: "grid", gap: "var(--space-3)" }}>
           {paymentState === "canceled" ? <p style={{ color: "var(--ps-red)" }}>Payment canceled.</p> : null}
-          <button type="button" onClick={onPay} className="btn-primary btn-large">
+          <button type="button" onClick={onPay} className="btn-primary btn-large tour-pay-button">
             Unlock Full Analysis — $5 →
           </button>
           <p className="fine-print">One-time. No subscription.</p>

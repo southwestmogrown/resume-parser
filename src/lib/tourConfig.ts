@@ -26,7 +26,7 @@ export const TOUR_STEPS: TourStep[] = [
     title: "Upload your resume",
     description:
       "Drop a PDF here. PassStack starts with your resume, extracts the structure, and sets up the rest of the workflow from that single source of truth.",
-    targetSelector: ".tour-anchor-resume",
+    targetSelector: ".tour-target-resume-upload",
     placement: "bottom",
     autoAdvanceMs: 3500,
   },
@@ -34,24 +34,24 @@ export const TOUR_STEPS: TourStep[] = [
     title: "Paste a job description",
     description:
       "Paste the job description you're targeting. You can add up to 6 at once for batch comparison. The more specific the posting, the more useful the analysis.",
-    targetSelector: ".tour-anchor-job-description",
-    placement: "top",
+    targetSelector: ".tour-target-job-input",
+    placement: "left",
     autoAdvanceMs: 3500,
   },
   {
     title: "GitHub context",
     description:
       "GitHub is optional, but it helps PassStack see what you actually ship — repos, languages, and public proof of work.",
-    targetSelector: ".tour-anchor-github",
-    placement: "right",
+    targetSelector: ".tour-target-github-input",
+    placement: "bottom",
     autoAdvanceMs: 3000,
   },
   {
     title: "LinkedIn context",
     description:
       "LinkedIn is optional too. It adds role history, education, and softer signals that won't show up cleanly in a PDF alone.",
-    targetSelector: ".tour-anchor-linkedin",
-    placement: "right",
+    targetSelector: ".tour-target-linkedin-url",
+    placement: "bottom",
     autoAdvanceMs: 3000,
   },
   {
@@ -74,8 +74,8 @@ export const TOUR_STEPS: TourStep[] = [
     title: "Unlock the full analysis",
     description:
       "A one-time $5 payment unlocks bullet rewrites tailored to the JD, a structured study plan, a cover letter draft, and STAR interview coaching. The score is always free.",
-    targetSelector: ".tour-anchor-paygate",
-    placement: "left",
+    targetSelector: ".tour-pay-button",
+    placement: "right",
     autoAdvanceMs: 3500,
     // NOTE: do NOT auto-click the unlock button — that would open the payment modal mid-tour.
     // analysisToken is set via handleTourNext directly (no onActivate here).
@@ -109,7 +109,7 @@ export const TOUR_STEPS: TourStep[] = [
     description:
       "Behavioral interview prep powered by the gap analysis. PassStack generates tailored STAR questions targeting your specific weaknesses, then coaches you through building strong answers — one question at a time.",
     targetSelector: ".tour-tab-interview",
-    placement: "top",
+    placement: "bottom",
     autoAdvanceMs: 4000,
   },
   {
@@ -117,7 +117,7 @@ export const TOUR_STEPS: TourStep[] = [
     description:
       "Download a .zip with your cover letter, rewritten bullets, study plan, and match report. All your materials in one place, ready to use.",
     targetSelector: ".tour-export-btn",
-    placement: "top",
+    placement: "right",
     autoAdvanceMs: 0, // manual end
   },
 ];
