@@ -1185,7 +1185,7 @@ export default function AppExperience() {
                       Want a sharper analysis?
                     </p>
                     <p>
-                      Answer a few questions about your experience. Takes 2–3 minutes and makes every downstream phase significantly more accurate. Skip anytime.
+                      Answer a few questions about your experience. Takes 2–3 minutes and sharpens the results that follow. Skip anytime.
                     </p>
                   </div>
                   <div className="interview-cta-banner__actions">
@@ -1212,7 +1212,7 @@ export default function AppExperience() {
               {resumeData && interviewBrief && !showInterviewer && (
                 <div style={{ marginTop: "var(--space-5)", padding: "var(--space-3) var(--space-4)", border: "1px solid rgba(57, 217, 184, 0.3)", borderRadius: 8, display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
                   <span style={{ color: "var(--ps-accent)", fontWeight: 600 }}>✓</span>
-                  <span className="result-muted" style={{ fontSize: "0.85rem" }}>Resume enhanced with interview context — {interviewBrief.enriched_experiences.length} role{interviewBrief.enriched_experiences.length !== 1 ? "s" : ""} enriched</span>
+                  <span className="result-muted" style={{ fontSize: "0.85rem" }}>Interview context added — {interviewBrief.enriched_experiences.length} role{interviewBrief.enriched_experiences.length !== 1 ? "s" : ""} covered</span>
                 </div>
               )}
 
