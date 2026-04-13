@@ -70,6 +70,7 @@ export default function AppExperience() {
   const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
   const [rewriteSuggestions, setRewriteSuggestions] = useState<RewriteSuggestion[] | null>(null);
   const [coverLetter, setCoverLetter] = useState<string | null>(null);
+  const [coverLetterBlocked, setCoverLetterBlocked] = useState<string[] | null>(null);
   const [studyItems, setStudyItems] = useState<StudyItem[] | null>(null);
   const [githubProfile, setGithubProfile] = useState<GitHubProfile | null>(null);
   const [linkedinProfile, setLinkedinProfile] = useState<LinkedInProfile | null>(null);
@@ -185,7 +186,7 @@ export default function AppExperience() {
   const canAnalyze = Boolean((resumeFile || resumeData) && jobDescriptions.length > 0);
   const isBusy = loadingExtraction || loadingScore || loadingRewrite || loadingCoverLetter || loadingStudyPlan || loadingBatch;
   const showPayGate = !analysisToken && Boolean(matchResult) && !loadingScore && !loadingExtraction;
-  const hasPaidContent = Boolean(rewriteSuggestions) || Boolean(studyItems) || Boolean(coverLetter);
+  const hasPaidContent = Boolean(rewriteSuggestions) || Boolean(studyItems) || Boolean(coverLetter) || Boolean(coverLetterBlocked);
   const loadingPaid = loadingRewrite || loadingStudyPlan || loadingCoverLetter;
   const showResults =
     Boolean(resumeData) ||
@@ -377,6 +378,9 @@ export default function AppExperience() {
 
         if ((coverRes.status === 401 || coverRes.status === 402)) {
           handleTokenInvalid();
+        } else if (coverRes.status === 422) {
+          const body = await coverRes.json().catch(() => ({})) as { dealbreakers?: string[] };
+          setCoverLetterBlocked(body.dealbreakers ?? []);
         } else if (coverRes.ok && coverRes.body) {
           const reader = coverRes.body.getReader();
           const decoder = new TextDecoder();
@@ -422,6 +426,7 @@ export default function AppExperience() {
     setMatchResult(null);
     setRewriteSuggestions(null);
     setCoverLetter(null);
+    setCoverLetterBlocked(null);
     setStudyItems(null);
     setBatchResults(null);
     setSelectedBatchJD(null);
@@ -555,6 +560,7 @@ export default function AppExperience() {
       setRewriteSuggestions(null);
       setStudyItems(null);
       setCoverLetter(null);
+      setCoverLetterBlocked(null);
       // batchResults intentionally preserved — auto-trigger handles paid phases if token exists
     },
     []
@@ -566,6 +572,7 @@ export default function AppExperience() {
     setRewriteSuggestions(null);
     setStudyItems(null);
     setCoverLetter(null);
+    setCoverLetterBlocked(null);
   }, []);
 
   const handlePaymentSuccess = useCallback((token: string) => {
@@ -664,6 +671,7 @@ export default function AppExperience() {
     setResumeFile(null);
     setRewriteSuggestions(null);
     setCoverLetter(null);
+    setCoverLetterBlocked(null);
     setStudyItems(null);
     setBatchResults(null);
     setSelectedBatchJD(null);
@@ -918,7 +926,7 @@ export default function AppExperience() {
                       <StudyPlan items={studyItems} loading={loadingStudyPlan} />
                     )}
                     {activeTab === "cover" && (
-                      <CoverLetter content={coverLetter} loading={loadingCoverLetter} />
+                      <CoverLetter content={coverLetter} loading={loadingCoverLetter} blockedSkills={coverLetterBlocked} />
                     )}
                   </>
                 )}

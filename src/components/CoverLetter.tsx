@@ -6,12 +6,39 @@ import SkeletonBlock from "@/components/SkeletonBlock";
 interface CoverLetterProps {
   content: string | null;
   loading: boolean;
+  blockedSkills?: string[] | null;
 }
 
-export default function CoverLetter({ content, loading }: CoverLetterProps) {
+export default function CoverLetter({ content, loading, blockedSkills }: CoverLetterProps) {
   const [copied, setCopied] = useState(false);
 
-  if (!loading && !content) return null;
+  if (!loading && !content && !blockedSkills?.length) return null;
+
+  if (!loading && !content && blockedSkills?.length) {
+    return (
+      <div className="card result-card">
+        <div className="eyebrow">phase 4</div>
+        <h2 style={{ fontSize: "1.3rem" }}>Cover letter — not generated</h2>
+        <p className="result-muted">
+          This role has dealbreaker gaps. Writing a cover letter that manufactures enthusiasm for a role you won&apos;t
+          pass the bar on isn&apos;t helpful — so we didn&apos;t.
+        </p>
+        {blockedSkills.length > 0 && (
+          <div>
+            <p className="subtle-note" style={{ marginBottom: "var(--space-2)" }}>Dealbreakers:</p>
+            <ul style={{ paddingLeft: "var(--space-5)", display: "grid", gap: "var(--space-1)" }}>
+              {blockedSkills.map((s) => (
+                <li key={s} className="result-muted" style={{ color: "var(--ps-red)" }}>{s}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <p className="result-muted">
+          Focus on roles where your profile matches more cleanly — or close these gaps first.
+        </p>
+      </div>
+    );
+  }
 
   // Skeleton only when loading with no content yet (pre-stream)
   if (loading && !content) {
