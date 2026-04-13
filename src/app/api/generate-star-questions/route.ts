@@ -1,10 +1,17 @@
 import { getAnthropic } from '@/lib/anthropic';
 import { NextRequest, NextResponse } from 'next/server';
 import type { StarQuestion, ResumeData, MatchResult } from '@/lib/types';
+import { parseModelJson } from '@/lib/parseModelJson';
+import { isRateLimited } from '@/lib/rateLimit';
+import { isStringWithinLimit, MAX_JOB_DESCRIPTION_CHARS } from '@/lib/requestValidation';
 
 export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
+  if (isRateLimited(req.headers, 'generate-star-questions', 10, 60_000)) {
+    return NextResponse.json({ error: 'Too many STAR prep requests. Please wait a minute and try again.' }, { status: 429 });
+  }
+
   let body: { resumeData?: ResumeData; matchResult?: MatchResult; jobDescription?: string };
   try {
     body = await req.json();
@@ -14,7 +21,7 @@ export async function POST(req: NextRequest) {
 
   const { resumeData, matchResult, jobDescription } = body;
 
-  if (!resumeData || !matchResult || !jobDescription) {
+  if (!resumeData || !matchResult || !isStringWithinLimit(jobDescription, MAX_JOB_DESCRIPTION_CHARS)) {
     return NextResponse.json(
       { error: 'resumeData, matchResult, and jobDescription are required' },
       { status: 400 }
@@ -73,12 +80,7 @@ Return JSON array only. First character must be [
 
   let questions: StarQuestion[];
   try {
-    const cleaned = content
-      .trim()
-      .replace(/^```(?:json)?\n?/, '')
-      .replace(/\n?```$/, '')
-      .trim();
-    questions = JSON.parse(cleaned);
+    questions = parseModelJson<StarQuestion[]>(content);
   } catch {
     return NextResponse.json({ error: 'Failed to parse question generation response' }, { status: 500 });
   }

@@ -2,6 +2,8 @@ import { getAnthropic } from '@/lib/anthropic';
 import { NextRequest, NextResponse } from 'next/server';
 import { validateAndConsumeToken } from '@/lib/tokens';
 import type { RewriteRequest, RewriteResponse, RewriteSuggestion, GitHubProfile, LinkedInProfile } from '@/lib/types';
+import { parseModelJson } from '@/lib/parseModelJson';
+import { isStringWithinLimit, MAX_JOB_DESCRIPTION_CHARS } from '@/lib/requestValidation';
 
 export const maxDuration = 30;
 
@@ -26,7 +28,7 @@ export async function POST(req: NextRequest) {
   const githubProfile = (body as { githubProfile?: GitHubProfile }).githubProfile ?? null;
   const linkedinProfile = (body as { linkedinProfile?: LinkedInProfile }).linkedinProfile ?? null;
 
-  if (!resumeData || !jobDescription) {
+  if (!resumeData || !isStringWithinLimit(jobDescription, MAX_JOB_DESCRIPTION_CHARS)) {
     return NextResponse.json(
       { error: 'resumeData and jobDescription are required' },
       { status: 400 }
@@ -39,7 +41,7 @@ export async function POST(req: NextRequest) {
       model: 'claude-sonnet-4-6',
       max_tokens: 4096,
       system:
-        'You are an elite resume writer for software engineers. Produce ATS-friendly, high-conviction rewrites that improve positioning without inventing facts. Never add technologies, metrics, scope, ownership, or achievements that are not supported by the source material.',
+        'You are a precise resume writer for software engineers. Produce ATS-friendly rewrites that improve positioning without inventing facts. Never add technologies, metrics, scope, ownership, or achievements that are not supported by the source material.',
       messages: [
         {
           role: 'user',
@@ -96,11 +98,7 @@ One entry per experience item:
 
   let suggestions: RewriteSuggestion[];
   try {
-    const cleaned = rewriteText
-      .replace(/^```(?:json)?\n?/, '')
-      .replace(/\n?```$/, '')
-      .trim();
-    suggestions = JSON.parse(cleaned);
+    suggestions = parseModelJson<RewriteSuggestion[]>(rewriteText);
   } catch {
     return NextResponse.json(
       { error: 'Failed to parse rewrite response' },

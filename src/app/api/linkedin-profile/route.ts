@@ -1,10 +1,17 @@
 import { getAnthropic } from '@/lib/anthropic';
 import { NextRequest, NextResponse } from 'next/server';
 import type { LinkedInProfile, LinkedInProfileResponse } from '@/lib/types';
+import { parseModelJson } from '@/lib/parseModelJson';
+import { isRateLimited } from '@/lib/rateLimit';
+import { isStringWithinLimit, MAX_PROFILE_TEXT_CHARS } from '@/lib/requestValidation';
 
 export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
+  if (isRateLimited(req.headers, 'linkedin-profile', 8, 60_000)) {
+    return NextResponse.json({ error: 'Too many LinkedIn parsing requests. Please wait a minute and try again.' }, { status: 429 });
+  }
+
   let body: { profileText?: string };
   try {
     body = await req.json();
@@ -13,7 +20,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { profileText } = body;
-  if (!profileText || typeof profileText !== 'string' || !profileText.trim()) {
+  if (!isStringWithinLimit(profileText, MAX_PROFILE_TEXT_CHARS)) {
     return NextResponse.json({ error: 'profileText is required' }, { status: 400 });
   }
 
@@ -66,11 +73,7 @@ Return only the JSON object, no markdown, no explanation.`,
 
   let profile: LinkedInProfile;
   try {
-    const cleaned = text
-      .replace(/^```(?:json)?\n?/, '')
-      .replace(/\n?```$/, '')
-      .trim();
-    profile = JSON.parse(cleaned);
+    profile = parseModelJson<LinkedInProfile>(text);
   } catch {
     return NextResponse.json(
       { error: 'Failed to parse LinkedIn profile response' },

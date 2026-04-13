@@ -17,7 +17,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     title: "Welcome to the demo",
     description:
-      "Let's walk you through what PassStack does — step by step. Upload a resume, paste a job description, and get a full battle plan. We'll show you everything, then you can try it yourself.",
+      "Let's walk through PassStack step by step. Upload a resume, paste a job description, and review the full analysis. We'll show you everything, then you can try it yourself.",
     targetSelector: "body",
     placement: "center",
     autoAdvanceMs: 0, // manual
@@ -33,7 +33,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     title: "Paste a job description",
     description:
-      "Paste the job description you're targeting. You can add up to 6 at once for batch comparison. The more specific, the sharper the analysis.",
+      "Paste the job description you're targeting. You can add up to 6 at once for batch comparison. The more specific the posting, the more useful the analysis.",
     targetSelector: ".tour-anchor-job-description",
     placement: "top",
     autoAdvanceMs: 3500,
@@ -71,9 +71,9 @@ export const TOUR_STEPS: TourStep[] = [
     autoAdvanceMs: 4000,
   },
   {
-    title: "Unlock the full battle plan",
+    title: "Unlock the full analysis",
     description:
-      "One-time $5 payment unlocks everything: bullet rewrites tailored to the JD, a structured study plan, a cover letter draft, and STAR interview coaching. Score is always free.",
+      "A one-time $5 payment unlocks bullet rewrites tailored to the JD, a structured study plan, a cover letter draft, and STAR interview coaching. The score is always free.",
     targetSelector: ".tour-anchor-paygate",
     placement: "left",
     autoAdvanceMs: 3500,

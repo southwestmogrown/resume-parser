@@ -6,6 +6,7 @@ import { POST as postExtract } from "@/app/api/extract/route";
 import { POST as postRewrite } from "@/app/api/rewrite/route";
 import { POST as postScore } from "@/app/api/score/route";
 import { POST as postStudyPlan } from "@/app/api/study-plan/route";
+import { clearRateLimitStore } from "@/lib/rateLimit";
 import { sampleGitHubProfile, sampleMatchResult, sampleResumeData, sampleStudyItems } from "@/test-utils/fixtures";
 
 const mockCreateMessage = jest.fn();
@@ -56,6 +57,7 @@ async function* streamChunks(...chunks: string[]) {
 describe("AI-backed API routes", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    clearRateLimitStore();
     mockValidateAndConsumeToken.mockResolvedValue(true);
   });
 

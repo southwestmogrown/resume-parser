@@ -2,6 +2,8 @@ import { getAnthropic } from '@/lib/anthropic';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkStarPrepAccess, activateStarPrep } from '@/lib/tokens';
 import type { StarPrepRequest, StarPrepResponse, StarAnswer, ResumeData, MatchResult, StarQuestion } from '@/lib/types';
+import { parseModelJson, stripJsonCodeFences } from '@/lib/parseModelJson';
+import { isStringWithinLimit, MAX_JOB_DESCRIPTION_CHARS, MAX_CONVERSATION_MESSAGES, MAX_MESSAGE_CHARS } from '@/lib/requestValidation';
 
 export const maxDuration = 30;
 
@@ -92,11 +94,24 @@ export async function POST(req: NextRequest) {
 
   const { messages, resumeData, matchResult, jobDescription, currentQuestion } = body;
 
-  if (!messages || !resumeData || !matchResult || !jobDescription || !currentQuestion) {
+  if (
+    !messages ||
+    !resumeData ||
+    !matchResult ||
+    !isStringWithinLimit(jobDescription, MAX_JOB_DESCRIPTION_CHARS) ||
+    !currentQuestion
+  ) {
     return NextResponse.json(
       { error: 'messages, resumeData, matchResult, jobDescription, and currentQuestion are required' },
       { status: 400 }
     );
+  }
+
+  if (
+    messages.length > MAX_CONVERSATION_MESSAGES ||
+    messages.some((message) => !message.content || message.content.length > MAX_MESSAGE_CHARS)
+  ) {
+    return NextResponse.json({ error: 'Conversation is too large' }, { status: 400 });
   }
 
   // Star-prep costs one token use total — consumed on first ever activation.
@@ -135,14 +150,10 @@ export async function POST(req: NextRequest) {
     aiMessage.content[0].type === 'text' ? aiMessage.content[0].text : '';
 
   // JSON completion detection
-  const stripped = content
-    .trim()
-    .replace(/^```json?\n?/, '')
-    .replace(/```$/, '')
-    .trim();
+  const stripped = stripJsonCodeFences(content);
 
   try {
-    const completion: { question_complete: boolean; answer: StarAnswer } = JSON.parse(stripped);
+    const completion = parseModelJson<{ question_complete: boolean; answer: StarAnswer }>(stripped);
     if (completion.question_complete && completion.answer) {
       const response: StarPrepResponse = {
         message: '',

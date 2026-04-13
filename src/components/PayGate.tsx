@@ -20,7 +20,7 @@ export default function PayGate({ resumeData, score, paymentState, onPay }: PayG
           your score
         </div>
         <h2 className="display" style={{ fontSize: "1.9rem" }}>
-          {score}% match — unlock the full battle plan
+          {score}% match — unlock the full analysis
         </h2>
       </div>
 

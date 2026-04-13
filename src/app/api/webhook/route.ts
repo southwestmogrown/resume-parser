@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getStripe } from '@/lib/stripe';
 import { mintToken } from '@/lib/tokens';
+import { getResumeAnalysisPrice, isExpectedResumeAnalysisPayment } from '@/lib/stripePayments';
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -17,6 +18,21 @@ export async function POST(req: NextRequest) {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
+    const expectedPrice = await getResumeAnalysisPrice();
+    if (
+      session.payment_status !== 'paid' ||
+      !isExpectedResumeAnalysisPayment(
+        {
+          amount: session.amount_total,
+          currency: session.currency,
+          metadata: session.metadata,
+        },
+        expectedPrice
+      )
+    ) {
+      return NextResponse.json({ error: 'Webhook payment verification failed' }, { status: 400 });
+    }
+
     try {
       await mintToken(session.id);
     } catch (err) {

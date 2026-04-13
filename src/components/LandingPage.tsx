@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import PassStackLogo from "@/components/PassStackLogo";
@@ -186,17 +187,17 @@ export default function LandingPage() {
             <div>
               <div className="prose-block">
                 <h2 style={{ fontSize: "clamp(2.2rem, 5vw, 2.9rem)", lineHeight: 1.05 }}>
-                  ATS systems reject 75% of resumes before a human reads them.
+                  Most candidates never get clear feedback on why they were filtered out.
                 </h2>
                 <p>
                   Most resume tools charge $20–$50 a month for glorified keyword counters. They don&apos;t tell you why you&apos;re getting filtered. They don&apos;t rewrite your bullets. They don&apos;t generate a cover letter that actually fits the role.
                 </p>
-                <p>You&apos;re not underqualified. You&apos;re under-optimized.</p>
+                <p>Sometimes the problem is fit. Sometimes it&apos;s framing. You should know which is which before you apply again.</p>
                 <p>
                   PassStack runs the full analysis for $5. One time. No subscription. No account required.
                 </p>
               </div>
-              <div className="pull-quote">&quot;You&apos;re not underqualified. You&apos;re under-optimized.&quot;</div>
+              <div className="pull-quote">&quot;Know whether the problem is fit, framing, or both.&quot;</div>
             </div>
           </div>
         </div>
@@ -232,16 +233,19 @@ export default function LandingPage() {
             What you actually get.
           </h2>
           <p className="result-muted" style={{ marginBottom: "var(--space-8)", maxWidth: "560px" }}>
-            Real output. Not a keyword report — a full battle plan.
+            Real output. Not a keyword report — a full analysis.
           </p>
 
           {/* Phase 02 — Gap Analysis */}
           <div className="phase-output-row" data-reveal>
             <div className="phase-output__img">
-              <img
+              <Image
                 src="/assets/images/PassStack-Score-Results.png"
                 alt="PassStack gap analysis scorecard showing matched skills and severity-tiered gaps"
                 className="screenshot-img"
+                width={1200}
+                height={900}
+                sizes="(max-width: 960px) 100vw, 480px"
               />
             </div>
             <div className="phase-output__text">
@@ -265,10 +269,13 @@ export default function LandingPage() {
           {/* Phase 03 — Bullet Rewrites */}
           <div className="phase-output-row phase-output-row--reverse" data-reveal>
             <div className="phase-output__img">
-              <img
+              <Image
                 src="/assets/images/PassStack-Bullet-Rewrites.png"
                 alt="PassStack bullet rewrite output showing before and after resume bullets"
                 className="screenshot-img"
+                width={1200}
+                height={900}
+                sizes="(max-width: 960px) 100vw, 480px"
               />
             </div>
             <div className="phase-output__text">
@@ -292,10 +299,13 @@ export default function LandingPage() {
           {/* Phase 03 — Study Plan */}
           <div className="phase-output-row" data-reveal>
             <div className="phase-output__img">
-              <img
+              <Image
                 src="/assets/images/PassStack-Study-Plan.png"
                 alt="PassStack study plan showing actionable gap-closing recommendations"
                 className="screenshot-img"
+                width={1200}
+                height={900}
+                sizes="(max-width: 960px) 100vw, 480px"
               />
             </div>
             <div className="phase-output__text">
@@ -319,10 +329,13 @@ export default function LandingPage() {
           {/* Phase 04 — Cover Letter */}
           <div className="phase-output-row phase-output-row--reverse" data-reveal>
             <div className="phase-output__img">
-              <img
+              <Image
                 src="/assets/images/PassStack-Cover-Letter.png"
                 alt="PassStack cover letter draft tailored to the job description"
                 className="screenshot-img"
+                width={1200}
+                height={900}
+                sizes="(max-width: 960px) 100vw, 480px"
               />
             </div>
             <div className="phase-output__text">
@@ -346,10 +359,13 @@ export default function LandingPage() {
           {/* Phase 05 — STAR Coaching */}
           <div className="phase-output-row" data-reveal>
             <div className="phase-output__img">
-              <img
+              <Image
                 src="/assets/images/PassStack-STAR-Coach.png"
                 alt="PassStack STAR interview coaching panel with gap-sourced behavioral questions"
                 className="screenshot-img"
+                width={1200}
+                height={900}
+                sizes="(max-width: 960px) 100vw, 480px"
               />
             </div>
             <div className="phase-output__text">
@@ -373,10 +389,13 @@ export default function LandingPage() {
           {/* Honest by Design — No-Go Callout */}
           <div className="phase-output-row phase-output-row--reverse" data-reveal>
             <div className="phase-output__img">
-              <img
+              <Image
                 src="/assets/images/PassStack-No-Go-Cover-Letter.png"
                 alt="PassStack no-go cover letter blocked by dealbreaker gaps"
                 className="screenshot-img"
+                width={1200}
+                height={900}
+                sizes="(max-width: 960px) 100vw, 480px"
               />
             </div>
             <div className="phase-output__text">

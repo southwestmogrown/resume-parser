@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe';
 import { getTokenBySessionId, mintToken } from '@/lib/tokens';
+import { getResumeAnalysisPrice, isExpectedResumeAnalysisPayment } from '@/lib/stripePayments';
 
 export async function POST(req: NextRequest) {
   const { sessionId } = await req.json();
@@ -23,6 +24,15 @@ export async function POST(req: NextRequest) {
 
     if (session.payment_status !== 'paid') {
       return NextResponse.json({ error: 'Payment not completed yet' }, { status: 402 });
+    }
+
+    const expectedPrice = await getResumeAnalysisPrice();
+    if (!isExpectedResumeAnalysisPayment({
+      amount: session.amount_total,
+      currency: session.currency,
+      metadata: session.metadata,
+    }, expectedPrice)) {
+      return NextResponse.json({ error: 'Payment does not match the configured analysis price' }, { status: 400 });
     }
 
     try {

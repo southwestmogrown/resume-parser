@@ -68,12 +68,15 @@ export async function validateAndConsumeToken(token: string): Promise<boolean> {
   if (data.uses_remaining <= 0) return false;
   if (new Date(data.expires_at) < new Date()) return false;
 
-  const { error: updateError } = await supabaseAdmin
+  const { data: updatedToken, error: updateError } = await supabaseAdmin
     .from('analysis_tokens')
     .update({ uses_remaining: data.uses_remaining - 1 })
-    .eq('token', token);
+    .eq('token', token)
+    .eq('uses_remaining', data.uses_remaining)
+    .select('token')
+    .maybeSingle();
 
-  return !updateError;
+  return !updateError && Boolean(updatedToken);
 }
 
 export async function validateTokenOnly(token: string): Promise<boolean> {
@@ -130,13 +133,17 @@ export async function activateStarPrep(token: string): Promise<boolean> {
 
   if (error || !data || data.uses_remaining <= 0) return false;
 
-  const { error: updateError } = await supabaseAdmin
+  const { data: updatedToken, error: updateError } = await supabaseAdmin
     .from('analysis_tokens')
     .update({
       uses_remaining: data.uses_remaining - 1,
       star_prep_unlocked: true,
     })
-    .eq('token', token);
+    .eq('token', token)
+    .eq('uses_remaining', data.uses_remaining)
+    .eq('star_prep_unlocked', false)
+    .select('token')
+    .maybeSingle();
 
-  return !updateError;
+  return !updateError && Boolean(updatedToken);
 }

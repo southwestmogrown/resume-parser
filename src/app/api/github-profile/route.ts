@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { GitHubProfile, GitHubRepo, GitHubProfileResponse } from "@/lib/types";
+import { isRateLimited } from "@/lib/rateLimit";
 
 export const maxDuration = 15;
 
@@ -20,6 +21,10 @@ interface GitHubRepoAPI {
 }
 
 export async function POST(req: NextRequest) {
+  if (isRateLimited(req.headers, "github-profile", 20, 60_000)) {
+    return NextResponse.json({ error: "Too many GitHub profile requests. Please wait a minute and try again." }, { status: 429 });
+  }
+
   let body: { username?: string };
   try {
     body = await req.json();
@@ -33,7 +38,7 @@ export async function POST(req: NextRequest) {
   }
 
   const trimmed = username.trim().replace(/^@/, "");
-  if (!trimmed) {
+  if (!trimmed || trimmed.length > 39) {
     return NextResponse.json({ error: "username is required" }, { status: 400 });
   }
 
