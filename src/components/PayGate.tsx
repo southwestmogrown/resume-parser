@@ -36,6 +36,7 @@ export default function PayGate({ resumeData, score, paymentState, onPay }: PayG
         <li>Study plan for each gap with resources</li>
         <li>Cover letter draft, ready to customize</li>
         <li>STAR interview coaching — all questions, unlimited turns</li>
+        <li>Optimized resume — synthesized from your coaching sessions, ATS-ready</li>
       </ul>
       <p className="fine-print" style={{ marginTop: 'var(--space-1)' }}>
         Access expires 24 hours after payment. All features available the full window — no per-question limits.

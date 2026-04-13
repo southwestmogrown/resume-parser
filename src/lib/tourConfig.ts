@@ -123,7 +123,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     title: "Export everything",
     description:
-      "Download a .zip with your cover letter, rewritten bullets, study plan, and match report. All your materials in one place, ready to use.",
+      "Download a .zip with your optimized resume, cover letter, rewritten bullets, study plan, and match report. All your materials in one place, ready to use.",
     targetSelector: ".tour-export-btn",
     placement: "bottom",
     autoAdvanceMs: 0, // manual end

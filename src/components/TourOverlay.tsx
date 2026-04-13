@@ -493,7 +493,7 @@ export default function TourOverlay({
           </div>
 
           {/* Countdown bar — depletes over autoAdvanceMs; pauses when isPaused */}
-          {step.autoAdvanceMs && step.autoAdvanceMs > 0 && (
+          {(step.autoAdvanceMs ?? 0) > 0 && (
             <div style={{ height: 2, background: "var(--ps-border)", borderRadius: 99, overflow: "hidden" }}>
               <div
                 key={currentStep}
@@ -536,7 +536,7 @@ export default function TourOverlay({
             </button>
 
             <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center" }}>
-              {step.autoAdvanceMs && step.autoAdvanceMs > 0 && (
+              {(step.autoAdvanceMs ?? 0) > 0 && (
                 <button
                   type="button"
                   onClick={isPaused ? handleResume : handlePause}

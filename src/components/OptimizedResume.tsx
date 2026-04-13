@@ -82,7 +82,6 @@ export default function OptimizedResume({
     a.click();
     URL.revokeObjectURL(url);
   };
-
   return (
     <div className="card result-card">
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-3)', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -126,6 +125,7 @@ export default function OptimizedResume({
       {!loading && (
         <p className="result-muted">
           Use this as a base — swap in real contact details and tailor the summary for each application.
+          Downloads as <code>.txt</code>; paste into Word or Google Docs to save as PDF.
         </p>
       )}
     </div>
