@@ -31,11 +31,11 @@ const TOOLTIP_GAP = 16;
 const NAV_OFFSET = 96;
 const VIEWPORT_MARGIN = 24;
 const LAYOUT_SETTLE_MS = 350;
-// Backdrop opacity while the active target is lifted above the overlay.
+// Balanced backdrop dimming: dark enough to focus attention, light enough that the lifted target still reads clearly.
 const OVERLAY_ALPHA = 0.58;
-// Max share of viewport height reserved so top/bottom tooltips stay visible with the target.
+// Reserve up to roughly a third of the viewport for top/bottom tooltips so late steps stay visible on laptop/tablet screens.
 const VERTICAL_TOOLTIP_BUFFER_RATIO = 0.34;
-// Smaller viewport reservation for side tooltips, which need less vertical clearance.
+// Side tooltips need less vertical clearance, so reserve a smaller slice and avoid over-scrolling horizontally oriented steps.
 const SIDE_TOOLTIP_BUFFER_RATIO = 0.28;
 
 function getTargetElement(selector: string): HTMLElement | null {

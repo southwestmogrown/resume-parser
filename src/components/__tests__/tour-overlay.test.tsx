@@ -227,6 +227,7 @@ describe("TourOverlay", () => {
       jest.runAllTimers();
     });
 
+    // 760px target top - 311px centered offset = 449px scroll target once the tooltip buffer is accounted for.
     expect(window.scrollTo).toHaveBeenCalledWith({ top: 449, behavior: "smooth" });
   });
 });
