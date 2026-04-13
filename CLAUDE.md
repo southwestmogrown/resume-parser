@@ -428,19 +428,6 @@ Returns 400/404/410 on error. Returns `{ token: "<analysis-token>" }` on success
 
 ---
 
-## Deployment Prerequisites
-
-### Supabase migration (required before star-prep goes live)
-
-```sql
-ALTER TABLE analysis_tokens
-  ADD COLUMN star_prep_unlocked boolean NOT NULL DEFAULT false;
-```
-
-This column is read/written by `checkStarPrepAccess` and `activateStarPrep` in `lib/tokens.ts`. Without it, all `/api/star-prep` calls will error. Run once against the production Supabase project before deploying.
-
----
-
 ## Known Gaps / Future Work
 
 - **Batch token model**: A 4-use token covers one complete batch drill-down (rewrite + study + cover letter + STAR prep first turn). Users wanting paid content for multiple batch results must pay again. A future option is tiered pricing for batch runs.
