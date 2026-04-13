@@ -705,11 +705,18 @@ export default function AppExperience() {
             <Link href="/" className="brand-mark" aria-label="PassStack home">
               <PassStackLogo />
             </Link>
-            {!analysisToken && !checkoutClientSecret && (
-              <button type="button" onClick={() => void handlePay()} className="btn-primary">
-                Unlock — $5 →
-              </button>
-            )}
+            <div className="nav-actions">
+              {showResults && (
+                <button type="button" onClick={resetWorkspace} className="btn-ghost">
+                  ↩ New analysis
+                </button>
+              )}
+              {!analysisToken && !checkoutClientSecret && (
+                <button type="button" onClick={() => void handlePay()} className="btn-primary">
+                  Unlock — $5 →
+                </button>
+              )}
+            </div>
           </div>
         </nav>
 
