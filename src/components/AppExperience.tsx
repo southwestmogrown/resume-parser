@@ -59,6 +59,7 @@ const LS_KEY = "ps_workspace_v1";
 
 type ResultTab = "rewrites" | "study" | "cover" | "interview";
 
+// Keep these thresholds aligned with the ordered TOUR_STEPS config in lib/tourConfig.ts.
 const TOUR_STEP_RESUME_READY = 2;
 const TOUR_STEP_GITHUB_READY = 4;
 const TOUR_STEP_LINKEDIN_READY = 5;
