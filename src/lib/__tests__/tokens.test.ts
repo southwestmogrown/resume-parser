@@ -71,7 +71,10 @@ describe("tokens", () => {
     getSupabaseAdmin.mockReturnValue(supabase);
     const { mintToken } = await import("@/lib/tokens");
 
-    await expect(mintToken("sess_123")).resolves.toBe("existing");
+    await expect(mintToken("sess_123")).resolves.toEqual({
+      token: "existing",
+      expiresAt: "2099-01-01T00:00:00.000Z",
+    });
     expect(supabase.insert).not.toHaveBeenCalled();
   });
 
@@ -82,9 +85,10 @@ describe("tokens", () => {
     getSupabaseAdmin.mockReturnValue(supabase);
     const { mintToken } = await import("@/lib/tokens");
 
-    const token = await mintToken("sess_123");
+    const result = await mintToken("sess_123");
 
-    expect(token).toMatch(/^[a-f0-9]{64}$/);
+    expect(result.token).toMatch(/^[a-f0-9]{64}$/);
+    expect(new Date(result.expiresAt).toString()).not.toBe("Invalid Date");
     expect(supabase.insert).toHaveBeenCalledWith(
       expect.objectContaining({
         stripe_session_id: "sess_123",
@@ -105,7 +109,10 @@ describe("tokens", () => {
     getSupabaseAdmin.mockReturnValue(supabase);
     const { mintToken } = await import("@/lib/tokens");
 
-    await expect(mintToken("sess_123")).resolves.toBe("duplicate");
+    await expect(mintToken("sess_123")).resolves.toEqual({
+      token: "duplicate",
+      expiresAt: "2099-01-01T00:00:00.000Z",
+    });
   });
 
   it("throws when a duplicate insert cannot be recovered", async () => {

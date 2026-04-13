@@ -1,19 +1,25 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import SkeletonBlock from "@/components/SkeletonBlock";
 import SeverityPill from "@/components/SeverityPill";
 import type { GitHubProfile } from "@/lib/types";
 
 interface GitHubConnectProps {
   onProfile: (profile: GitHubProfile | null) => void;
+  initialProfile?: GitHubProfile | null;
 }
 
-export default function GitHubConnect({ onProfile }: GitHubConnectProps) {
-  const [username, setUsername] = useState("");
-  const [profile, setProfile] = useState<GitHubProfile | null>(null);
+export default function GitHubConnect({ onProfile, initialProfile = null }: GitHubConnectProps) {
+  const [username, setUsername] = useState(initialProfile?.username ?? "");
+  const [profile, setProfile] = useState<GitHubProfile | null>(initialProfile);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setProfile(initialProfile);
+    setUsername(initialProfile?.username ?? "");
+  }, [initialProfile]);
 
   const handleFetch = useCallback(async () => {
     const trimmed = username.trim().replace(/^@/, "");
