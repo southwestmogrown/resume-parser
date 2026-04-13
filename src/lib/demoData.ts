@@ -74,7 +74,7 @@ export const DEMO_MATCH_RESULT: MatchResult = {
     },
   ],
   recommendation:
-    "Strong apply. Jordan matches 9 of 12 technical requirements and the gaps are addressable. The experience gap is the only real risk — lead with impact and scope rather than years. Frame Docker experience as cloud infrastructure exposure and start an AWS side project to close that gap before interviews.",
+    "GOOD_FIT — Jordan matches 9 of 12 technical requirements and the gaps are addressable. The experience gap is the only real risk — lead with impact and scope rather than years. Frame Docker experience as cloud infrastructure exposure and start an AWS side project to close that gap before interviews.",
 };
 
 export const DEMO_REWRITE_SUGGESTIONS: RewriteSuggestion[] = [

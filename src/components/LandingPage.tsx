@@ -29,12 +29,6 @@ const phases = [
   },
 ] as const;
 
-const testimonials = [
-  { id: 'placeholder-1' },
-  { id: 'placeholder-2' },
-  { id: 'placeholder-3' },
-] as const;
-
 const steps = [
   {
     number: "01",
@@ -113,8 +107,8 @@ export default function LandingPage() {
               <Link href="/app#workspace" className="btn-primary btn-large">
                 Unlock Full Analysis — $5 →
               </Link>
-              <Link href="/app" className="btn-ghost btn-large">
-                Open the app
+              <Link href="/app?demo" className="btn-ghost btn-large">
+                Try the demo →
               </Link>
             </div>
             <p className="fine-print" style={{ marginTop: "var(--space-3)" }}>
@@ -194,6 +188,41 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className="section section-surface">
+        <div className="container">
+          <div className="eyebrow">phase 03 — bullet rewrites</div>
+          <h2 style={{ fontSize: "clamp(2rem, 4vw, 2.6rem)", marginBottom: "var(--space-2)" }}>
+            See what a rewrite actually looks like.
+          </h2>
+          <p className="result-muted" style={{ marginBottom: "var(--space-8)", maxWidth: "560px" }}>
+            This is real output for a software engineer applying to a senior full-stack role. Same experience. Better positioning.
+          </p>
+          <div className="rewrite-example" data-reveal>
+            <div className="rewrite-example__col">
+              <div className="eyebrow" style={{ color: "var(--ps-red)", marginBottom: "var(--space-3)" }}>before</div>
+              <p className="result-muted" style={{ lineHeight: 1.7 }}>
+                &ldquo;Built and maintained customer-facing Next.js features, designed REST and GraphQL APIs in Node.js, and managed PostgreSQL schemas for a B2B SaaS product serving 500+ clients.&rdquo;
+              </p>
+            </div>
+            <div className="rewrite-example__divider" aria-hidden="true">→</div>
+            <div className="rewrite-example__col">
+              <div className="eyebrow" style={{ color: "var(--ps-green)", marginBottom: "var(--space-3)" }}>after</div>
+              <p style={{ lineHeight: 1.7 }}>
+                &ldquo;Architected and shipped customer-facing features on a Next.js + Node.js platform serving 500+ enterprise clients, designing scalable REST and GraphQL APIs backed by PostgreSQL — directly aligned with the target role&apos;s B2B SaaS workflow automation stack.&rdquo;
+              </p>
+              <p className="subtle-note" style={{ marginTop: "var(--space-3)" }}>
+                Rationale: mirrors the JD&apos;s emphasis on &ldquo;scalable REST APIs&rdquo; and &ldquo;system architecture&rdquo; while surfacing B2B SaaS context that maps directly to the role.
+              </p>
+            </div>
+          </div>
+          <div style={{ marginTop: "var(--space-8)", textAlign: "center" }}>
+            <Link href="/app?demo" className="btn-ghost">
+              See the full demo analysis →
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <section className="section">
         <div className="container">
           <div className="eyebrow">how it works</div>
@@ -237,27 +266,21 @@ export default function LandingPage() {
       <section className="section">
         <div className="container" style={{ textAlign: "center" }}>
           <div className="eyebrow">early access</div>
-          <h2 style={{ fontSize: "clamp(2rem, 4vw, 2.6rem)" }}>Be one of the first.</h2>
+          <h2 style={{ fontSize: "clamp(2rem, 4vw, 2.6rem)" }}>Not ready to upload your resume?</h2>
           <p className="result-muted" style={{ maxWidth: "520px", margin: "var(--space-4) auto 0" }}>
-            PassStack is in beta. Open the app, run the analysis, and tell us what still feels broken.
+            Try it with sample data first. No upload required — the full analysis runs in under 30 seconds.
           </p>
-          <div style={{ marginTop: "var(--space-6)" }}>
-            <Link href="/app" className="btn-primary btn-large">
-              Open the app
+          <div style={{ display: "flex", gap: "var(--space-4)", justifyContent: "center", flexWrap: "wrap", marginTop: "var(--space-6)" }}>
+            <Link href="/app?demo" className="btn-primary btn-large">
+              Try the demo →
+            </Link>
+            <Link href="/app" className="btn-ghost btn-large">
+              Use your own resume
             </Link>
           </div>
-          <div className="placeholder-grid">
-            {testimonials.map((testimonial, index) => (
-              <div
-                key={testimonial.id}
-                className="placeholder-card reveal"
-                data-reveal
-                style={{ "--delay": `${index * 80}ms` } as React.CSSProperties}
-              >
-                [ testimonial coming ]
-              </div>
-            ))}
-          </div>
+          <p className="fine-print" style={{ marginTop: "var(--space-4)" }}>
+            One-time payment. No account. No subscription.
+          </p>
         </div>
       </section>
 

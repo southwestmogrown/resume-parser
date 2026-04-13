@@ -18,6 +18,14 @@ import ResumeUpload from "@/components/ResumeUpload";
 import Spinner from "@/components/Spinner";
 import StudyPlan from "@/components/StudyPlan";
 import { extractPdfBase64 } from "@/lib/extractPdfText";
+import {
+  DEMO_COVER_LETTER,
+  DEMO_JOB_DESCRIPTION,
+  DEMO_MATCH_RESULT,
+  DEMO_RESUME_DATA,
+  DEMO_REWRITE_SUGGESTIONS,
+  DEMO_STUDY_ITEMS,
+} from "@/lib/demoData";
 import type {
   BatchScoreResult,
   ExtractResponse,
@@ -78,6 +86,9 @@ export default function AppExperience() {
   const [paymentState, setPaymentState] = useState<"idle" | "pending" | "paid" | "canceled">("idle");
   const [activeTab, setActiveTab] = useState<ResultTab>("rewrites");
   const [checkoutClientSecret, setCheckoutClientSecret] = useState<string | null>(null);
+  const [isDemo] = useState(() =>
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).has("demo")
+  );
 
   const jobDescriptionsRef = useRef(jobDescriptions);
   const resumeDataRef = useRef(resumeData);
@@ -107,8 +118,23 @@ export default function AppExperience() {
 
   // ── localStorage persistence ──────────────────────────────────────────────
 
+  // Load demo fixtures when ?demo is present
+  useEffect(() => {
+    if (!isDemo) return;
+    setResumeData(DEMO_RESUME_DATA);
+    setMatchResult(DEMO_MATCH_RESULT);
+    setRewriteSuggestions(DEMO_REWRITE_SUGGESTIONS);
+    setStudyItems(DEMO_STUDY_ITEMS);
+    setCoverLetter(DEMO_COVER_LETTER);
+    setJobDescriptions([DEMO_JOB_DESCRIPTION]);
+    setAnalysisToken("demo");
+    setPaymentState("paid");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Restore on mount (skip if coming back from Stripe redirect — sessionStorage handles that)
   useEffect(() => {
+    if (isDemo) return;
     const params = new URLSearchParams(window.location.search);
     if (params.get("success") || params.get("canceled")) return;
 
@@ -134,8 +160,9 @@ export default function AppExperience() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Save whenever key state changes (skip if nothing to save)
+  // Save whenever key state changes (skip demo mode and skip if nothing to save)
   useEffect(() => {
+    if (isDemo) return;
     if (!resumeData && !matchResult && !batchResults) return;
     try {
       localStorage.setItem(LS_KEY, JSON.stringify({
