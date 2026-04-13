@@ -28,7 +28,7 @@ export const TOUR_STEPS: TourStep[] = [
       "Drop a PDF here. PassStack starts with your resume, extracts the structure, and sets up the rest of the workflow from that single source of truth.",
     targetSelector: ".tour-target-resume-upload",
     placement: "bottom",
-    autoAdvanceMs: 3500,
+    autoAdvanceMs: 9000,
   },
   {
     title: "Paste a job description",
@@ -36,7 +36,7 @@ export const TOUR_STEPS: TourStep[] = [
       "Paste the job description you're targeting. You can add up to 6 at once for batch comparison. The more specific the posting, the more useful the analysis.",
     targetSelector: ".tour-target-job-input",
     placement: "left",
-    autoAdvanceMs: 3500,
+    autoAdvanceMs: 9000,
   },
   {
     title: "GitHub context",
@@ -44,7 +44,7 @@ export const TOUR_STEPS: TourStep[] = [
       "GitHub is optional, but it helps PassStack see what you actually ship — repos, languages, and public proof of work.",
     targetSelector: ".tour-target-github-input",
     placement: "bottom",
-    autoAdvanceMs: 3000,
+    autoAdvanceMs: 8000,
   },
   {
     title: "LinkedIn context",
@@ -52,7 +52,7 @@ export const TOUR_STEPS: TourStep[] = [
       "LinkedIn is optional too. It adds role history, education, and softer signals that won't show up cleanly in a PDF alone.",
     targetSelector: ".tour-target-linkedin-url",
     placement: "bottom",
-    autoAdvanceMs: 3000,
+    autoAdvanceMs: 8000,
   },
   {
     title: "Run the analysis",
@@ -60,7 +60,7 @@ export const TOUR_STEPS: TourStep[] = [
       "Click Analyze. Phase 1 extracts your resume data. Phase 2 scores you against the job description — both free, no account required.",
     targetSelector: ".tour-analyze-button",
     placement: "top",
-    autoAdvanceMs: 2500,
+    autoAdvanceMs: 8000,
   },
   {
     title: "Your match score",
@@ -68,7 +68,7 @@ export const TOUR_STEPS: TourStep[] = [
       "Here's your 72% match. PassStack breaks down every gap by severity: red for dealbreakers, amber for learnable skills, green for soft gaps. The recommendation at the top tells you whether to apply.",
     targetSelector: ".tour-anchor-score",
     placement: "right",
-    autoAdvanceMs: 4000,
+    autoAdvanceMs: 10000,
   },
   {
     title: "Unlock the full analysis",
@@ -76,7 +76,7 @@ export const TOUR_STEPS: TourStep[] = [
       "A one-time $5 payment unlocks bullet rewrites tailored to the JD, a structured study plan, a cover letter draft, and STAR interview coaching. The score is always free.",
     targetSelector: ".tour-anchor-interview-paygate .tour-pay-button",
     placement: "bottom",
-    autoAdvanceMs: 3500,
+    autoAdvanceMs: 10000,
     // NOTE: do NOT auto-click the unlock button — that would open the payment modal mid-tour.
     // analysisToken is set via handleTourNext directly (no onActivate here).
   },
@@ -86,7 +86,7 @@ export const TOUR_STEPS: TourStep[] = [
       "Your resume bullets get rewritten to mirror exactly what the job description asks for. Each rewrite shows the before, the after, and the reasoning — so you learn the pattern, not just the output.",
     targetSelector: ".tour-tab-rewrites",
     placement: "bottom",
-    autoAdvanceMs: 4000,
+    autoAdvanceMs: 10000,
   },
   {
     title: "Study plan",
@@ -94,7 +94,7 @@ export const TOUR_STEPS: TourStep[] = [
       "For every learnable gap, you get a specific action to close it and a real resource — not generic advice. Gap severity determines how much effort to invest.",
     targetSelector: ".tour-tab-study",
     placement: "bottom",
-    autoAdvanceMs: 4000,
+    autoAdvanceMs: 10000,
   },
   {
     title: "Cover letter draft",
@@ -102,7 +102,7 @@ export const TOUR_STEPS: TourStep[] = [
       "A streaming cover letter draft, addressable to the specific role and company. If dealbreakers exist, it blocks early with a clear explanation — no point applying if the fit is too far off.",
     targetSelector: ".tour-tab-cover",
     placement: "bottom",
-    autoAdvanceMs: 4000,
+    autoAdvanceMs: 10000,
   },
   {
     title: "STAR interview coaching",
@@ -110,7 +110,7 @@ export const TOUR_STEPS: TourStep[] = [
       "Behavioral interview prep powered by the gap analysis. PassStack generates tailored STAR questions targeting your specific weaknesses, then coaches you through building strong answers — one question at a time.",
     targetSelector: ".tour-tab-interview",
     placement: "bottom",
-    autoAdvanceMs: 4000,
+    autoAdvanceMs: 10000,
   },
   {
     title: "Optimized Resume",
@@ -118,7 +118,7 @@ export const TOUR_STEPS: TourStep[] = [
       "After STAR coaching, PassStack synthesizes everything — your enriched data, rewritten bullets, and strongest STAR outcomes — into a polished, ATS-ready resume document you can send directly to recruiters.",
     targetSelector: ".tour-tab-resume",
     placement: "bottom",
-    autoAdvanceMs: 4000,
+    autoAdvanceMs: 10000,
   },
   {
     title: "Export everything",
