@@ -258,6 +258,8 @@ src/
     └── types.ts                          # All shared TypeScript interfaces
 ```
 
+Reach out to see how you can contribute!
+
 ---
 
 ## License
