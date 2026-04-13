@@ -185,6 +185,9 @@ export default function AppExperience() {
       setTokenExpiresAt(null);
       setPaymentState("idle");
       setActiveTab("rewrites");
+      setInterviewMessages([]);
+      setInterviewBrief(null);
+      setEnrichedResumeData(null);
       setStarQuestions([]);
       setStarAnswers([]);
       setActiveStarQuestion(null);
@@ -316,6 +319,9 @@ export default function AppExperience() {
     setCheckoutClientSecret(null);
     setError(null);
     setShowInterviewer(false);
+    setInterviewMessages([]);
+    setInterviewBrief(null);
+    setEnrichedResumeData(null);
 
     if (stepIndex >= TOUR_STEP_INTERVIEW) {
       setActiveTab("interview");
@@ -1156,12 +1162,14 @@ export default function AppExperience() {
                 <MatchScore result={matchResult} loading={loadingExtraction || loadingScore} />
 
                 {showPayGate && matchResult && resumeData ? (
-                  <PayGate
-                    resumeData={resumeData}
-                    score={matchResult.score}
-                    paymentState={paymentState}
-                    onPay={() => void handlePay()}
-                  />
+                  <div className="tour-anchor-paygate">
+                    <PayGate
+                      resumeData={resumeData}
+                      score={matchResult.score}
+                      paymentState={paymentState}
+                      onPay={() => void handlePay()}
+                    />
+                  </div>
                 ) : null}
 
                 {selectedBatchJD && analysisToken && matchResult && !showPayGate && !hasPaidContent && !loadingPaid ? (

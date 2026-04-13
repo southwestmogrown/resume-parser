@@ -74,7 +74,7 @@ export const TOUR_STEPS: TourStep[] = [
     title: "Unlock the full battle plan",
     description:
       "One-time $5 payment unlocks everything: bullet rewrites tailored to the JD, a structured study plan, a cover letter draft, and STAR interview coaching. Score is always free.",
-    targetSelector: ".paygate-card",
+    targetSelector: ".tour-anchor-paygate",
     placement: "left",
     autoAdvanceMs: 3500,
     // NOTE: do NOT auto-click the unlock button — that would open the payment modal mid-tour.

@@ -134,6 +134,8 @@ export default function TourOverlay({
     clearRaf();
 
     let resizeObserver: ResizeObserver | null = null;
+    let layoutObserver: ResizeObserver | null = null;
+    let mutationObserver: MutationObserver | null = null;
 
     const updatePosition = () => {
       const target = getTargetElement(step.targetSelector);
@@ -158,6 +160,22 @@ export default function TourOverlay({
         resizeObserver = new ResizeObserver(() => scheduleUpdate());
         resizeObserver.observe(target);
       }
+
+      if (typeof ResizeObserver !== "undefined") {
+        layoutObserver = new ResizeObserver(() => scheduleUpdate());
+        layoutObserver.observe(document.documentElement);
+        layoutObserver.observe(document.body);
+      }
+
+      if (typeof MutationObserver !== "undefined") {
+        mutationObserver = new MutationObserver(() => scheduleUpdate());
+        mutationObserver.observe(document.body, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          characterData: true,
+        });
+      }
     });
 
     window.addEventListener("scroll", scheduleUpdate, { passive: true });
@@ -176,6 +194,8 @@ export default function TourOverlay({
 
     return () => {
       resizeObserver?.disconnect();
+      layoutObserver?.disconnect();
+      mutationObserver?.disconnect();
       window.removeEventListener("scroll", scheduleUpdate);
       window.removeEventListener("resize", scheduleUpdate);
       clearRaf();
@@ -203,17 +223,15 @@ export default function TourOverlay({
   return (
     <>
       {/* Dim overlay — pointer-events: none so the app stays interactive beneath the tour UI */}
-      <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0,0,0,0.72)",
-          zIndex: 899,
-          pointerEvents: spotlightRect ? "none" : "auto",
-          opacity: spotlightRect ? 0 : 1,
-          transition: "opacity 0.25s ease",
-        }}
-      />
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.72)",
+            zIndex: 899,
+            pointerEvents: "auto",
+          }}
+        />
 
       {/* Spotlight cutout: thin border ring around target */}
       {spotlightRect && (

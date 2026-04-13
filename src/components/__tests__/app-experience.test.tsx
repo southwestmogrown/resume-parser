@@ -79,15 +79,17 @@ jest.mock("@/components/MatchScore", () =>
 
 jest.mock("@/components/PayGate", () =>
   function MockPayGate({
+    resumeData,
     paymentState,
     onPay,
   }: {
+    resumeData: { name?: string | null };
     paymentState: string;
     onPay: () => void;
   }) {
     return (
       <div>
-        <span>{`PayGate:${paymentState}`}</span>
+        <span>{`PayGate:${paymentState}:${resumeData?.name ?? "unknown"}`}</span>
         <button type="button" onClick={onPay}>
           Pay now
         </button>
@@ -186,6 +188,7 @@ describe("AppExperience demo tour", () => {
 
   beforeEach(() => {
     window.history.replaceState({}, "", "/app?demo");
+    window.localStorage.clear();
     global.fetch = jest.fn() as typeof fetch;
   });
 
@@ -205,7 +208,7 @@ describe("AppExperience demo tour", () => {
 
     expect(screen.getByText("TourStep:7")).toBeInTheDocument();
     expect(screen.getByText("MatchScore:72")).toBeInTheDocument();
-    expect(screen.getAllByText("PayGate:idle")).toHaveLength(2);
+    expect(screen.getAllByText("PayGate:idle:Jordan Rivera")).toHaveLength(2);
 
     await user.click(screen.getAllByRole("button", { name: "Pay now" })[0]);
 
@@ -229,7 +232,7 @@ describe("AppExperience demo tour", () => {
     await user.click(screen.getByRole("button", { name: "Tour back" }));
 
     expect(screen.getByText("TourStep:7")).toBeInTheDocument();
-    expect(screen.getAllByText("PayGate:idle")).toHaveLength(2);
+    expect(screen.getAllByText("PayGate:idle:Jordan Rivera")).toHaveLength(2);
     expect(screen.queryByText("ResumeRewriter:2")).not.toBeInTheDocument();
   });
 
@@ -248,5 +251,28 @@ describe("AppExperience demo tour", () => {
     expect(screen.getByText("TourStep:0")).toBeInTheDocument();
     expect(screen.queryByText("StarPrepPanel")).not.toBeInTheDocument();
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("clears persisted interview enrichment when entering demo mode", async () => {
+    const user = userEvent.setup();
+
+    window.localStorage.setItem(
+      "ps_workspace_v1",
+      JSON.stringify({
+        resumeData: { name: "Persisted Resume" },
+        enrichedResumeData: { name: "Persisted Enrichment" },
+        interviewBrief: { interview_complete: true, enriched_experiences: [], additional_skills: [], notable_context: "persisted" },
+        interviewMessages: [{ role: "assistant", content: "persisted" }],
+      })
+    );
+
+    render(<AppExperience />);
+
+    for (let i = 0; i < 7; i += 1) {
+      await user.click(screen.getByRole("button", { name: "Tour next" }));
+    }
+
+    expect(screen.getAllByText("PayGate:idle:Jordan Rivera")).toHaveLength(2);
+    expect(screen.queryByText(/Persisted/)).not.toBeInTheDocument();
   });
 });
