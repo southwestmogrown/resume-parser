@@ -220,3 +220,12 @@ export interface StarPrepResponse {
   answer?: StarAnswer;
   question_complete: boolean;
 }
+
+// Phase 6 — Optimized Resume
+export interface OptimizedResumeRequest {
+  resumeData: ResumeData;
+  rewriteSuggestions: RewriteSuggestion[];
+  starAnswers: StarAnswer[];
+  matchResult: MatchResult;
+  jobDescription: string;
+}

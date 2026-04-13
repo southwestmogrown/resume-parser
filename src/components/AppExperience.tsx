@@ -1,5 +1,6 @@
 "use client";
 
+import OptimizedResume from "@/components/OptimizedResume";
 import JSZip from "jszip";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -28,6 +29,7 @@ import {
   DEMO_JOB_DESCRIPTION,
   DEMO_LINKEDIN_PROFILE,
   DEMO_MATCH_RESULT,
+  DEMO_OPTIMIZED_RESUME,
   DEMO_RESUME_DATA,
   DEMO_REWRITE_SUGGESTIONS,
   DEMO_STAR_QUESTIONS,
@@ -57,7 +59,7 @@ import type {
 
 const LS_KEY = "ps_workspace_v1";
 
-type ResultTab = "rewrites" | "study" | "cover" | "interview";
+type ResultTab = "rewrites" | "study" | "cover" | "interview" | "resume";
 
 // Keep these thresholds aligned with the ordered TOUR_STEPS config in lib/tourConfig.ts.
 // Steps 2–5 (job description, GitHub, LinkedIn, analyze) are pre-results input steps — they must
@@ -71,6 +73,7 @@ const TOUR_STEP_REWRITES = 8;
 const TOUR_STEP_STUDY = 9;
 const TOUR_STEP_COVER = 10;
 const TOUR_STEP_INTERVIEW = 11;
+const TOUR_STEP_RESUME = 12;
 
 function StepPill({
   number,
@@ -131,6 +134,10 @@ export default function AppExperience() {
   const [starMessages, setStarMessages] = useState<ConversationMessage[]>([]);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
+  // Phase 6 — Optimized Resume
+  const [optimizedResume, setOptimizedResume] = useState<string | null>(null);
+  const [loadingOptimizedResume, setLoadingOptimizedResume] = useState(false);
+
   // Tour state
   const [isTourActive, setIsTourActive] = useState(false);
   const [tourStep, setTourStep] = useState(0);
@@ -167,6 +174,11 @@ export default function AppExperience() {
     if (loadingCoverLetter) setActiveTab("cover");
   }, [loadingCoverLetter]);
 
+  // Auto-switch to optimized resume tab when it starts generating
+  useEffect(() => {
+    if (loadingOptimizedResume) setActiveTab("resume");
+  }, [loadingOptimizedResume]);
+
   // ── workspace persistence ────────────────────────────────────────────────
 
   // Load demo fixtures or restore from localStorage — mutually exclusive, reactive to URL changes
@@ -194,6 +206,8 @@ export default function AppExperience() {
       setStarAnswers([]);
       setActiveStarQuestion(null);
       setStarMessages([]);
+      setOptimizedResume(null);
+      setLoadingOptimizedResume(false);
       setError(null);
       setCheckoutClientSecret(null);
       setJobDescriptions([DEMO_JOB_DESCRIPTION]);
@@ -224,6 +238,7 @@ export default function AppExperience() {
       if (d.enrichedResumeData) setEnrichedResumeData(d.enrichedResumeData as ResumeData);
       if (d.starQuestions) setStarQuestions(d.starQuestions as StarQuestion[]);
       if (d.starAnswers) setStarAnswers(d.starAnswers as StarAnswer[]);
+      if (d.optimizedResume) setOptimizedResume(d.optimizedResume as string);
     } catch {
       localStorage.removeItem(LS_KEY);
     }
@@ -246,16 +261,17 @@ export default function AppExperience() {
         enrichedResumeData,
         starQuestions,
         starAnswers,
+        optimizedResume,
       }));
     } catch {
       // Storage unavailable or full
     }
-  }, [batchResults, coverLetter, enrichedResumeData, interviewBrief, isDemo, jobDescriptions, matchResult, resumeData, rewriteSuggestions, starAnswers, starQuestions, studyItems]);
+  }, [batchResults, coverLetter, enrichedResumeData, interviewBrief, isDemo, jobDescriptions, matchResult, optimizedResume, resumeData, rewriteSuggestions, starAnswers, starQuestions, studyItems]);
 
   const canAnalyze = Boolean((resumeFile || resumeData) && jobDescriptions.length > 0);
   const isBusy = loadingExtraction || loadingScore || loadingRewrite || loadingCoverLetter || loadingStudyPlan || loadingBatch;
   const showPayGate = !analysisToken && Boolean(matchResult) && !loadingScore && !loadingExtraction;
-  const hasPaidContent = Boolean(rewriteSuggestions) || Boolean(studyItems) || Boolean(coverLetter) || Boolean(coverLetterBlocked);
+  const hasPaidContent = Boolean(rewriteSuggestions) || Boolean(studyItems) || Boolean(coverLetter) || Boolean(coverLetterBlocked) || Boolean(optimizedResume);
   const loadingPaid = loadingRewrite || loadingStudyPlan || loadingCoverLetter;
   const showResults =
     Boolean(resumeData) ||
@@ -279,6 +295,7 @@ export default function AppExperience() {
     setCoverLetterBlocked(null);
     setStarQuestions(DEMO_STAR_QUESTIONS);
     setActiveStarQuestion(DEMO_STAR_QUESTIONS[0] ?? null);
+    setOptimizedResume(DEMO_OPTIMIZED_RESUME);
     setActiveTab("rewrites");
   }, []);
 
@@ -288,6 +305,7 @@ export default function AppExperience() {
     const hasLinkedIn = stepIndex >= TOUR_STEP_LINKEDIN_READY;
     const hasScore = stepIndex >= TOUR_STEP_SCORE_READY;
     const hasPaidDemo = stepIndex >= TOUR_STEP_REWRITES;
+    const hasOptimizedResume = stepIndex >= TOUR_STEP_RESUME;
 
     setResumeFile(null);
     setJobDescriptions([DEMO_JOB_DESCRIPTION]);
@@ -308,13 +326,16 @@ export default function AppExperience() {
     setStarAnswers([]);
     setActiveStarQuestion(hasPaidDemo ? (DEMO_STAR_QUESTIONS[0] ?? null) : null);
     setStarMessages([]);
+    setOptimizedResume(hasOptimizedResume ? DEMO_OPTIMIZED_RESUME : null);
     setCheckoutClientSecret(null);
     setError(null);
     setShowInterviewer(false);
     setInterviewBrief(null);
     setEnrichedResumeData(null);
 
-    if (stepIndex >= TOUR_STEP_INTERVIEW) {
+    if (stepIndex >= TOUR_STEP_RESUME) {
+      setActiveTab("resume");
+    } else if (stepIndex >= TOUR_STEP_INTERVIEW) {
       setActiveTab("interview");
     } else if (stepIndex >= TOUR_STEP_COVER) {
       setActiveTab("cover");
@@ -577,6 +598,7 @@ export default function AppExperience() {
       setCoverLetter(null);
       setCoverLetterBlocked(null);
       setStudyItems(null);
+      setOptimizedResume(null);
       setBatchResults(null);
       setSelectedBatchJD(null);
       setAnalysisToken(null);
@@ -592,6 +614,7 @@ export default function AppExperience() {
     setCoverLetter(null);
     setCoverLetterBlocked(null);
     setStudyItems(null);
+    setOptimizedResume(null);
     setBatchResults(null);
     setSelectedBatchJD(null);
 
@@ -725,6 +748,7 @@ export default function AppExperience() {
       setStudyItems(null);
       setCoverLetter(null);
       setCoverLetterBlocked(null);
+      setOptimizedResume(null);
       // batchResults intentionally preserved — auto-trigger handles paid phases if token exists
     },
     []
@@ -737,6 +761,7 @@ export default function AppExperience() {
     setStudyItems(null);
     setCoverLetter(null);
     setCoverLetterBlocked(null);
+    setOptimizedResume(null);
   }, []);
 
   const handleBriefComplete = useCallback(
@@ -774,11 +799,60 @@ export default function AppExperience() {
 
   // ── Export ────────────────────────────────────────────────────────────────
 
+  const handleGenerateResume = useCallback(async () => {
+    if (!analysisToken || !resumeData || !matchResult) return;
+    if (isDemo) {
+      setOptimizedResume(DEMO_OPTIMIZED_RESUME);
+      setActiveTab("resume");
+      return;
+    }
+    setLoadingOptimizedResume(true);
+    try {
+      const res = await fetch("/api/optimized-resume", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-analysis-token": analysisToken,
+        },
+        body: JSON.stringify({
+          resumeData: enrichedResumeDataRef.current ?? resumeData,
+          rewriteSuggestions: rewriteSuggestions ?? [],
+          starAnswers,
+          matchResult,
+          jobDescription: jobDescriptionsRef.current[0] ?? "",
+        }),
+      });
+      if (res.status === 401 || res.status === 402) {
+        setAnalysisToken(null);
+        setPaymentState("idle");
+      } else if (res.ok && res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let text = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          text += decoder.decode(value, { stream: true });
+          setOptimizedResume(text);
+        }
+      }
+    } catch {
+      // Non-blocking
+    }
+    setLoadingOptimizedResume(false);
+  }, [analysisToken, isDemo, matchResult, resumeData, rewriteSuggestions, starAnswers]);
+
+  // ── Export ────────────────────────────────────────────────────────────────
+
   const handleExportZip = useCallback(async () => {
     const zip = new JSZip();
 
     if (coverLetter) {
       zip.file("cover-letter.txt", coverLetter);
+    }
+
+    if (optimizedResume) {
+      zip.file("optimized-resume.txt", optimizedResume);
     }
 
     if (rewriteSuggestions?.length) {
@@ -843,7 +917,7 @@ export default function AppExperience() {
     a.download = `passstack-${resumeData?.name?.replace(/\s+/g, "-").toLowerCase() ?? "analysis"}.zip`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [coverLetter, rewriteSuggestions, studyItems, matchResult, batchResults, resumeData]);
+  }, [coverLetter, optimizedResume, rewriteSuggestions, studyItems, matchResult, batchResults, resumeData]);
 
   const resetWorkspace = useCallback(() => {
     setMatchResult(null);
@@ -867,6 +941,8 @@ export default function AppExperience() {
     setStarAnswers([]);
     setActiveStarQuestion(null);
     setStarMessages([]);
+    setOptimizedResume(null);
+    setLoadingOptimizedResume(false);
     setAnalysisToken(null);
     setTokenExpiresAt(null);
     setPaymentState("idle");
@@ -958,6 +1034,7 @@ export default function AppExperience() {
                     {rewriteSuggestions && <li>Bullet rewrites ({rewriteSuggestions.length} suggestions)</li>}
                     {studyItems && <li>Study plan ({studyItems.length} items)</li>}
                     {(coverLetter || coverLetterBlocked) && <li>Cover letter</li>}
+                    {optimizedResume && <li>Optimized resume</li>}
                     {starAnswers.length > 0 && <li>STAR interview answers ({starAnswers.length} completed)</li>}
                   </ul>
                 </div>
@@ -1268,6 +1345,16 @@ export default function AppExperience() {
                           <span style={{ opacity: 0.5 }}> ({starAnswers.length})</span>
                         )}
                       </button>
+                      {(hasPaidContent || loadingPaid) && (
+                        <button
+                          type="button"
+                          className={`result-tab tour-tab-resume ${activeTab === "resume" ? "result-tab--active" : ""}`.trim()}
+                          onClick={() => setActiveTab("resume")}
+                        >
+                          Optimized Resume
+                          {loadingOptimizedResume && <span style={{ opacity: 0.5 }}> ·</span>}
+                        </button>
+                      )}
                     </div>
 
                     {activeTab === "rewrites" && (
@@ -1315,10 +1402,18 @@ export default function AppExperience() {
                         ) : null
                       )
                     )}
+                    {activeTab === "resume" && (
+                      <OptimizedResume
+                        content={optimizedResume}
+                        loading={loadingOptimizedResume}
+                        canGenerate={starAnswers.length > 0 || isDemo}
+                        onGenerate={() => void handleGenerateResume()}
+                      />
+                    )}
                   </>
                 )}
 
-                {!batchResults && !loadingBatch && !hasPaidContent && !loadingPaid && activeTab !== "interview" && (
+                {!batchResults && !loadingBatch && !hasPaidContent && !loadingPaid && activeTab !== "interview" && activeTab !== "resume" && (
                   <div
                     style={{
                       padding: "var(--space-16) var(--space-8)",

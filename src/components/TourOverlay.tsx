@@ -201,11 +201,15 @@ export default function TourOverlay({
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
   const [tooltipSize, setTooltipSize] = useState({ width: TOOLTIP_WIDTH, height: TOOLTIP_INITIAL_HEIGHT });
+  const [isPaused, setIsPaused] = useState(false);
   const autoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rafRef = useRef<number | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const activeTargetRef = useRef<SavedTargetStyles | null>(null);
+  // Track when the step's auto-timer started and how much time was left when paused.
+  const stepTimerStartRef = useRef<number>(0);
+  const pausedRemainingRef = useRef<number>(0);
 
   const clearAutoTimer = useCallback(() => {
     if (autoTimerRef.current !== null) {
@@ -281,6 +285,10 @@ export default function TourOverlay({
     clearRaf();
     clearActiveTarget();
 
+    // Reset pause state for the new step
+    setIsPaused(false);
+    pausedRemainingRef.current = 0;
+
     let resizeObserver: ResizeObserver | null = null;
     let layoutObserver: ResizeObserver | null = null;
     let mutationObserver: MutationObserver | null = null;
@@ -336,6 +344,7 @@ export default function TourOverlay({
     }, LAYOUT_SETTLE_MS);
 
     if (step.autoAdvanceMs && step.autoAdvanceMs > 0) {
+      stepTimerStartRef.current = Date.now();
       autoTimerRef.current = setTimeout(() => {
         onNext();
       }, step.autoAdvanceMs);
@@ -364,6 +373,25 @@ export default function TourOverlay({
       clearActiveTarget();
     };
   }, [clearActiveTarget, clearAutoTimer, clearRaf, clearSettleTimer]);
+
+  const handlePause = useCallback(() => {
+    clearAutoTimer();
+    const duration = step?.autoAdvanceMs ?? 0;
+    const elapsed = Date.now() - stepTimerStartRef.current;
+    pausedRemainingRef.current = Math.max(0, duration - elapsed);
+    setIsPaused(true);
+  }, [clearAutoTimer, step?.autoAdvanceMs]);
+
+  const handleResume = useCallback(() => {
+    const remaining = pausedRemainingRef.current;
+    if (remaining > 0) {
+      stepTimerStartRef.current = Date.now();
+      autoTimerRef.current = setTimeout(() => {
+        onNext();
+      }, remaining);
+    }
+    setIsPaused(false);
+  }, [onNext]);
 
   if (!step) return null;
 
@@ -459,10 +487,30 @@ export default function TourOverlay({
             {step.description}
           </p>
 
-          {/* Progress bar */}
+          {/* Progress bar (overall tour progress) */}
           <div style={{ height: 3, background: "var(--ps-border)", borderRadius: 99, overflow: "hidden" }}>
             <div style={{ height: "100%", width: `${progress}%`, background: "var(--ps-accent)", borderRadius: 99, transition: "width 0.4s ease" }} />
           </div>
+
+          {/* Countdown bar — depletes over autoAdvanceMs; pauses when isPaused */}
+          {step.autoAdvanceMs && step.autoAdvanceMs > 0 && (
+            <div style={{ height: 2, background: "var(--ps-border)", borderRadius: 99, overflow: "hidden" }}>
+              <div
+                key={currentStep}
+                style={{
+                  height: "100%",
+                  width: "100%",
+                  background: "var(--ps-text-faint)",
+                  borderRadius: 99,
+                  animationName: "tour-countdown",
+                  animationDuration: `${step.autoAdvanceMs}ms`,
+                  animationTimingFunction: "linear",
+                  animationFillMode: "forwards",
+                  animationPlayState: isPaused ? "paused" : "running",
+                }}
+              />
+            </div>
+          )}
 
           {/* Navigation */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -487,47 +535,69 @@ export default function TourOverlay({
               ← Back
             </button>
 
-            {!isLast ? (
-              <button
-                type="button"
-                onClick={onNext}
-                style={{
-                  background: "var(--ps-accent)",
-                  border: "none",
-                  borderRadius: 6,
-                  padding: "7px 18px",
-                  cursor: "pointer",
-                  color: "var(--ps-accent-text)",
-                  fontSize: 11,
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase" as const,
-                  fontFamily: "'Geist Mono', monospace",
-                  fontWeight: 600,
-                }}
-              >
-                {step.autoAdvanceMs && step.autoAdvanceMs > 0 ? "Next →" : "Next →"}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={onSkip}
-                style={{
-                  background: "var(--ps-accent)",
-                  border: "none",
-                  borderRadius: 6,
-                  padding: "7px 18px",
-                  cursor: "pointer",
-                  color: "var(--ps-accent-text)",
-                  fontSize: 11,
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase" as const,
-                  fontFamily: "'Geist Mono', monospace",
-                  fontWeight: 600,
-                }}
-              >
-                Finish
-              </button>
-            )}
+            <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center" }}>
+              {step.autoAdvanceMs && step.autoAdvanceMs > 0 && (
+                <button
+                  type="button"
+                  onClick={isPaused ? handleResume : handlePause}
+                  aria-label={isPaused ? "Resume auto-advance" : "Pause auto-advance"}
+                  style={{
+                    background: "none",
+                    border: "1px solid var(--ps-border-mid)",
+                    borderRadius: 6,
+                    padding: "7px 12px",
+                    cursor: "pointer",
+                    color: "var(--ps-text-faint)",
+                    fontSize: 13,
+                    lineHeight: 1,
+                  }}
+                >
+                  {isPaused ? "▶" : "⏸"}
+                </button>
+              )}
+
+              {!isLast ? (
+                <button
+                  type="button"
+                  onClick={onNext}
+                  style={{
+                    background: "var(--ps-accent)",
+                    border: "none",
+                    borderRadius: 6,
+                    padding: "7px 18px",
+                    cursor: "pointer",
+                    color: "var(--ps-accent-text)",
+                    fontSize: 11,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase" as const,
+                    fontFamily: "'Geist Mono', monospace",
+                    fontWeight: 600,
+                  }}
+                >
+                  Next →
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onSkip}
+                  style={{
+                    background: "var(--ps-accent)",
+                    border: "none",
+                    borderRadius: 6,
+                    padding: "7px 18px",
+                    cursor: "pointer",
+                    color: "var(--ps-accent-text)",
+                    fontSize: 11,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase" as const,
+                    fontFamily: "'Geist Mono', monospace",
+                    fontWeight: 600,
+                  }}
+                >
+                  Finish
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}

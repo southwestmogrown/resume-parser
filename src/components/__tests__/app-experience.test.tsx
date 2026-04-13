@@ -134,6 +134,20 @@ jest.mock("@/components/StarPrepPanel", () =>
   }
 );
 
+jest.mock("@/components/OptimizedResume", () =>
+  function MockOptimizedResume({
+    content,
+    canGenerate,
+  }: {
+    content: string | null;
+    canGenerate: boolean;
+  }) {
+    if (content) return <div>OptimizedResume:ready</div>;
+    if (canGenerate) return <div>OptimizedResume:cta</div>;
+    return <div>OptimizedResume:locked</div>;
+  }
+);
+
 jest.mock("@/components/BatchResults", () =>
   function MockBatchResults() {
     return <div>BatchResults</div>;
@@ -244,13 +258,14 @@ describe("AppExperience demo tour", () => {
     await user.click(screen.getByRole("button", { name: "Tour skip" }));
 
     expect(screen.queryByText(/TourStep:/)).not.toBeInTheDocument();
-    expect(screen.getByText("StarPrepPanel")).toBeInTheDocument();
+    // After skipping, syncTourState sets the last step which activates the "resume" tab
+    expect(screen.getByText("OptimizedResume:ready")).toBeInTheDocument();
 
     // Only one "Take a tour" button now — sidebar no longer has it
     await user.click(screen.getByRole("button", { name: /Take a tour/i }));
 
     expect(screen.getByText("TourStep:0")).toBeInTheDocument();
-    expect(screen.queryByText("StarPrepPanel")).not.toBeInTheDocument();
+    expect(screen.queryByText("OptimizedResume:ready")).not.toBeInTheDocument();
     expect(global.fetch).not.toHaveBeenCalled();
   });
 

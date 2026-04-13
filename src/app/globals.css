@@ -1131,6 +1131,11 @@ main {
   50% { opacity: 0.4; }
 }
 
+@keyframes tour-countdown {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
 /* Modal overlay */
 .modal-backdrop {
   position: fixed;

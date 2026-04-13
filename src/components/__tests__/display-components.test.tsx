@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import BatchResults from "@/components/BatchResults";
 import CoverLetter from "@/components/CoverLetter";
 import MatchScore from "@/components/MatchScore";
+import OptimizedResume from "@/components/OptimizedResume";
 import PayGate from "@/components/PayGate";
 import ResumeProfile from "@/components/ResumeProfile";
 import ResumeRewriter from "@/components/ResumeRewriter";
@@ -135,5 +136,80 @@ describe("display components", () => {
 
     expect(document.querySelector(".spinner.extra")).toHaveAttribute("aria-hidden", "true");
     expect(document.querySelector(".skeleton.w-full")).toHaveAttribute("aria-hidden", "true");
+  });
+
+  describe("OptimizedResume", () => {
+    it("renders a skeleton while loading with no content", () => {
+      const { container } = render(
+        <OptimizedResume content={null} loading onGenerate={jest.fn()} canGenerate />
+      );
+      expect(container.querySelectorAll(".skeleton").length).toBeGreaterThan(0);
+    });
+
+    it("renders generate CTA when canGenerate and not yet generated", () => {
+      render(
+        <OptimizedResume content={null} loading={false} onGenerate={jest.fn()} canGenerate />
+      );
+      expect(screen.getByRole("button", { name: /Generate my optimized resume/i })).toBeInTheDocument();
+    });
+
+    it("calls onGenerate when the CTA button is clicked", async () => {
+      const onGenerate = jest.fn();
+      const user = userEvent.setup();
+      render(
+        <OptimizedResume content={null} loading={false} onGenerate={onGenerate} canGenerate />
+      );
+      await user.click(screen.getByRole("button", { name: /Generate my optimized resume/i }));
+      expect(onGenerate).toHaveBeenCalledTimes(1);
+    });
+
+    it("renders the 'complete STAR coaching first' message when canGenerate is false", () => {
+      render(
+        <OptimizedResume content={null} loading={false} onGenerate={jest.fn()} canGenerate={false} />
+      );
+      expect(screen.getByText(/Complete at least one STAR/i)).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Generate/i })).not.toBeInTheDocument();
+    });
+
+    it("renders content with generating indicator while streaming", () => {
+      render(
+        <OptimizedResume content={"# Jordan Rivera"} loading onGenerate={jest.fn()} canGenerate />
+      );
+      expect(screen.getByText(/Jordan Rivera/)).toBeInTheDocument();
+      expect(screen.getByText("generating…")).toBeInTheDocument();
+    });
+
+    it("renders completed resume with copy and download buttons", async () => {
+      jest.useFakeTimers();
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      const writeTextSpy = jest
+        .spyOn(navigator.clipboard, "writeText")
+        .mockResolvedValue(undefined);
+
+      render(
+        <OptimizedResume
+          content={"# Jordan Rivera\n\nSummary"}
+          loading={false}
+          onGenerate={jest.fn()}
+          canGenerate
+        />
+      );
+
+      expect(screen.getByText(/Jordan Rivera/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Copy" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Download/i })).toBeInTheDocument();
+      expect(screen.queryByText("generating…")).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "Copy" }));
+      expect(writeTextSpy).toHaveBeenCalledWith("# Jordan Rivera\n\nSummary");
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: "Copied" })).toBeInTheDocument()
+      );
+      act(() => { jest.advanceTimersByTime(2000); });
+      expect(screen.getByRole("button", { name: "Copy" })).toBeInTheDocument();
+
+      jest.useRealTimers();
+      writeTextSpy.mockRestore();
+    });
   });
 });
