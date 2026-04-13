@@ -59,6 +59,15 @@ const LS_KEY = "ps_workspace_v1";
 
 type ResultTab = "rewrites" | "study" | "cover" | "interview";
 
+const TOUR_STEP_RESUME_READY = 2;
+const TOUR_STEP_GITHUB_READY = 4;
+const TOUR_STEP_LINKEDIN_READY = 5;
+const TOUR_STEP_SCORE_READY = 6;
+const TOUR_STEP_REWRITES = 8;
+const TOUR_STEP_STUDY = 9;
+const TOUR_STEP_COVER = 10;
+const TOUR_STEP_INTERVIEW = 11;
+
 function StepPill({
   number,
   label,
@@ -279,11 +288,11 @@ export default function AppExperience() {
   }, []);
 
   const syncTourState = useCallback((stepIndex: number) => {
-    const hasResume = stepIndex >= 2;
-    const hasGithub = stepIndex >= 4;
-    const hasLinkedIn = stepIndex >= 5;
-    const hasScore = stepIndex >= 6;
-    const hasPaidDemo = stepIndex >= 8;
+    const hasResume = stepIndex >= TOUR_STEP_RESUME_READY;
+    const hasGithub = stepIndex >= TOUR_STEP_GITHUB_READY;
+    const hasLinkedIn = stepIndex >= TOUR_STEP_LINKEDIN_READY;
+    const hasScore = stepIndex >= TOUR_STEP_SCORE_READY;
+    const hasPaidDemo = stepIndex >= TOUR_STEP_REWRITES;
 
     setResumeFile(null);
     setJobDescriptions([DEMO_JOB_DESCRIPTION]);
@@ -308,15 +317,16 @@ export default function AppExperience() {
     setError(null);
     setShowInterviewer(false);
 
-    if (stepIndex >= 11) {
+    if (stepIndex >= TOUR_STEP_INTERVIEW) {
       setActiveTab("interview");
-    } else if (stepIndex >= 10) {
+    } else if (stepIndex >= TOUR_STEP_COVER) {
       setActiveTab("cover");
-    } else if (stepIndex >= 9) {
+    } else if (stepIndex >= TOUR_STEP_STUDY) {
       setActiveTab("study");
-    } else if (stepIndex >= 8) {
+    } else if (stepIndex >= TOUR_STEP_REWRITES) {
       setActiveTab("rewrites");
-    } else if (stepIndex >= 6) {
+    } else if (stepIndex >= TOUR_STEP_SCORE_READY) {
+      // Before the paid demo unlocks, Interview Prep is the only visible result tab.
       setActiveTab("interview");
     } else {
       setActiveTab("rewrites");
@@ -755,7 +765,6 @@ export default function AppExperience() {
       applyDemoPaidFixtures();
       return;
     }
-    if (isTourActive) return; // block pay triggers during demo tour
     try {
       const response = await fetch("/api/create-payment-intent", { method: "POST" });
       if (!response.ok) throw new Error("Checkout setup failed.");
@@ -764,7 +773,7 @@ export default function AppExperience() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Checkout setup failed.");
     }
-  }, [applyDemoPaidFixtures, isDemo, isTourActive]);
+  }, [applyDemoPaidFixtures, isDemo]);
 
   // ── Export ────────────────────────────────────────────────────────────────
 

@@ -4,8 +4,8 @@ import userEvent from "@testing-library/user-event";
 
 jest.mock("next/link", () => ({
   __esModule: true,
-  default: ({ children, href, ...props }: AnchorHTMLAttributes<HTMLAnchorElement>) => (
-    <a href={href} {...props}>
+  default: ({ children, href, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { href?: unknown }) => (
+    <a href={typeof href === "string" ? href : ""} {...props}>
       {children}
     </a>
   ),

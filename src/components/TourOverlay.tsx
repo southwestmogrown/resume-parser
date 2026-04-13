@@ -22,6 +22,8 @@ const TOOLTIP_WIDTH = 340;
 const TOOLTIP_HEIGHT = 180;
 const TOOLTIP_GAP = 16;
 const NAV_OFFSET = 96;
+const VIEWPORT_MARGIN = 24;
+const LAYOUT_SETTLE_MS = 350;
 
 function getTargetElement(selector: string): HTMLElement | null {
   if (selector === "body") return null;
@@ -75,13 +77,18 @@ function scrollTargetIntoView(target: HTMLElement | null) {
   if (!target) return;
   const rect = target.getBoundingClientRect();
   const topEdge = NAV_OFFSET + 12;
-  const bottomEdge = window.innerHeight - 24;
+  const bottomEdge = window.innerHeight - VIEWPORT_MARGIN;
   const needsScroll = rect.top < topEdge || rect.bottom > bottomEdge;
   if (!needsScroll) return;
 
   const absoluteTop = window.scrollY + rect.top;
-  const centeredOffset = Math.max(NAV_OFFSET, (window.innerHeight - rect.height) / 2);
-  const targetTop = Math.max(0, absoluteTop - centeredOffset);
+  const availableHeight = window.innerHeight - NAV_OFFSET - VIEWPORT_MARGIN;
+  const centeredOffset =
+    rect.height >= availableHeight
+      ? NAV_OFFSET + 12
+      : Math.max(NAV_OFFSET, (window.innerHeight - rect.height) / 2);
+  const maxScrollTop = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+  const targetTop = Math.max(0, Math.min(absoluteTop - centeredOffset, maxScrollTop));
   window.scrollTo({ top: targetTop, behavior: "smooth" });
 }
 
@@ -96,20 +103,20 @@ export default function TourOverlay({
   const totalSteps = steps.length;
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
-  const autoTimerRef = useRef<number | null>(null);
-  const settleTimerRef = useRef<number | null>(null);
+  const autoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rafRef = useRef<number | null>(null);
 
   const clearAutoTimer = useCallback(() => {
     if (autoTimerRef.current !== null) {
-      window.clearTimeout(autoTimerRef.current);
+      clearTimeout(autoTimerRef.current);
       autoTimerRef.current = null;
     }
   }, []);
 
   const clearSettleTimer = useCallback(() => {
     if (settleTimerRef.current !== null) {
-      window.clearTimeout(settleTimerRef.current);
+      clearTimeout(settleTimerRef.current);
       settleTimerRef.current = null;
     }
   }, []);
@@ -147,22 +154,22 @@ export default function TourOverlay({
       scrollTargetIntoView(target);
       updatePosition();
 
-      if (typeof ResizeObserver !== "undefined") {
+      if (target && typeof ResizeObserver !== "undefined") {
         resizeObserver = new ResizeObserver(() => scheduleUpdate());
-        if (target) resizeObserver.observe(target);
-        resizeObserver.observe(document.body);
+        resizeObserver.observe(target);
       }
     });
 
     window.addEventListener("scroll", scheduleUpdate, { passive: true });
     window.addEventListener("resize", scheduleUpdate);
 
-    settleTimerRef.current = window.setTimeout(() => {
+    // Wait for state-driven layout changes and sticky positioning to settle before the final measurement.
+    settleTimerRef.current = setTimeout(() => {
       scheduleUpdate();
-    }, 350);
+    }, LAYOUT_SETTLE_MS);
 
     if (step.autoAdvanceMs && step.autoAdvanceMs > 0) {
-      autoTimerRef.current = window.setTimeout(() => {
+      autoTimerRef.current = setTimeout(() => {
         onNext();
       }, step.autoAdvanceMs);
     }
