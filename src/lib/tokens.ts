@@ -1,6 +1,8 @@
 import { randomBytes } from 'crypto';
 import { getSupabaseAdmin } from './supabaseAdmin';
 
+const MAX_TOKEN_UPDATE_RETRIES = 2;
+
 export interface AnalysisTokenRecord {
   token: string;
   uses_remaining: number;
@@ -58,7 +60,7 @@ export async function mintToken(stripeSessionId: string): Promise<{ token: strin
 
 export async function validateAndConsumeToken(token: string): Promise<boolean> {
   const supabaseAdmin = getSupabaseAdmin();
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  for (let attempt = 0; attempt < MAX_TOKEN_UPDATE_RETRIES; attempt += 1) {
     const { data, error } = await supabaseAdmin
       .from('analysis_tokens')
       .select('id, uses_remaining, expires_at')
@@ -131,7 +133,7 @@ export async function checkStarPrepAccess(
 
 export async function activateStarPrep(token: string): Promise<boolean> {
   const supabaseAdmin = getSupabaseAdmin();
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  for (let attempt = 0; attempt < MAX_TOKEN_UPDATE_RETRIES; attempt += 1) {
     const { data, error } = await supabaseAdmin
       .from('analysis_tokens')
       .select('id, uses_remaining')

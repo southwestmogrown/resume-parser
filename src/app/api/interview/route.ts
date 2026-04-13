@@ -78,11 +78,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'resumeData and messages are required' }, { status: 400 });
   }
 
-  if (
-    messages.length > MAX_CONVERSATION_MESSAGES ||
-    messages.some((message) => !message.content || message.content.length > MAX_MESSAGE_CHARS)
-  ) {
-    return NextResponse.json({ error: 'Conversation is too large' }, { status: 400 });
+  if (messages.length > MAX_CONVERSATION_MESSAGES) {
+    return NextResponse.json(
+      { error: `Conversation exceeds ${MAX_CONVERSATION_MESSAGES} messages` },
+      { status: 400 }
+    );
+  }
+
+  if (messages.some((message) => !message.content || message.content.length > MAX_MESSAGE_CHARS)) {
+    return NextResponse.json(
+      { error: `Conversation contains a message longer than ${MAX_MESSAGE_CHARS} characters` },
+      { status: 400 }
+    );
   }
 
   const systemPrompt = buildInterviewerPrompt(resumeData);

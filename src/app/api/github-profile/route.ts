@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
   }
 
   const trimmed = username.trim().replace(/^@/, "");
+  // GitHub usernames are capped at 39 characters.
   if (!trimmed || trimmed.length > 39) {
     return NextResponse.json({ error: "username is required" }, { status: 400 });
   }
