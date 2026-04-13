@@ -71,7 +71,7 @@ Return a JSON object only, with no additional text or markdown:
   "missingSkills": [
     { "skill": "skill name", "severity": "dealbreaker" | "learnable" | "soft", "reason": "brief explanation" }
   ],
-  "recommendation": "2-4 sentence recommendation from the candidate's perspective — should they apply, what should they emphasize, and what is the honest interview outlook?"
+  "recommendation": "Must begin with exactly one of: STRONG_FIT | GOOD_FIT | STRETCH | DO_NOT_APPLY — then an em dash, then 2-3 sentences of plain-text reasoning from the candidate's perspective covering whether to apply, what to emphasize, and the honest interview outlook. Use DO_NOT_APPLY when dealbreaker gaps make this role unrealistic without years of additional experience or credentials the candidate does not have."
 }`,
         },
       ],

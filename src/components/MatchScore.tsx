@@ -65,6 +65,17 @@ export default function MatchScore({ result, loading }: MatchScoreProps) {
 
   if (!result) return null;
 
+  const tagMatch = result.recommendation?.match(/^(STRONG_FIT|GOOD_FIT|STRETCH|DO_NOT_APPLY)\s*[—–-]\s*/);
+  const recTag = tagMatch?.[1] ?? null;
+  const recProse = recTag ? result.recommendation.slice(tagMatch![0].length).trim() : result.recommendation;
+
+  const TAG_META: Record<string, { label: string; tone: "green" | "sage" | "amber" | "red" }> = {
+    STRONG_FIT: { label: "Strong fit", tone: "green" },
+    GOOD_FIT:   { label: "Good fit",   tone: "sage"  },
+    STRETCH:    { label: "Stretch",    tone: "amber" },
+    DO_NOT_APPLY: { label: "Do not apply", tone: "red" },
+  };
+
   const dealbreakers = result.missingSkills.filter((gap) => gap.severity === "dealbreaker");
   const learnable = result.missingSkills.filter((gap) => gap.severity === "learnable");
   const soft = result.missingSkills.filter((gap) => gap.severity === "soft");
@@ -102,12 +113,15 @@ export default function MatchScore({ result, loading }: MatchScoreProps) {
       <GapGroup severity="learnable" gaps={learnable} />
       <GapGroup severity="soft" gaps={soft} />
 
-      {result.recommendation ? (
+      {recProse ? (
         <div className="accent-panel" style={{ padding: "var(--space-4)" }}>
-          <div className="field-label">
+          <div className="field-label" style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
             <span>Recommendation</span>
+            {recTag && TAG_META[recTag] ? (
+              <SeverityPill tone={TAG_META[recTag].tone} label={TAG_META[recTag].label} />
+            ) : null}
           </div>
-          <p className="result-muted" style={{ marginTop: "var(--space-3)" }}>{result.recommendation}</p>
+          <p className="result-muted" style={{ marginTop: "var(--space-3)" }}>{recProse}</p>
         </div>
       ) : null}
     </div>

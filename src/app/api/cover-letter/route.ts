@@ -66,7 +66,11 @@ ${JSON.stringify(linkedinProfile, null, 2)}
 ` : ''}Job description:
 ${jobDescription}
 
-Additional rules:
+DEALBREAKER GUARD (evaluate first, before writing anything):
+- If the match analysis contains ANY dealbreaker gaps, do NOT write a cover letter.
+  Instead, write 2-3 short paragraphs in plain text: explain why this role is not a viable target given the specific dealbreakers, then suggest 2-3 role types where the candidate's actual profile is genuinely competitive. Be direct and honest — this is more useful than a cover letter that won't land.
+
+Additional rules (only apply if no dealbreakers):
 - HARD LIMIT: 300 words maximum. Count your words before responding. Stop writing before you reach 300 words. Do not pad with closings or filler to reach a minimum.
 - Use concrete evidence from the resume and GitHub profile when available.
 - Do not claim the candidate already has a missing skill; frame learnable gaps as ramp-up strengths or active next steps.
