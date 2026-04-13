@@ -248,8 +248,8 @@ export default function LandingPage() {
             </div>
             <div className="no-go-callout__img">
               <img
-                src="/assets/images/PassStack-No-Go-Suggestion.png"
-                alt="PassStack dealbreaker analysis showing why a candidate should not apply for a role"
+                src="/assets/images/PassStack-No-Go-Cover-Letter.png"
+                alt="PassStack no-go cover letter blocked by dealbreaker gaps"
                 className="screenshot-img"
               />
             </div>

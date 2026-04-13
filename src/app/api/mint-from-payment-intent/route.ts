@@ -16,6 +16,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Payment not completed' }, { status: 402 });
   }
 
-  const token = await mintToken(paymentIntentId);
-  return NextResponse.json({ token });
+  const { token, expiresAt } = await mintToken(paymentIntentId);
+  return NextResponse.json({ token, expiresAt });
 }

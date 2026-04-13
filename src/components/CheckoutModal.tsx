@@ -46,7 +46,7 @@ const stripeAppearance = {
 };
 
 interface PaymentFormProps {
-  onSuccess: (token: string) => void;
+  onSuccess: (token: string, expiresAt: string) => void;
   onClose: () => void;
 }
 
@@ -84,8 +84,8 @@ function PaymentForm({ onSuccess, onClose }: PaymentFormProps) {
           body: JSON.stringify({ paymentIntentId: result.paymentIntent.id }),
         });
         if (!res.ok) throw new Error("Token setup failed");
-        const { token } = await res.json();
-        onSuccess(token as string);
+        const { token, expiresAt } = await res.json();
+        onSuccess(token as string, expiresAt as string);
       } catch {
         setError("Payment succeeded but activation failed. Contact support.");
         setLoading(false);
@@ -144,7 +144,7 @@ function PaymentForm({ onSuccess, onClose }: PaymentFormProps) {
 
 interface CheckoutModalProps {
   clientSecret: string;
-  onSuccess: (token: string) => void;
+  onSuccess: (token: string, expiresAt: string) => void;
   onClose: () => void;
 }
 

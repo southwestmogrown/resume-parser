@@ -7,6 +7,7 @@ import BatchResults from "@/components/BatchResults";
 import CheckoutModal from "@/components/CheckoutModal";
 import CoverLetter from "@/components/CoverLetter";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import ExperienceInterviewer from "@/components/ExperienceInterviewer";
 import GitHubConnect from "@/components/GitHubConnect";
 import JobDescriptionList from "@/components/JobDescriptionList";
 import LinkedInConnect from "@/components/LinkedInConnect";
@@ -16,7 +17,9 @@ import PayGate from "@/components/PayGate";
 import ResumeRewriter from "@/components/ResumeRewriter";
 import ResumeUpload from "@/components/ResumeUpload";
 import Spinner from "@/components/Spinner";
+import StarPrepPanel from "@/components/StarPrepPanel";
 import StudyPlan from "@/components/StudyPlan";
+import { mergeEnrichedResume } from "@/lib/mergeEnrichedResume";
 import { extractPdfBase64 } from "@/lib/extractPdfText";
 import {
   DEMO_COVER_LETTER,
@@ -28,21 +31,25 @@ import {
 } from "@/lib/demoData";
 import type {
   BatchScoreResult,
+  ConversationMessage,
   ExtractResponse,
   GitHubProfile,
+  InterviewBrief,
   LinkedInProfile,
   MatchResult,
   ResumeData,
   RewriteResponse,
   RewriteSuggestion,
   ScoreResponse,
+  StarAnswer,
+  StarQuestion,
   StudyItem,
   StudyPlanResponse,
 } from "@/lib/types";
 
 const LS_KEY = "ps_workspace_v1";
 
-type ResultTab = "rewrites" | "study" | "cover";
+type ResultTab = "rewrites" | "study" | "cover" | "interview";
 
 function StepPill({
   number,
@@ -84,12 +91,26 @@ export default function AppExperience() {
   const [loadingBatch, setLoadingBatch] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [analysisToken, setAnalysisToken] = useState<string | null>(null);
+  const [tokenExpiresAt, setTokenExpiresAt] = useState<string | null>(null);
   const [paymentState, setPaymentState] = useState<"idle" | "pending" | "paid" | "canceled">("idle");
   const [activeTab, setActiveTab] = useState<ResultTab>("rewrites");
   const [checkoutClientSecret, setCheckoutClientSecret] = useState<string | null>(null);
   const [isDemo] = useState(() =>
     typeof window !== "undefined" && new URLSearchParams(window.location.search).has("demo")
   );
+
+  // Phase 0 — Experience Interviewer
+  const [showInterviewer, setShowInterviewer] = useState(false);
+  const [interviewMessages, setInterviewMessages] = useState<ConversationMessage[]>([]);
+  const [interviewBrief, setInterviewBrief] = useState<InterviewBrief | null>(null);
+  const [enrichedResumeData, setEnrichedResumeData] = useState<ResumeData | null>(null);
+
+  // Phase 5 — STAR Prep
+  const [starQuestions, setStarQuestions] = useState<StarQuestion[]>([]);
+  const [starAnswers, setStarAnswers] = useState<StarAnswer[]>([]);
+  const [activeStarQuestion, setActiveStarQuestion] = useState<StarQuestion | null>(null);
+  const [starMessages, setStarMessages] = useState<ConversationMessage[]>([]);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const jobDescriptionsRef = useRef(jobDescriptions);
   const resumeDataRef = useRef(resumeData);
@@ -111,6 +132,11 @@ export default function AppExperience() {
       if (pollTimeoutRef.current !== null) window.clearTimeout(pollTimeoutRef.current);
     };
   }, []);
+
+  // Default to Interview Prep tab when score arrives and user hasn't paid yet
+  useEffect(() => {
+    if (matchResult && !analysisToken) setActiveTab("interview");
+  }, [matchResult]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-switch to cover letter tab when it starts streaming
   useEffect(() => {
@@ -155,6 +181,12 @@ export default function AppExperience() {
       if (d.githubProfile) setGithubProfile(d.githubProfile as GitHubProfile);
       if (d.linkedinProfile) setLinkedinProfile(d.linkedinProfile as LinkedInProfile);
       if (d.analysisToken) setAnalysisToken(d.analysisToken as string);
+      if (d.tokenExpiresAt) setTokenExpiresAt(d.tokenExpiresAt as string);
+      if (d.interviewMessages) setInterviewMessages(d.interviewMessages as ConversationMessage[]);
+      if (d.interviewBrief) setInterviewBrief(d.interviewBrief as InterviewBrief);
+      if (d.enrichedResumeData) setEnrichedResumeData(d.enrichedResumeData as ResumeData);
+      if (d.starQuestions) setStarQuestions(d.starQuestions as StarQuestion[]);
+      if (d.starAnswers) setStarAnswers(d.starAnswers as StarAnswer[]);
     } catch {
       localStorage.removeItem(LS_KEY);
     }
@@ -177,11 +209,17 @@ export default function AppExperience() {
         githubProfile,
         linkedinProfile,
         analysisToken,
+        tokenExpiresAt,
+        interviewMessages,
+        interviewBrief,
+        enrichedResumeData,
+        starQuestions,
+        starAnswers,
       }));
     } catch {
       // Storage unavailable or full
     }
-  }, [resumeData, matchResult, batchResults, rewriteSuggestions, studyItems, coverLetter, jobDescriptions, githubProfile, linkedinProfile, analysisToken]);
+  }, [resumeData, matchResult, batchResults, rewriteSuggestions, studyItems, coverLetter, jobDescriptions, githubProfile, linkedinProfile, analysisToken, tokenExpiresAt, interviewMessages, interviewBrief, enrichedResumeData, starQuestions, starAnswers]);
 
   const canAnalyze = Boolean((resumeFile || resumeData) && jobDescriptions.length > 0);
   const isBusy = loadingExtraction || loadingScore || loadingRewrite || loadingCoverLetter || loadingStudyPlan || loadingBatch;
@@ -301,9 +339,15 @@ export default function AppExperience() {
   }, []);
 
   // runPaidPhases — phases 3a, 3b (parallel), then 4 (streaming cover letter)
+  const enrichedResumeDataRef = useRef(enrichedResumeData);
+  useEffect(() => { enrichedResumeDataRef.current = enrichedResumeData; }, [enrichedResumeData]);
+
   const runPaidPhases = useCallback(
     async (resumeDataArg: ResumeData, matchResultArg: MatchResult, jd: string) => {
       if (!analysisToken) return;
+
+      // Prefer enriched data if available
+      const effectiveResumeData = enrichedResumeDataRef.current ?? resumeDataArg;
 
       setLoadingRewrite(true);
       setLoadingStudyPlan(true);
@@ -321,7 +365,7 @@ export default function AppExperience() {
           "x-analysis-token": analysisToken,
         },
         body: JSON.stringify({
-          resumeData: resumeDataArg,
+          resumeData: effectiveResumeData,
           jobDescription: jd,
           ...(githubProfile ? { githubProfile } : {}),
           ...(linkedinProfile ? { linkedinProfile } : {}),
@@ -344,7 +388,7 @@ export default function AppExperience() {
         },
         body: JSON.stringify({
           matchResult: matchResultArg,
-          resumeData: resumeDataArg,
+          resumeData: effectiveResumeData,
           ...(linkedinProfile ? { linkedinProfile } : {}),
         }),
       })
@@ -368,7 +412,7 @@ export default function AppExperience() {
             "x-analysis-token": analysisToken,
           },
           body: JSON.stringify({
-            resumeData: resumeDataArg,
+            resumeData: effectiveResumeData,
             matchResult: matchResultArg,
             jobDescription: jd,
             ...(githubProfile ? { githubProfile } : {}),
@@ -473,7 +517,7 @@ export default function AppExperience() {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                resumeData: extracted,
+                resumeData: enrichedResumeDataRef.current ?? extracted,
                 jobDescription: description,
                 ...(githubProfileRef.current ? { githubProfile: githubProfileRef.current } : {}),
                 ...(linkedinProfileRef.current ? { linkedinProfile: linkedinProfileRef.current } : {}),
@@ -522,7 +566,7 @@ export default function AppExperience() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          resumeData: extracted,
+          resumeData: enrichedResumeDataRef.current ?? extracted,
           jobDescription: jd,
           ...(githubProfileRef.current ? { githubProfile: githubProfileRef.current } : {}),
           ...(linkedinProfileRef.current ? { linkedinProfile: linkedinProfileRef.current } : {}),
@@ -575,8 +619,20 @@ export default function AppExperience() {
     setCoverLetterBlocked(null);
   }, []);
 
-  const handlePaymentSuccess = useCallback((token: string) => {
+  const handleBriefComplete = useCallback(
+    (brief: InterviewBrief) => {
+      if (!resumeData) return;
+      const merged = mergeEnrichedResume(resumeData, brief);
+      setInterviewBrief(brief);
+      setEnrichedResumeData(merged);
+      setShowInterviewer(false);
+    },
+    [resumeData]
+  );
+
+  const handlePaymentSuccess = useCallback((token: string, expiresAt: string) => {
     setAnalysisToken(token);
+    setTokenExpiresAt(expiresAt);
     setPaymentState("paid");
     setCheckoutClientSecret(null);
   }, []);
@@ -678,6 +734,14 @@ export default function AppExperience() {
     setJobDescriptions([]);
     setError(null);
     setActiveTab("rewrites");
+    setShowInterviewer(false);
+    setInterviewMessages([]);
+    setInterviewBrief(null);
+    setEnrichedResumeData(null);
+    setStarQuestions([]);
+    setStarAnswers([]);
+    setActiveStarQuestion(null);
+    setStarMessages([]);
     try { localStorage.removeItem(LS_KEY); } catch { /* ignore */ }
   }, []);
 
@@ -700,6 +764,61 @@ export default function AppExperience() {
           />
         )}
 
+        {showResetConfirm && (
+          <div className="modal-backdrop" onClick={() => setShowResetConfirm(false)}>
+            <div className="reset-confirm-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="reset-confirm-header">
+                <span className="reset-confirm-icon">⚠</span>
+                <h2>This will permanently delete everything.</h2>
+              </div>
+
+              <p className="reset-confirm-body">
+                Starting a new analysis wipes your current workspace. <strong>There is no undo.</strong> PassStack does not store your data anywhere — once it&apos;s gone, it&apos;s gone.
+              </p>
+
+              {(hasPaidContent || starAnswers.length > 0) && (
+                <div className="reset-confirm-lostlist">
+                  <p className="reset-confirm-lostlist-label">You will permanently lose:</p>
+                  <ul>
+                    {rewriteSuggestions && <li>Bullet rewrites ({rewriteSuggestions.length} suggestions)</li>}
+                    {studyItems && <li>Study plan ({studyItems.length} items)</li>}
+                    {(coverLetter || coverLetterBlocked) && <li>Cover letter</li>}
+                    {starAnswers.length > 0 && <li>STAR interview answers ({starAnswers.length} completed)</li>}
+                  </ul>
+                </div>
+              )}
+
+              {canExport && (
+                <button
+                  type="button"
+                  className="reset-confirm-export"
+                  onClick={() => void handleExportZip()}
+                >
+                  ↓ Download everything first (.zip)
+                </button>
+              )}
+
+              <div className="reset-confirm-actions">
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => setShowResetConfirm(false)}
+                  autoFocus
+                >
+                  Cancel — keep my work
+                </button>
+                <button
+                  type="button"
+                  className="reset-confirm-destroy"
+                  onClick={() => { setShowResetConfirm(false); resetWorkspace(); }}
+                >
+                  Yes, delete everything
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <nav className="site-nav site-nav--scrolled">
           <div className="container nav-inner">
             <Link href="/" className="brand-mark" aria-label="PassStack home">
@@ -707,7 +826,7 @@ export default function AppExperience() {
             </Link>
             <div className="nav-actions">
               {showResults && (
-                <button type="button" onClick={resetWorkspace} className="btn-ghost">
+                <button type="button" onClick={() => setShowResetConfirm(true)} className="btn-ghost">
                   ↩ New analysis
                 </button>
               )}
@@ -757,7 +876,7 @@ export default function AppExperience() {
                   number={4}
                   label="Full analysis"
                   active={showPayGate}
-                  done={Boolean(analysisToken)}
+                  done={hasPaidContent}
                 />
               </div>
 
@@ -786,16 +905,68 @@ export default function AppExperience() {
                 </div>
               </div>
 
+              {/* Phase 0 — Experience Interviewer (optional enhancement) */}
+              {resumeData && !showInterviewer && !interviewBrief && (
+                <div className="interview-cta-banner" style={{ marginTop: "var(--space-5)" }}>
+                  <div>
+                    <div className="eyebrow" style={{ marginBottom: "var(--space-1)" }}>optional · phase 0</div>
+                    <p style={{ fontWeight: 500, fontSize: "0.9rem", color: "var(--ps-text-primary)", margin: 0 }}>
+                      Want a sharper analysis?
+                    </p>
+                    <p>
+                      Answer a few questions about your experience. Takes 2–3 minutes and makes every downstream phase significantly more accurate. Skip anytime.
+                    </p>
+                  </div>
+                  <div className="interview-cta-banner__actions">
+                    <button
+                      type="button"
+                      className="btn-primary btn-inline"
+                      onClick={() => setShowInterviewer(true)}
+                      disabled={isBusy}
+                    >
+                      Enhance my resume →
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-ghost btn-inline"
+                      onClick={() => void handleAnalyze()}
+                      disabled={!canAnalyze || isBusy}
+                    >
+                      Skip, analyze now
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {resumeData && interviewBrief && !showInterviewer && (
+                <div style={{ marginTop: "var(--space-5)", padding: "var(--space-3) var(--space-4)", border: "1px solid rgba(57, 217, 184, 0.3)", borderRadius: 8, display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+                  <span style={{ color: "var(--ps-accent)", fontWeight: 600 }}>✓</span>
+                  <span className="result-muted" style={{ fontSize: "0.85rem" }}>Resume enhanced with interview context — {interviewBrief.enriched_experiences.length} role{interviewBrief.enriched_experiences.length !== 1 ? "s" : ""} enriched</span>
+                </div>
+              )}
+
+              {showInterviewer && resumeData && (
+                <div style={{ marginTop: "var(--space-5)" }}>
+                  <ExperienceInterviewer
+                    resumeData={enrichedResumeData ?? resumeData}
+                    onBriefComplete={handleBriefComplete}
+                    onSkip={() => setShowInterviewer(false)}
+                  />
+                </div>
+              )}
+
               <div style={{ marginTop: "var(--space-6)", display: "grid", gap: "var(--space-3)", justifyItems: "center" }}>
-                <button
-                  type="button"
-                  onClick={() => void handleAnalyze()}
-                  disabled={!canAnalyze || isBusy}
-                  className="btn-primary btn-large"
-                >
-                  {isBusy && <Spinner />}
-                  {getAnalyzeButtonText()}
-                </button>
+                {!showInterviewer && (
+                  <button
+                    type="button"
+                    onClick={() => void handleAnalyze()}
+                    disabled={!canAnalyze || isBusy}
+                    className="btn-primary btn-large"
+                  >
+                    {isBusy && <Spinner />}
+                    {getAnalyzeButtonText()}
+                  </button>
+                )}
                 <p className="fine-print">Score is free. Full analysis unlocked with a one-time $5 payment.</p>
                 {error && <p style={{ color: "var(--ps-red)" }}>{error}</p>}
               </div>
@@ -845,7 +1016,7 @@ export default function AppExperience() {
                   <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
                     <button
                       type="button"
-                      onClick={resetWorkspace}
+                      onClick={() => setShowResetConfirm(true)}
                       className="btn-ghost btn-inline"
                       style={{ alignSelf: "flex-start", fontSize: "11px" }}
                     >
@@ -891,38 +1062,52 @@ export default function AppExperience() {
                   </div>
                 )}
 
-                {(hasPaidContent || loadingPaid) && (
+                {(hasPaidContent || loadingPaid || !!matchResult) && (
                   <>
                     <div className="result-tabs">
+                      {(hasPaidContent || loadingPaid) && (
+                        <>
+                          <button
+                            type="button"
+                            className={`result-tab ${activeTab === "rewrites" ? "result-tab--active" : ""}`.trim()}
+                            onClick={() => setActiveTab("rewrites")}
+                          >
+                            Bullet Rewrites
+                            {loadingRewrite && <span style={{ opacity: 0.5 }}> ·</span>}
+                            {!loadingRewrite && rewriteSuggestions && (
+                              <span style={{ opacity: 0.5 }}> ({rewriteSuggestions.length})</span>
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            className={`result-tab ${activeTab === "study" ? "result-tab--active" : ""}`.trim()}
+                            onClick={() => setActiveTab("study")}
+                          >
+                            Study Plan
+                            {loadingStudyPlan && <span style={{ opacity: 0.5 }}> ·</span>}
+                            {!loadingStudyPlan && studyItems && (
+                              <span style={{ opacity: 0.5 }}> ({studyItems.length})</span>
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            className={`result-tab ${activeTab === "cover" ? "result-tab--active" : ""}`.trim()}
+                            onClick={() => setActiveTab("cover")}
+                          >
+                            Cover Letter
+                            {loadingCoverLetter && <span style={{ opacity: 0.5 }}> writing…</span>}
+                          </button>
+                        </>
+                      )}
                       <button
                         type="button"
-                        className={`result-tab ${activeTab === "rewrites" ? "result-tab--active" : ""}`.trim()}
-                        onClick={() => setActiveTab("rewrites")}
+                        className={`result-tab ${activeTab === "interview" ? "result-tab--active" : ""}`.trim()}
+                        onClick={() => setActiveTab("interview")}
                       >
-                        Bullet Rewrites
-                        {loadingRewrite && <span style={{ opacity: 0.5 }}> ·</span>}
-                        {!loadingRewrite && rewriteSuggestions && (
-                          <span style={{ opacity: 0.5 }}> ({rewriteSuggestions.length})</span>
+                        Interview Prep
+                        {starAnswers.length > 0 && (
+                          <span style={{ opacity: 0.5 }}> ({starAnswers.length})</span>
                         )}
-                      </button>
-                      <button
-                        type="button"
-                        className={`result-tab ${activeTab === "study" ? "result-tab--active" : ""}`.trim()}
-                        onClick={() => setActiveTab("study")}
-                      >
-                        Study Plan
-                        {loadingStudyPlan && <span style={{ opacity: 0.5 }}> ·</span>}
-                        {!loadingStudyPlan && studyItems && (
-                          <span style={{ opacity: 0.5 }}> ({studyItems.length})</span>
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        className={`result-tab ${activeTab === "cover" ? "result-tab--active" : ""}`.trim()}
-                        onClick={() => setActiveTab("cover")}
-                      >
-                        Cover Letter
-                        {loadingCoverLetter && <span style={{ opacity: 0.5 }}> writing…</span>}
                       </button>
                     </div>
 
@@ -935,10 +1120,43 @@ export default function AppExperience() {
                     {activeTab === "cover" && (
                       <CoverLetter content={coverLetter} loading={loadingCoverLetter} blockedSkills={coverLetterBlocked} />
                     )}
+                    {activeTab === "interview" && (
+                      !analysisToken ? (
+                        matchResult && resumeData ? (
+                          <PayGate
+                            resumeData={enrichedResumeData ?? resumeData}
+                            score={matchResult.score}
+                            paymentState={paymentState}
+                            onPay={() => void handlePay()}
+                          />
+                        ) : null
+                      ) : (
+                        matchResult && resumeData ? (
+                          <StarPrepPanel
+                            resumeData={enrichedResumeData ?? resumeData}
+                            matchResult={matchResult}
+                            jobDescription={jobDescriptions[0] ?? ""}
+                            token={analysisToken}
+                            tokenExpiresAt={tokenExpiresAt}
+                            questions={starQuestions}
+                            answers={starAnswers}
+                            activeQuestion={activeStarQuestion}
+                            starMessages={starMessages}
+                            onQuestionsLoaded={setStarQuestions}
+                            onAnswerComplete={(a) => setStarAnswers((prev) => [...prev, a])}
+                            onQuestionChange={(q) => {
+                              setActiveStarQuestion(q);
+                              setStarMessages([]);
+                            }}
+                            onMessageSend={setStarMessages}
+                          />
+                        ) : null
+                      )
+                    )}
                   </>
                 )}
 
-                {!batchResults && !loadingBatch && !hasPaidContent && !loadingPaid && (
+                {!batchResults && !loadingBatch && !hasPaidContent && !loadingPaid && activeTab !== "interview" && (
                   <div
                     style={{
                       padding: "var(--space-16) var(--space-8)",

@@ -93,6 +93,7 @@ export interface LinkedInProfile {
   currentCompany: string | null;
   skills: string[];
   summary: string | null;
+  education: string[] | null; // e.g. ["B.S. Computer Science, University of Missouri, 2018"]
 }
 
 export interface LinkedInProfileResponse {
@@ -154,4 +155,68 @@ export interface ScoreRequest {
 
 export interface ScoreResponse {
   matchResult: MatchResult;
+}
+
+// Phase 0 — Experience Interviewer (conversational)
+export interface ConversationMessage {
+  role: 'assistant' | 'user';
+  content: string;
+}
+
+export interface EnrichedExperience {
+  company: string;
+  role: string;
+  impact: string[];       // concrete outcomes, numbers, scope
+  technologies: string[]; // explicit from conversation
+  story: string;          // 1-2 sentence qualitative narrative
+}
+
+export interface InterviewBrief {
+  interview_complete: true;
+  enriched_experiences: EnrichedExperience[];
+  additional_skills: string[];  // surfaced in conversation, not on resume
+  notable_context: string;      // anything that doesn't fit above
+}
+
+export interface InterviewRequest {
+  messages: ConversationMessage[];
+  resumeData: ResumeData;
+}
+
+export interface InterviewResponse {
+  message: string;
+  brief?: InterviewBrief;
+  interview_complete: boolean;
+}
+
+// Phase 5 — STAR Interview Prep (conversational)
+export interface StarQuestion {
+  id: string;
+  question: string;
+  targetSkill: string;
+  difficulty: 'standard' | 'probing';
+}
+
+export interface StarAnswer {
+  questionId: string;
+  question: string;
+  situation: string;
+  task: string;
+  action: string;
+  result: string;
+  coachingNotes: string;
+}
+
+export interface StarPrepRequest {
+  messages: ConversationMessage[];
+  resumeData: ResumeData;
+  matchResult: MatchResult;
+  jobDescription: string;
+  currentQuestion: StarQuestion;
+}
+
+export interface StarPrepResponse {
+  message: string;
+  answer?: StarAnswer;
+  question_complete: boolean;
 }
