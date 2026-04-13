@@ -36,8 +36,8 @@ export async function POST(req: NextRequest) {
 
   if (
     !resumeData ||
-    !rewriteSuggestions ||
-    !starAnswers ||
+    rewriteSuggestions === undefined ||
+    starAnswers === undefined ||
     !matchResult ||
     !isStringWithinLimit(jobDescription, MAX_JOB_DESCRIPTION_CHARS)
   ) {
