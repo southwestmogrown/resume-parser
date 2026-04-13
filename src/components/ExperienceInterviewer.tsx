@@ -49,7 +49,7 @@ export default function ExperienceInterviewer({
       if (data.interview_complete && data.brief) {
         setMessages((prev) => [
           ...prev,
-          { role: 'assistant', content: "Great — I have everything I need. Enhancing your resume now..." },
+          { role: 'assistant', content: "Got it — that covers everything. Folding your answers into the analysis now..." },
         ]);
         setDone(true);
         onBriefComplete(data.brief);

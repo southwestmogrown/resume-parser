@@ -36,7 +36,7 @@ const phases = [
   {
     number: "06",
     title: "Optimized Resume",
-    body: "After coaching, PassStack synthesizes your enriched data, rewritten bullets, and strongest STAR outcomes into a polished, ATS-ready resume you can send directly to recruiters.",
+    body: "After coaching, PassStack pulls together your rewritten bullets, enriched experience, and strongest STAR outcomes into a polished, ATS-ready resume you can send directly to recruiters.",
   },
 ] as const;
 
@@ -352,9 +352,9 @@ export default function LandingPage() {
                 If dealbreakers exist, we tell you — and suggest a better target instead.
               </p>
               <ul className="feature-list">
-                <li>Streaming response — letter appears word by word</li>
-                <li>Hard-capped at 300 words / 500 tokens — reads naturally, not padded</li>
-                <li>Dealbreaker guard returns 422 before generation — no wasted time</li>
+                <li>Appears as it writes — no waiting on a finished draft</li>
+                <li>Kept to 300 words — tight and readable, not padded</li>
+                <li>Dealbreaker check runs first — no time spent writing for a role that won&apos;t go anywhere</li>
                 <li>Honest redirect if the role isn&apos;t a fit, with suggested alternatives</li>
                 <li>Copy button for easy paste into your application</li>
               </ul>
@@ -376,7 +376,7 @@ export default function LandingPage() {
             <div className="phase-output__text">
               <div className="eyebrow" style={{ marginBottom: "var(--space-3)" }}>phase 05 — STAR Coaching</div>
               <h3 style={{ fontSize: "clamp(1.3rem, 3vw, 1.7rem)", lineHeight: 1.2, marginBottom: "var(--space-4)" }}>
-                Now it coaches you through the interview.
+                Question-by-question coaching built from your actual gaps.
               </h3>
               <p className="result-muted" style={{ marginBottom: "var(--space-4)" }}>
                 After the gap analysis, PassStack generates targeted behavioral questions from your actual gaps — then walks you through building a STAR-format answer, question by question. Not a template. Not generic questions. Your gaps. Your story. Your answers.
@@ -386,7 +386,7 @@ export default function LandingPage() {
                 <li>Coach-guided STAR structure: Situation, Task, Action, Result</li>
                 <li>Work through every question at your own pace</li>
                 <li>Export your answers as a formatted prep sheet</li>
-                <li>Included with your $5 analysis — one token use, unlimited coaching</li>
+                <li>Included with your $5 analysis — unlimited questions, work at your own pace</li>
               </ul>
             </div>
           </div>
@@ -407,10 +407,10 @@ export default function LandingPage() {
                 Walk away with a resume that&apos;s actually ready to send.
               </h3>
               <p className="result-muted" style={{ marginBottom: "var(--space-4)" }}>
-                After your STAR coaching sessions, PassStack synthesizes everything — your enriched experience, rewritten bullets, and strongest outcomes — into a single polished document. ATS-optimized. No formatting gymnastics required.
+                After your coaching sessions, PassStack pulls everything together — your experience, rewritten bullets, and strongest outcomes — into a single polished document. ATS-ready. No formatting gymnastics required.
               </p>
               <ul className="feature-list">
-                <li>Synthesizes your STAR answers, bullet rewrites, and enriched data</li>
+                <li>Draws from your STAR answers, bullet rewrites, and interview notes</li>
                 <li>ATS-ready formatting — clean structure, no tables or columns</li>
                 <li>Includes a tailored summary aligned to the target role</li>
                 <li>Download as .txt — paste into Word or Google Docs to export as PDF</li>
@@ -441,7 +441,7 @@ export default function LandingPage() {
               </p>
               <ul className="feature-list">
                 <li>Dealbreaker detection before any content is generated</li>
-                <li>422 response blocks cover letter generation for unqualified roles</li>
+                <li>Cover letter generation is blocked before it starts — no wasted effort</li>
                 <li>Honest redirect — suggests a better target instead of false hope</li>
                 <li>No manufactured enthusiasm that sets you up to fail</li>
                 <li>That&apos;s not a bug. That&apos;s the whole point.</li>
