@@ -245,16 +245,25 @@ export default function LandingPage() {
           <div className="eyebrow">why passstack exists</div>
           <div className="prose-block">
             <h2 className="display" style={{ fontSize: "clamp(2rem, 4vw, 2.4rem)" }}>
-              Built by someone who was tired of the same tools you&apos;re tired of.
+              I&apos;m still working production shifts. I built this while I was working them.
             </h2>
             <p>
-              I built PassStack because the existing options felt like a tax on people already doing the hard part. Too expensive. Too vague. Too much polished nonsense around a weak result.
+              I manage 45 operators at a manufacturing plant. It&apos;s honest work. It&apos;s not where I&apos;m headed.
             </p>
             <p>
-              The point here is simple: make the workaround for a broken hiring system cheap enough that people will actually use it. That&apos;s why it&apos;s $5. One time. No subscription. No account. Just the analysis.
+              I was laid off from App Academy — not as a student, as an instructor. I had the skills. What I didn&apos;t have was a resume that said &ldquo;Software Developer&rdquo; to an ATS. I was filtered out before a human ever saw my name. I gave up for a while.
             </p>
             <p>
-              PassStack is a Wilkey Digital Solutions product. No ads. No data farming. Nothing to cancel.
+              Then I built a piece of software for my plant. Internal tool, nothing complicated. They didn&apos;t want it. But something clicked — I could still do this. I started building again. I needed two things at once: a portfolio project worth showing, and a way to stop getting screened out before I even got a conversation.
+            </p>
+            <p>
+              I tried the resume tools. They weren&apos;t built for someone in my position. They optimize keywords, hide behind a dark-pattern subscription, sell your contact information to ad networks, and call it a career service. I know exactly what kind of calls I started getting.
+            </p>
+            <p>
+              PassStack costs $5. One time. No account. No subscription. No data farming. It&apos;s built for the person who can&apos;t afford to be exploited while they&apos;re trying to get ahead — who&apos;s just starting out, needs a real hand up, and deserves to have somebody in their corner who isn&apos;t just running a business on their desperation.
+            </p>
+            <p>
+              I know exactly who I&apos;m building it for.
             </p>
             <p className="subtle-note" style={{ marginTop: "var(--space-4)" }}>
               Wilkey Digital Solutions
