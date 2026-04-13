@@ -202,7 +202,7 @@ export default function LandingPage() {
             <div className="screenshot-item">
               <div className="eyebrow" style={{ marginBottom: "var(--space-3)" }}>phase 02 — gap analysis</div>
               <img
-                src="/assets/images/PassStack-Scorecard.png"
+                src="/assets/images/PassStack-Score-Results.png"
                 alt="PassStack gap analysis scorecard showing matched skills and severity-tiered gaps"
                 className="screenshot-img"
               />
