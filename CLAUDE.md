@@ -18,7 +18,7 @@ A Next.js application toolkit for developers — upload a PDF resume and get a f
 1. **Extraction phase** (FREE) — Claude reads the PDF (base64-encoded) and returns structured `ResumeData`
 2. **Scoring phase** (FREE) — Claude compares `ResumeData` + optional `GitHubProfile` / `LinkedInProfile` against the JD and returns `MatchResult` with severity-tiered gaps
 3. **Rewrite + Study phase** (PAID, parallel) — Claude generates bullet rewrites and a study plan
-4. **Cover letter phase** (PAID, streaming) — Claude streams a tailored cover letter draft (≤300 words, hard-capped at 500 tokens)
+4. **Cover letter phase** (PAID, streaming) — Claude streams a cover letter draft OR a "do not apply" redirect if dealbreakers exist (≤300 words, hard-capped at 500 tokens)
 
 Phases 1→2 are sequential. Phases 3–4 are non-blocking. In batch mode, Phase 1 runs once and Phase 2 runs in parallel for each JD (all free).
 
@@ -30,18 +30,64 @@ Phases 1→2 are sequential. Phases 3–4 are non-blocking. In batch mode, Phase
 - Token stored in Supabase `analysis_tokens` table (one use per paid phase: rewrite, study plan, cover letter)
 - Each paid route validates the token via `validateAndConsumeToken` (decrements `uses_remaining`)
 - `/api/score` requires **no token** — scoring is always free
-- Demo mode bypasses all payment gates
+- On 401/402 from any paid route, `runPaidPhases` calls `handleTokenInvalid()` which clears `analysisToken` state and resets `paymentState` to `"idle"` — this breaks any retry loop and restores the PayGate
+- Demo mode (`?demo` URL param) bypasses all payment gates — see Demo Mode section
 - Legacy: `/api/create-checkout` + `/api/webhook` + `/api/redeem-token` support the Stripe Checkout redirect flow (kept but not the primary path)
+
+### Prompt Contract — Phase 2 Recommendation Format
+
+`MatchResult.recommendation` must begin with one of these machine-readable tags:
+
+```
+STRONG_FIT — <2-3 sentences of reasoning>
+GOOD_FIT — <2-3 sentences>
+STRETCH — <2-3 sentences>
+DO_NOT_APPLY — <2-3 sentences>
+```
+
+`MatchScore.tsx` parses this prefix and renders it as a `SeverityPill` badge (green/sage/amber/red). The prose is displayed below. Do not change this format without updating both the score route prompt and `MatchScore.tsx`.
+
+### Prompt Contract — Cover Letter Dealbreaker Guard
+
+`/api/cover-letter` enforces a dealbreaker block at **two layers**:
+1. **Route level (422)**: If `matchResult.missingSkills` contains any `severity === "dealbreaker"` entries, the route returns 422 before calling Claude. Body: `{ error, dealbreakers: string[] }`.
+2. **Prompt level**: The Claude prompt includes an explicit guard instructing it to refuse and suggest alternative role types if dealbreakers exist.
+
+On 422, the frontend sets `coverLetterBlocked` state (the `dealbreakers` string array from the response body). `CoverLetter` renders an explanation card listing the blocking skills — the tab is never silently empty.
+
+### Demo Mode
+
+`/app?demo` pre-loads all `DEMO_*` fixtures from `lib/demoData.ts` and sets `analysisToken` to `"demo"`, bypassing the payment gate. localStorage restore and persist are both skipped in demo mode to avoid polluting saved state. Triggered via `useState(() => new URLSearchParams(window.location.search).has("demo"))` on mount.
+
+### Batch Drill-Down — Paid Phase Trigger
+
+In batch mode, paid phases do **not** auto-trigger when the user drills into a result row. Instead:
+- `selectedBatchJD !== null` suppresses the auto-trigger effect
+- A "Generate full analysis" card appears in the sidebar when `selectedBatchJD && analysisToken && !hasPaidContent`
+- `handleBatchAnalyze()` calls `runPaidPhases` explicitly
+
+**Rationale:** A 3-use token covers exactly one complete analysis. Auto-triggering on every drill-down would exhaust the token after the first result, making all subsequent drill-downs hit 401. The explicit button gives the user control over which role to spend their token on.
+
+### Auto-Trigger Logic (single JD flow)
+
+The auto-trigger effect fires `runPaidPhases` when:
+- `analysisToken` is set AND
+- `resumeData` and `matchResult` are both non-null AND
+- `selectedBatchJD` is null (not a batch drill-down) AND
+- None of `rewriteSuggestions`, `studyItems`, `coverLetter` are set AND
+- None of the loading flags are true
+
+`handleAnalyze` does NOT call `runPaidPhases` directly — it only sets `matchResult`, and the auto-trigger fires from that state change. This prevents double-invocation.
 
 ### State Persistence
 
 **localStorage key: `ps_workspace_v1`**
 
-All workspace state is serialized to localStorage on every change and restored on mount (unless `?success` or `?canceled` is in the URL — those trigger the sessionStorage redirect flow instead).
+All workspace state is serialized to localStorage on every change and restored on mount (unless `?success`, `?canceled`, or `?demo` is in the URL).
 
-Saved fields: `resumeData`, `resumeName`, `matchResult`, `batchResults`, `rewriteSuggestions`, `studyItems`, `coverLetter`, `jobDescriptions`, `githubProfile`, `linkedinProfile`, `analysisToken`
+Saved fields: `resumeData`, `matchResult`, `batchResults`, `rewriteSuggestions`, `studyItems`, `coverLetter`, `jobDescriptions`, `githubProfile`, `linkedinProfile`, `analysisToken`
 
-`resetWorkspace()` also calls `localStorage.removeItem("ps_workspace_v1")`.
+`resetWorkspace()` clears all state and calls `localStorage.removeItem("ps_workspace_v1")`.
 
 **SessionStorage keys (legacy redirect flow only)**
 
@@ -68,9 +114,9 @@ Saved fields: `resumeData`, `resumeName`, `matchResult`, `batchResults`, `rewrit
 | `lib/tokens.ts` | Token generation, minting, and `validateAndConsumeToken` |
 | `app/api/extract/route.ts` | POST — Phase 1: PDF → `ResumeData` (free) |
 | `app/api/score/route.ts` | POST — Phase 2: `ResumeData` + JD → `MatchResult` (**free, no auth**) |
-| `app/api/rewrite/route.ts` | POST — Phase 3a: `ResumeData` + JD → `RewriteSuggestion[]` (token auth) |
-| `app/api/study-plan/route.ts` | POST — Phase 3b: `MatchResult` + `ResumeData` → `StudyItem[]` (token auth) |
-| `app/api/cover-letter/route.ts` | POST — Phase 4: streaming plain-text cover letter (token auth, `maxDuration=60`) |
+| `app/api/rewrite/route.ts` | POST — Phase 3a: `ResumeData` + JD + optional GitHub/LinkedIn → `RewriteSuggestion[]` (token auth) |
+| `app/api/study-plan/route.ts` | POST — Phase 3b: `MatchResult` + `ResumeData` + optional LinkedIn → `StudyItem[]` (token auth) |
+| `app/api/cover-letter/route.ts` | POST — Phase 4: streaming cover letter or dealbreaker redirect (token auth, 422 gate, `maxDuration=60`) |
 | `app/api/github-profile/route.ts` | POST — GitHub username → `GitHubProfile` (public API, no auth) |
 | `app/api/linkedin-profile/route.ts` | POST — pasted LinkedIn text → `LinkedInProfile` via Claude (free) |
 | `app/api/create-payment-intent/route.ts` | POST — creates Stripe PaymentIntent, returns `clientSecret` |
@@ -84,20 +130,22 @@ Saved fields: `resumeData`, `resumeName`, `matchResult`, `batchResults`, `rewrit
 | `components/ResumeUpload.tsx` | PDF drag-and-drop; shows "restored from session" after redirect |
 | `components/JobDescriptionList.tsx` | Card-based JD input (up to 6 JDs, one at a time) |
 | `components/GitHubConnect.tsx` | GitHub username input with profile preview card |
-| `components/LinkedInConnect.tsx` | Paste-based LinkedIn profile extraction (3-step flow) |
+| `components/LinkedInConnect.tsx` | 2-step LinkedIn paste flow (URL optional, paste immediate) |
 | `components/ResumeProfile.tsx` | Structured resume output with skeleton loader |
-| `components/MatchScore.tsx` | Score display with severity-tiered gap sections |
+| `components/MatchScore.tsx` | Score display with recommendation tag badge + severity-tiered gap sections |
 | `components/ResumeRewriter.tsx` | Before/after bullet rewrite suggestions |
 | `components/StudyPlan.tsx` | Actionable study recommendations per gap |
 | `components/CoverLetter.tsx` | Streaming cover letter with "writing…" indicator + copy button |
 | `components/BatchResults.tsx` | Sortable batch results table with drill-down |
 | `components/PayGate.tsx` | Payment gate — shows score %, unlocks rewrites/study/cover letter |
+| `components/LandingPage.tsx` | Marketing landing page with product screenshots and founder story |
+| `public/assets/images/` | Product screenshots used in landing page (9 PNGs) |
 
 ### TypeScript Interfaces (lib/types.ts)
 
 **Core data:**
 - `ResumeData` — extracted candidate info (name, summary, skills, experience, education)
-- `MatchResult` — score (0–100), matched skills, `MissingSkill[]` with severity, recommendation
+- `MatchResult` — score (0–100), matched skills, `MissingSkill[]` with severity, `recommendation` (must start with `STRONG_FIT|GOOD_FIT|STRETCH|DO_NOT_APPLY — `)
 - `MissingSkill` — `{ skill, severity: "dealbreaker" | "learnable" | "soft", reason }`
 - `GapSeverity` — union type `"dealbreaker" | "learnable" | "soft"`
 
@@ -108,7 +156,7 @@ Saved fields: `resumeData`, `resumeName`, `matchResult`, `batchResults`, `rewrit
 - `LinkedInProfileResponse` — `{ profile: LinkedInProfile }`
 
 **Feature types:**
-- `RewriteSuggestion` — original role/bullet, rewritten bullet, rationale
+- `RewriteSuggestion` — originalRole, originalBullet, rewrittenBullet, rationale
 - `StudyItem` — skill, severity, action (1-2 sentence recommendation), resource (specific link/name)
 - `CoverLetterRequest` — resumeData + matchResult + JD + optional githubProfile + linkedinProfile
 - `ScoreRequest` — resumeData + jobDescription + optional githubProfile + linkedinProfile
@@ -148,6 +196,7 @@ Returns `ExtractResponse` (`{ resumeData: ResumeData }`).
 Body: `{ "resumeData": { ... }, "jobDescription": "<string>", "githubProfile"?: { ... }, "linkedinProfile"?: { ... } }`
 Returns 400 if `resumeData` or `jobDescription` is missing.
 Returns `ScoreResponse` (`{ matchResult: MatchResult }`).
+`matchResult.recommendation` always begins with `STRONG_FIT|GOOD_FIT|STRETCH|DO_NOT_APPLY — `.
 
 **POST `/api/github-profile`** — Free
 
@@ -169,7 +218,7 @@ All return 402 if `x-analysis-token` header is missing. All return 401 if token 
 
 **POST `/api/rewrite`** — Phase 3a
 
-Body: `{ "resumeData": { ... }, "jobDescription": "<string>", "linkedinProfile"?: { ... } }`
+Body: `{ "resumeData": { ... }, "jobDescription": "<string>", "githubProfile"?: { ... }, "linkedinProfile"?: { ... } }`
 Returns 400 if `resumeData` or `jobDescription` is missing.
 Returns `RewriteResponse` (`{ suggestions: RewriteSuggestion[] }`).
 
@@ -178,12 +227,14 @@ Returns `RewriteResponse` (`{ suggestions: RewriteSuggestion[] }`).
 Body: `{ "matchResult": { ... }, "resumeData": { ... }, "linkedinProfile"?: { ... } }`
 Returns 400 if `matchResult` or `resumeData` is missing.
 Returns `StudyPlanResponse` (`{ items: StudyItem[] }`).
+Note: dealbreaker gaps are filtered out server-side before calling Claude — only learnable/soft gaps get study items.
 
 **POST `/api/cover-letter`** — Phase 4 (**streaming**)
 
-Body: `{ "resumeData": { ... }, "matchResult": { ... }, "jobDescription": "<string>", "linkedinProfile"?: { ... } }`
+Body: `{ "resumeData": { ... }, "matchResult": { ... }, "jobDescription": "<string>", "githubProfile"?: { ... }, "linkedinProfile"?: { ... } }`
 Returns 400 if `resumeData`, `matchResult`, or `jobDescription` is missing.
-Returns `text/plain` stream (not JSON). Read with `response.body.getReader()`.
+**Returns 422** if `matchResult.missingSkills` contains any `severity === "dealbreaker"` entries. Body: `{ error, dealbreakers: string[] }`.
+Otherwise returns `text/plain` stream. Read with `response.body.getReader()`.
 Hard-capped at 300 words / 500 tokens. `maxDuration = 60`.
 
 ---
@@ -223,14 +274,16 @@ Returns 400/404/410 on error. Returns `{ token: "<analysis-token>" }` on success
 - Central orchestrator: all pipeline state, phase logic, layout switching
 - Pre-analysis: `panel-grid` (left column: Upload + GitHub + LinkedIn; right column: JobDescriptionList)
 - Post-analysis: `workspace-results` CSS grid (360px sticky sidebar + 1fr main content)
-- Sidebar shows: `MatchScore` + `PayGate` (if unpaid) + export button (if paid content exists) + session summary card
+- Sidebar shows: `MatchScore` + `PayGate` (if unpaid) OR batch analyze button (if batch drill-down + token) + session card
 - Main area: `BatchResults` table (multi-JD) AND/OR tabbed panel (rewrites / study / cover letter) — both can be visible simultaneously
 - `resetWorkspace()` clears all state, removes `ps_workspace_v1` from localStorage, returns to input view
-- Auto-trigger effect: when `analysisToken` arrives and `matchResult` + `resumeData` exist, fires `runPaidPhases` automatically
+- Auto-trigger: fires `runPaidPhases` when `analysisToken` + `resumeData` + `matchResult` are all set AND `selectedBatchJD` is null. Skipped in batch drill-down mode.
 - `handlePay`: fetches `/api/create-payment-intent`, sets `checkoutClientSecret` → modal opens
-- `handlePaymentSuccess(token)`: sets `analysisToken`, closes modal, auto-triggers paid phases
+- `handlePaymentSuccess(token)`: sets `analysisToken`, closes modal, auto-trigger fires paid phases
+- `handleBatchAnalyze()`: explicit paid phase trigger for batch drill-down; called by sidebar button
 - `handleExportZip`: uses jszip to package all available output files into a downloadable zip
 - `selectedBatchJD` state: tracks which batch row is drilled into; "← Back to all" clears it without destroying `batchResults`
+- `isDemo` state: initialized from `window.location.search` at mount; skips localStorage restore/persist
 
 **ResumeUpload**
 - Accepts PDF only via click or drag-and-drop; rejects non-PDF with inline error
@@ -249,18 +302,21 @@ Returns 400/404/410 on error. Returns `{ token: "<analysis-token>" }` on success
 - Passes `GitHubProfile` to parent via `onProfile` callback
 
 **LinkedInConnect**
-- 3-step paste flow: URL validation → paste instructions + textarea → parsed profile card
-- Step 2 shows instructions to open LinkedIn, Ctrl+A, copy, paste
-- POSTs raw text to `/api/linkedin-profile`; shows parsed headline, company, top 6 skills as pills
+- 2-step flow: paste view (shown immediately) → parsed profile card
+- Paste view shows optional URL input + "Open profile →" link (deep-links to profile if URL provided, otherwise `linkedin.com`)
+- POSTs raw text to `/api/linkedin-profile`; shows parsed headline, company, top skills as pills
+- URL is never required — only the pasted text drives parsing
 - Passes `LinkedInProfile` to parent via `onProfile` callback
 
 **MatchScore**
-- Score color: green ≥80%, amber 60–79%, red <60%
-- Missing skills in three severity sections (🔴 dealbreaker, 🟡 learnable, 🟢 soft) with per-item reasons
+- Parses `result.recommendation` for a `STRONG_FIT|GOOD_FIT|STRETCH|DO_NOT_APPLY` prefix
+- Renders prefix as a `SeverityPill` badge (green/sage/amber/red) next to "Recommendation" label
+- Prose displayed below badge with prefix stripped
+- Missing skills in three severity sections (dealbreaker, learnable, soft) with per-item reasons
 - Shows skeleton loader during scoring phase
 
 **PayGate**
-- Shown after scoring if no `analysisToken` is present
+- Shown after scoring if no `analysisToken` is present and not in batch drill-down
 - Header: `"{score}% match — unlock the full battle plan"`
 - Paid features: bullet rewrites, study plan, cover letter (score is already visible for free)
 - `paymentState: 'pending'` shows spinner; `paymentState: 'canceled'` shows retry
@@ -274,7 +330,7 @@ Returns 400/404/410 on error. Returns `{ token: "<analysis-token>" }` on success
 - Sortable table (score, company, title) with score bar visualization
 - Top gaps as colored pills per row
 - Accepts `selectedJD?: string | null` prop — applies `.batch-row--selected` highlight to the active row
-- Drill-down: click row → sets `selectedBatchJD`, loads that JD's paid content below the table; batch table stays visible
+- Drill-down: click row → sets `selectedBatchJD`, shows sidebar analyze button; batch table stays visible
 
 **CheckoutModal**
 - Rendered over the app when `checkoutClientSecret` is set in `AppExperience`
@@ -292,7 +348,16 @@ Returns 400/404/410 on error. Returns `{ token: "<analysis-token>" }` on success
 - `.workspace-results`: `grid-template-columns: 360px 1fr` — post-analysis split layout
 - `.workspace-sidebar`: sticky at `top: 72px`, scrollable with hidden scrollbar
 - `.result-tabs` / `.result-tab` / `.result-tab--active`: mono uppercase tab bar, teal active underline
+- `.screenshot-gallery`: 2-col grid for landing page product screenshots
+- `.no-go-callout`: 2-col grid with red-tinted border for the dealbreaker callout section
 - Breakpoints: 1100px (sidebar narrows to 300px), 960px (collapses to single column), 720px, 480px
+
+---
+
+## Known Gaps / Future Work
+
+- **Batch token model**: A 3-use token covers one complete batch drill-down. Users wanting paid content for multiple batch results must pay again. A future option is tiered pricing for batch runs.
+- **Testimonials**: Placeholder section removed. Add real quotes when beta feedback comes in.
 
 ---
 
@@ -303,6 +368,7 @@ feat: short description
 fix: short description
 chore: short description
 docs: short description
+copy: short description
 ```
 
 No ticket numbers needed. Keep messages short and imperative.
