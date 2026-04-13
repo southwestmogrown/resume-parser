@@ -39,8 +39,11 @@ Return a JSON object with exactly these fields:
   "currentRole": "current job title or null",
   "currentCompany": "current employer name or null",
   "skills": ["skill1", "skill2"],
-  "summary": "About section text or null"
+  "summary": "About section text or null",
+  "education": ["Degree, Institution, Year"] or null
 }
+
+For "education", each entry should be a single string in the format "Degree, Institution, Year" (e.g. "B.S. Computer Science, University of Missouri, 2018"). Use null if no education section is present.
 
 Return only the JSON object, no markdown, no explanation.`,
         },

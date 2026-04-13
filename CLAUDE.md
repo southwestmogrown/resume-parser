@@ -89,7 +89,7 @@ The auto-trigger effect fires `runPaidPhases` when:
 
 All workspace state is serialized to localStorage on every change and restored on mount (unless `?success`, `?canceled`, or `?demo` is in the URL).
 
-Saved fields: `resumeData`, `matchResult`, `batchResults`, `rewriteSuggestions`, `studyItems`, `coverLetter`, `jobDescriptions`, `githubProfile`, `linkedinProfile`, `analysisToken`, `interviewBrief`, `enrichedResumeData`, `starQuestions`, `starAnswers`, `activeStarQuestion`, `starMessages`, `interviewMessages`
+Saved fields: `resumeData`, `matchResult`, `batchResults`, `rewriteSuggestions`, `studyItems`, `coverLetter`, `jobDescriptions`, `githubProfile`, `linkedinProfile`, `analysisToken`, `tokenExpiresAt`, `interviewBrief`, `enrichedResumeData`, `starQuestions`, `starAnswers`, `activeStarQuestion`, `starMessages`, `interviewMessages`
 
 `resetWorkspace()` clears all state and calls `localStorage.removeItem("ps_workspace_v1")`.
 
@@ -296,7 +296,7 @@ Returns `{ clientSecret: string, paymentIntentId: string }`.
 
 Body: `{ "paymentIntentId": "<pi_...>" }`
 Retrieves the PaymentIntent from Stripe and verifies `status === 'succeeded'`.
-Returns 402 if not succeeded. Returns `{ token: "<analysis-token>" }` on success.
+Returns 402 if not succeeded. Returns `{ token: "<analysis-token>", expiresAt: "<ISO timestamp>" }` on success.
 `mintToken` is idempotent — safe to call twice with the same PaymentIntent ID.
 
 **POST `/api/create-checkout`** — No auth (legacy redirect flow)
@@ -322,10 +322,10 @@ Returns 400/404/410 on error. Returns `{ token: "<analysis-token>" }` on success
 - Post-analysis: `workspace-results` CSS grid (360px sticky sidebar + 1fr main content)
 - Sidebar shows: `MatchScore` + `PayGate` (if unpaid) OR batch analyze button (if batch drill-down + token) + session card
 - Main area: `BatchResults` table (multi-JD) AND/OR tabbed panel (rewrites / study / cover letter / interview prep) — both can be visible simultaneously
-- `resetWorkspace()` clears all state (including all Phase 0 + Phase 5 state), removes `ps_workspace_v1` from localStorage, returns to input view
+- `resetWorkspace()` clears all state (including all Phase 0 + Phase 5 state), removes `ps_workspace_v1` from localStorage, returns to input view. Guarded by a confirmation modal (`showResetConfirm` state) that inventories what will be lost and prompts the user to export first — both "New Analysis" buttons trigger the modal, not the reset directly.
 - Auto-trigger: fires `runPaidPhases` when `analysisToken` + `resumeData` + `matchResult` are all set AND `selectedBatchJD` is null. Skipped in batch drill-down mode.
 - `handlePay`: fetches `/api/create-payment-intent`, sets `checkoutClientSecret` → modal opens
-- `handlePaymentSuccess(token)`: sets `analysisToken`, closes modal, auto-trigger fires paid phases
+- `handlePaymentSuccess(token, expiresAt)`: sets `analysisToken` + `tokenExpiresAt`, closes modal, auto-trigger fires paid phases
 - `handleBatchAnalyze()`: explicit paid phase trigger for batch drill-down; called by sidebar button
 - `handleExportZip`: uses jszip to package all available output files into a downloadable zip
 - `selectedBatchJD` state: tracks which batch row is drilled into; "← Back to all" clears it without destroying `batchResults`
@@ -373,7 +373,7 @@ Returns 400/404/410 on error. Returns `{ token: "<analysis-token>" }` on success
 **LinkedInConnect**
 - 2-step flow: paste view (shown immediately) → parsed profile card
 - Paste view shows optional URL input + "Open profile →" link (deep-links to profile if URL provided, otherwise `linkedin.com`)
-- POSTs raw text to `/api/linkedin-profile`; shows parsed headline, company, top skills as pills
+- POSTs raw text to `/api/linkedin-profile`; shows parsed headline, company, top skills as pills, and education entries if present
 - URL is never required — only the pasted text drives parsing
 - Passes `LinkedInProfile` to parent via `onProfile` callback
 
@@ -407,7 +407,7 @@ Returns 400/404/410 on error. Returns `{ token: "<analysis-token>" }` on success
 - `Elements` + `PaymentElement` with dark Stripe appearance theme
 - Skeleton loaders shown until `PaymentElement.onReady` fires
 - Pay button disabled until `ready && stripe && elements`
-- On success: calls `onSuccess(token)` — modal closes and paid phases begin
+- On success: calls `onSuccess(token, expiresAt)` — modal closes and paid phases begin
 
 ---
 
@@ -421,10 +421,23 @@ Returns 400/404/410 on error. Returns `{ token: "<analysis-token>" }` on success
 - `.no-go-callout`: 2-col grid with red-tinted border for the dealbreaker callout section
 - `.chat-messages` / `.chat-bubble` / `.chat-bubble--assistant` / `.chat-bubble--user` / `.chat-input-bar`: Phase 0 + Phase 5 conversation UI
 - `.typing-indicator` + `@keyframes typing-bounce`: 3-dot loading animation for assistant responses
-- `.star-prep-layout`: `grid-template-columns: 240px 1fr` — Phase 5 two-column layout
+- `.star-prep-layout`: `grid-template-columns: 260px 1fr` — Phase 5 two-column layout
 - `.star-q-card` / `.star-q-card--active` / `.star-q-card--done`: question list card styles
 - `.interview-cta-banner`: Phase 0 opt-in CTA shown after extraction
 - Breakpoints: 1100px (sidebar narrows to 300px), 960px (collapses to single column), 720px (star-prep collapses to single column), 480px
+
+---
+
+## Deployment Prerequisites
+
+### Supabase migration (required before star-prep goes live)
+
+```sql
+ALTER TABLE analysis_tokens
+  ADD COLUMN star_prep_unlocked boolean NOT NULL DEFAULT false;
+```
+
+This column is read/written by `checkStarPrepAccess` and `activateStarPrep` in `lib/tokens.ts`. Without it, all `/api/star-prep` calls will error. Run once against the production Supabase project before deploying.
 
 ---
 
@@ -433,7 +446,6 @@ Returns 400/404/410 on error. Returns `{ token: "<analysis-token>" }` on success
 - **Batch token model**: A 4-use token covers one complete batch drill-down (rewrite + study + cover letter + STAR prep first turn). Users wanting paid content for multiple batch results must pay again. A future option is tiered pricing for batch runs.
 - **Testimonials**: Placeholder section removed. Add real quotes when beta feedback comes in.
 - **Phase 0 demo fixtures**: `demoData.ts` does not include demo `InterviewBrief` or `enrichedResumeData`. Demo mode skips Phase 0 entirely.
-- **Star prep token drain**: Each distinct `StarQuestion` costs 1 token use (first-turn consume). A user with 5 questions and a 4-use token can only fully coach through 1 question before the token expires (3 uses are spent on phases 3–4). Consider pricing model adjustment for heavy STAR prep users.
 
 ---
 

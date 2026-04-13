@@ -180,6 +180,14 @@ export default function LinkedInConnect({ onProfile }: LinkedInConnectProps) {
               </div>
             )}
 
+            {profile.education && profile.education.length > 0 && (
+              <div style={{ display: "grid", gap: "var(--space-1)" }}>
+                {profile.education.map((entry, i) => (
+                  <p key={i} className="subtle-note">{entry}</p>
+                ))}
+              </div>
+            )}
+
             <p style={{ color: "var(--ps-green)" }}>LinkedIn context will be included in your analysis.</p>
           </div>
 
