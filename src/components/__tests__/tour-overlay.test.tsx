@@ -239,6 +239,48 @@ describe("TourOverlay", () => {
     expect(tooltipLeft).toBeGreaterThanOrEqual(currentRect.right + 24);
   });
 
+  it("adds extra breathing room above the target when top placement is used", () => {
+    const topStep: TourStep = {
+      title: "Top step",
+      description: "Stay clearly above target.",
+      targetSelector: ".tour-target",
+      placement: "top",
+      autoAdvanceMs: 0,
+    };
+
+    currentRect = {
+      top: 460,
+      left: 320,
+      width: 180,
+      height: 52,
+      bottom: 512,
+      right: 500,
+      x: 320,
+      y: 460,
+      toJSON: () => ({}),
+    } as DOMRect;
+
+    render(
+      <div>
+        <div className="tour-target">Analyze button</div>
+        <TourOverlay steps={[topStep]} currentStep={0} onNext={jest.fn()} onPrev={jest.fn()} onSkip={jest.fn()} />
+      </div>
+    );
+
+    act(() => {
+      jest.runAllTimers();
+    });
+
+    const skipButton = screen.getByRole("button", { name: "Skip tour" });
+    const tooltip = skipButton.closest('div[style*="position: fixed"]') as HTMLElement | null;
+    expect(tooltip).not.toBeNull();
+
+    const tooltipTop = Number.parseFloat((tooltip as HTMLElement).style.top);
+    const tooltipHeight = 210;
+    const gap = currentRect.top - (tooltipTop + tooltipHeight);
+    expect(gap).toBeGreaterThanOrEqual(34);
+  });
+
   it("scrolls low targets into view when the tooltip needs room below them", () => {
     const onNext = jest.fn();
     const onPrev = jest.fn();
