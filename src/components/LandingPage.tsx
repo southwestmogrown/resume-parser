@@ -118,7 +118,7 @@ export default function LandingPage() {
               <Link href="/app#workspace" className="btn-primary btn-large">
                 Unlock Full Analysis — $5 →
               </Link>
-              <Link href="/app?demo" className="btn-ghost btn-large">
+              <Link href="/demo" className="btn-ghost btn-large">
                 Try the demo →
               </Link>
             </div>
@@ -450,7 +450,7 @@ export default function LandingPage() {
           </div>
 
           <div style={{ marginTop: "var(--space-8)", textAlign: "center" }}>
-            <Link href="/app?demo" className="btn-ghost">
+            <Link href="/demo" className="btn-ghost">
               Try the demo — see all six phases →
             </Link>
           </div>
@@ -532,7 +532,7 @@ export default function LandingPage() {
             Try it with sample data first. No upload required — the full analysis runs in under 30 seconds.
           </p>
           <div style={{ display: "flex", gap: "var(--space-4)", justifyContent: "center", flexWrap: "wrap", marginTop: "var(--space-6)" }}>
-            <Link href="/app?demo" className="btn-primary btn-large">
+            <Link href="/demo" className="btn-primary btn-large">
               Try the demo →
             </Link>
             <Link href="/app" className="btn-ghost btn-large">
