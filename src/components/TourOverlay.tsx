@@ -32,6 +32,8 @@ const NAV_OFFSET = 96;
 const VIEWPORT_MARGIN = 24;
 const LAYOUT_SETTLE_MS = 350;
 const SCROLL_EXEMPT_ANCESTOR_SELECTOR = ".site-nav";
+const SCROLL_TARGET_EPSILON_PX = 2;
+// Large enough that any overlap is always ranked worse than any non-overlapping candidate.
 const OVERLAP_PENALTY_BASE = 1_000_000;
 // Balanced backdrop dimming: dark enough to focus attention, light enough that the lifted target still reads clearly.
 const OVERLAY_ALPHA = 0.58;
@@ -195,7 +197,7 @@ function scrollTargetIntoView(
       : Math.max(NAV_OFFSET, (window.innerHeight - rect.height - tooltipBuffer) / 2);
   const maxScrollTop = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
   const targetTop = Math.max(0, Math.min(absoluteTop - centeredOffset, maxScrollTop));
-  if (Math.abs(window.scrollY - targetTop) < 2) return false;
+  if (Math.abs(window.scrollY - targetTop) < SCROLL_TARGET_EPSILON_PX) return false;
   window.scrollTo({ top: targetTop, behavior: "smooth" });
   return true;
 }
