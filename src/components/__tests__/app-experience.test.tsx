@@ -532,6 +532,9 @@ describe("AppExperience batch drill-down", () => {
     await waitFor(() => {
       expect(screen.getByText("CheckoutModal")).toBeInTheDocument();
     });
+
+    // Since paid phases have started, the explicit batch button should not show.
+    expect(screen.queryByRole("button", { name: /Generate full analysis/i })).not.toBeInTheDocument();
   });
 
   it("restores first JD paid content after switching to another JD", async () => {
