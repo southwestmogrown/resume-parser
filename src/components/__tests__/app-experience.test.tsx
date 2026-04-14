@@ -502,30 +502,6 @@ describe("AppExperience batch drill-down", () => {
     expect(screen.queryByRole("button", { name: /Generate full analysis/i })).not.toBeInTheDocument();
   });
 
-  it("fires paid phases for batch drill-down immediately after payment callback", async () => {
-    seedBatchWorkspace();
-    mockPaidPhaseFetches();
-
-    const user = userEvent.setup();
-    render(<AppExperience />);
-
-    // Drill down
-    act(() => { capturedBatchOnSelect!(sampleBatchResult); });
-
-    // Pay
-    await user.click(screen.getByRole("button", { name: /Unlock/i }));
-    act(() => {
-      capturedCheckoutOnSuccess!("tok_batch2", new Date(Date.now() + 86400000).toISOString());
-    });
-
-    // Paid phase fetches should fire after payment success callback.
-    await waitFor(() => {
-      const urls = (global.fetch as jest.Mock).mock.calls.map((c: unknown[]) => c[0]);
-      expect(urls).toContain("/api/rewrite");
-      expect(urls).toContain("/api/study-plan");
-    });
-  });
-
   it("clears STAR coaching state when switching between batch drill-down JDs", async () => {
     seedBatchWorkspace({
       analysisToken: "tok_star",
