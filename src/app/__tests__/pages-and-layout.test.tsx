@@ -1,12 +1,18 @@
 import { render, screen } from "@testing-library/react";
 import { isValidElement } from "react";
 import AppPage, { metadata as appMetadata } from "@/app/app/page";
+import DemoPage, { metadata as demoMetadata } from "@/app/demo/page";
 import RootLayout, { metadata as rootMetadata } from "@/app/layout";
 import HomePage from "@/app/page";
 
 jest.mock("@/components/AppExperience", () =>
   function MockAppExperience() {
     return <div>App Experience Stub</div>;
+  }
+);
+jest.mock("@/components/DemoExperience", () =>
+  function MockDemoExperience() {
+    return <div>Demo Experience Stub</div>;
   }
 );
 jest.mock("@/components/LandingPage", () =>
@@ -16,12 +22,15 @@ jest.mock("@/components/LandingPage", () =>
 );
 
 describe("page wrappers and layout", () => {
-  it("renders the landing and app pages", () => {
+  it("renders the landing, app, and demo pages", () => {
     render(<HomePage />);
     expect(screen.getByText("Landing Page Stub")).toBeInTheDocument();
 
     render(<AppPage />);
     expect(screen.getByText("App Experience Stub")).toBeInTheDocument();
+
+    render(<DemoPage />);
+    expect(screen.getByText("Demo Experience Stub")).toBeInTheDocument();
   });
 
   it("renders the root layout and exports metadata", () => {
@@ -32,5 +41,6 @@ describe("page wrappers and layout", () => {
     expect(layout.props.lang).toBe("en");
     expect(rootMetadata.title).toContain("PassStack");
     expect(appMetadata.title).toContain("PassStack App");
+    expect(demoMetadata.title).toContain("PassStack Demo");
   });
 });

@@ -4,14 +4,14 @@
 
 A developer-focused resume analysis toolkit. Upload a PDF resume, paste one or many job descriptions, and get a full analysis: tiered gap breakdown, tailored bullet rewrites, a cover letter draft, a study plan, and optional GitHub + LinkedIn profile integration. Powered by a multi-phase Claude pipeline.
 
-**[Live Demo →](https://resume-parser-ten-mu.vercel.app/)** — no API key or payment needed, click Try Demo.
+**[Live Demo →](https://resume-parser-ten-mu.vercel.app/demo)** — no API key or payment needed.
 
 ---
 
 ## Features
 
 ### Core Analysis
-- **Try Demo — no account needed** — pre-loaded sample resume and JD with realistic results across all features.
+- **Guided demo at `/demo`** — isolated demo component with pre-loaded fixtures and a step-by-step tour. Zero API calls. No account or payment needed.
 - **Free extraction + scoring** — upload a PDF and score it against a job description at no cost.
 - **$5 one-time paid upgrade** — unlock bullet rewrites, study plan, and cover letter. No subscription.
 - **Native PDF parsing** — Claude reads the PDF via the Anthropic document API. No parsing libraries.
@@ -228,12 +228,14 @@ src/
 │   │   ├── create-checkout/route.ts      # Legacy: Stripe Checkout session (redirect flow)
 │   │   ├── webhook/route.ts              # Stripe webhook → mints token on session.completed
 │   │   └── redeem-token/route.ts         # Exchange Stripe session ID for analysis token
-│   ├── app/page.tsx                      # App route shell
+│   ├── app/page.tsx                      # App route shell — renders AppExperience
+│   ├── demo/page.tsx                     # Demo route shell — renders DemoExperience
 │   ├── layout.tsx                        # Root layout with metadata
 │   ├── page.tsx                          # Landing page
 │   └── globals.css                       # Design system, layout, component styles
 ├── components/
-│   ├── AppExperience.tsx                 # Central orchestrator: all state, phases, layout
+│   ├── AppExperience.tsx                 # Production app: all state, phases, layout (no demo code)
+│   ├── DemoExperience.tsx                # Isolated demo: tour-driven, pre-baked fixtures, no API calls
 │   ├── BatchResults.tsx                  # Sortable batch table with drill-down
 │   ├── CheckoutModal.tsx                 # In-app dark payment modal (Stripe PaymentElement)
 │   ├── CoverLetter.tsx                   # Streaming cover letter with copy button
@@ -247,10 +249,12 @@ src/
 │   ├── ResumeRewriter.tsx                # Before/after bullet rewrite suggestions
 │   ├── ResumeUpload.tsx                  # PDF drag-and-drop upload zone
 │   ├── Spinner.tsx                       # Inline loading spinner
+│   ├── TourOverlay.tsx                   # Step spotlight overlay (used only by DemoExperience)
 │   └── StudyPlan.tsx                     # Actionable study plan per gap
 └── lib/
     ├── anthropic.ts                      # Anthropic client singleton (server-side)
-    ├── demoData.ts                       # Demo fixtures for all features
+    ├── demoData.ts                       # Demo fixtures consumed by DemoExperience
+    ├── tourConfig.ts                     # TOUR_STEPS config consumed by DemoExperience
     ├── extractPdfText.ts                 # File → base64 for Anthropic document input
     ├── stripe.ts                         # Stripe client singleton (server-side)
     ├── supabaseAdmin.ts                  # Supabase service-role client

@@ -11,10 +11,6 @@ jest.mock("next/link", () => ({
   ),
 }));
 
-jest.mock("next/navigation", () => ({
-  useSearchParams: () => new URLSearchParams(window.location.search),
-}));
-
 jest.mock("@/components/ErrorBoundary", () =>
   function MockErrorBoundary({ children }: { children: ReactNode }) {
     return <>{children}</>;
@@ -166,194 +162,44 @@ jest.mock("@/components/CheckoutModal", () =>
   }
 );
 
-jest.mock("@/components/TourOverlay", () =>
-  function MockTourOverlay({
-    currentStep,
-    onNext,
-    onPrev,
-    onSkip,
-  }: {
-    currentStep: number;
-    onNext: () => void;
-    onPrev: () => void;
-    onSkip: () => void;
-  }) {
-    return (
-      <div>
-        <span>{`TourStep:${currentStep}`}</span>
-        <button type="button" onClick={onPrev}>
-          Tour back
-        </button>
-        <button type="button" onClick={onNext}>
-          Tour next
-        </button>
-        <button type="button" onClick={onSkip}>
-          Tour skip
-        </button>
-      </div>
-    );
-  }
-);
-
 import AppExperience from "@/components/AppExperience";
-
-describe("AppExperience demo tour", () => {
-  const originalFetch = global.fetch;
-
-  beforeEach(() => {
-    window.history.replaceState({}, "", "/app?demo");
-    window.localStorage.clear();
-    global.fetch = jest.fn() as typeof fetch;
-  });
-
-  afterEach(() => {
-    global.fetch = originalFetch;
-    jest.clearAllMocks();
-  });
-
-  it("uses fixtures through the demo tour without opening checkout", async () => {
-    const user = userEvent.setup();
-
-    render(<AppExperience />);
-
-    for (let i = 0; i < 7; i += 1) {
-      await user.click(screen.getByRole("button", { name: "Tour next" }));
-    }
-
-    expect(screen.getByText("TourStep:7")).toBeInTheDocument();
-    expect(screen.getByText("MatchScore:72")).toBeInTheDocument();
-    expect(screen.getAllByText("PayGate:idle:Jordan Rivera")).toHaveLength(2);
-
-    await user.click(screen.getAllByRole("button", { name: "Pay now" })[0]);
-
-    expect(screen.getByText("ResumeRewriter:2")).toBeInTheDocument();
-    expect(screen.queryByText("CheckoutModal")).not.toBeInTheDocument();
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
-  it("restores the locked paygate state when moving backward in the tour", async () => {
-    const user = userEvent.setup();
-
-    render(<AppExperience />);
-
-    for (let i = 0; i < 8; i += 1) {
-      await user.click(screen.getByRole("button", { name: "Tour next" }));
-    }
-
-    expect(screen.getByText("TourStep:8")).toBeInTheDocument();
-    expect(screen.getByText("ResumeRewriter:2")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Tour back" }));
-
-    expect(screen.getByText("TourStep:7")).toBeInTheDocument();
-    expect(screen.getAllByText("PayGate:idle:Jordan Rivera")).toHaveLength(2);
-    expect(screen.queryByText("ResumeRewriter:2")).not.toBeInTheDocument();
-  });
-
-  it("can restart the tour after skipping to the fully unlocked demo state", async () => {
-    const user = userEvent.setup();
-
-    render(<AppExperience />);
-
-    await user.click(screen.getByRole("button", { name: "Tour skip" }));
-
-    expect(screen.queryByText(/TourStep:/)).not.toBeInTheDocument();
-    // After skipping, syncTourState sets the last step which activates the "resume" tab
-    expect(screen.getByText("OptimizedResume:ready")).toBeInTheDocument();
-
-    // Only one "Take a tour" button now — sidebar no longer has it
-    await user.click(screen.getByRole("button", { name: /Take a tour/i }));
-
-    expect(screen.getByText("TourStep:0")).toBeInTheDocument();
-    expect(screen.queryByText("OptimizedResume:ready")).not.toBeInTheDocument();
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
-  it("clears persisted interview enrichment when entering demo mode", async () => {
-    const user = userEvent.setup();
-
-    window.localStorage.setItem(
-      "ps_workspace_v1",
-      JSON.stringify({
-        resumeData: { name: "Persisted Resume" },
-        enrichedResumeData: { name: "Persisted Enrichment" },
-        interviewBrief: { interview_complete: true, enriched_experiences: [], additional_skills: [], notable_context: "persisted" },
-        interviewMessages: [{ role: "assistant", content: "persisted" }],
-      })
-    );
-
-    render(<AppExperience />);
-
-    for (let i = 0; i < 7; i += 1) {
-      await user.click(screen.getByRole("button", { name: "Tour next" }));
-    }
-
-    expect(screen.getAllByText("PayGate:idle:Jordan Rivera")).toHaveLength(2);
-    expect(screen.queryByText(/Persisted/)).not.toBeInTheDocument();
-  });
-});
 
 describe("AppExperience nav button visibility", () => {
   const originalFetch = global.fetch;
 
   beforeEach(() => {
     window.localStorage.clear();
+    window.history.replaceState({}, "", "/app");
     global.fetch = jest.fn() as typeof fetch;
   });
 
   afterEach(() => {
     global.fetch = originalFetch;
     jest.clearAllMocks();
-    window.history.replaceState({}, "", "/");
   });
 
-  it("shows the pay button in the nav on initial load when user has not paid", () => {
-    window.history.replaceState({}, "", "/app");
+  it("shows the Unlock button in the nav when the user has not paid", () => {
     render(<AppExperience />);
     expect(screen.getByRole("button", { name: /Unlock/i })).toBeInTheDocument();
   });
 
-  it("hides the pay button in the nav when in demo mode", () => {
-    window.history.replaceState({}, "", "/app?demo");
-    render(<AppExperience />);
-    expect(screen.queryByRole("button", { name: /Unlock/i })).not.toBeInTheDocument();
-  });
-
-  it("shows the export button in the nav after demo payment and content load", async () => {
-    const user = userEvent.setup();
-    window.history.replaceState({}, "", "/app?demo");
-    render(<AppExperience />);
-
-    await user.click(screen.getByRole("button", { name: "Tour skip" }));
-
-    expect(screen.getByRole("button", { name: /Export .zip/i })).toBeInTheDocument();
-  });
-
-  it("hides the export button in the nav before content is available", () => {
-    window.history.replaceState({}, "", "/app");
+  it("hides the export button before any content is available", () => {
     render(<AppExperience />);
     expect(screen.queryByRole("button", { name: /Export .zip/i })).not.toBeInTheDocument();
   });
 
-  it("sidebar session card has no action buttons — only one New analysis button (in nav)", async () => {
+  it("shows the CheckoutModal when checkout is triggered", async () => {
     const user = userEvent.setup();
-    window.history.replaceState({}, "", "/app?demo");
+
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({ clientSecret: "test_secret" }),
+    });
+
     render(<AppExperience />);
 
-    await user.click(screen.getByRole("button", { name: "Tour skip" }));
+    await user.click(screen.getByRole("button", { name: /Unlock/i }));
 
-    // Nav is the sole source of "New analysis" — sidebar no longer duplicates it
-    expect(screen.getAllByRole("button", { name: /New analysis/i })).toHaveLength(1);
-  });
-
-  it("sidebar session card has no action buttons — only one Take a tour button (in nav)", async () => {
-    const user = userEvent.setup();
-    window.history.replaceState({}, "", "/app?demo");
-    render(<AppExperience />);
-
-    await user.click(screen.getByRole("button", { name: "Tour skip" }));
-
-    // Nav is the sole source of "Take a tour" — sidebar no longer duplicates it
-    expect(screen.getAllByRole("button", { name: /Take a tour/i })).toHaveLength(1);
+    expect(screen.getByText("CheckoutModal")).toBeInTheDocument();
   });
 });
