@@ -502,7 +502,7 @@ describe("AppExperience batch drill-down", () => {
     expect(screen.queryByRole("button", { name: /Generate full analysis/i })).not.toBeInTheDocument();
   });
 
-  it("fires paid phases without requiring 'Generate full analysis' click", async () => {
+  it("fires paid phases for batch drill-down immediately after payment callback", async () => {
     seedBatchWorkspace();
     mockPaidPhaseFetches();
 

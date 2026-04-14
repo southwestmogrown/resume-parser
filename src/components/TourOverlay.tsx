@@ -32,6 +32,7 @@ const NAV_OFFSET = 96;
 const VIEWPORT_MARGIN = 24;
 const LAYOUT_SETTLE_MS = 350;
 const SCROLL_EXEMPT_ANCESTOR_SELECTOR = ".site-nav";
+const OVERLAP_PENALTY_BASE = 1_000_000;
 // Balanced backdrop dimming: dark enough to focus attention, light enough that the lifted target still reads clearly.
 const OVERLAY_ALPHA = 0.58;
 // Reserve up to roughly a third of the viewport for top/bottom tooltips so late steps stay visible on laptop/tablet screens.
@@ -154,7 +155,7 @@ function getTooltipPosition(
 
     const overlapArea = overlapWidth * overlapHeight;
     // Never cover the highlighted element when there is any non-overlapping option.
-    const overlapPenalty = overlapArea > 0 ? 1_000_000 + overlapArea : 0;
+    const overlapPenalty = overlapArea > 0 ? OVERLAP_PENALTY_BASE + overlapArea : 0;
 
     return {
       top: clampedTop,
