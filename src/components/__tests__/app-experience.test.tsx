@@ -6,6 +6,13 @@ import type { BatchScoreResult } from "@/lib/types";
 
 const LS_KEY = "ps_workspace_v1";
 
+const secondBatchResult: BatchScoreResult = {
+  ...sampleBatchResult,
+  jobTitle: "Frontend Engineer",
+  company: "Acme",
+  jobDescription: "Acme is seeking a Frontend Engineer with React skills.",
+};
+
 // ── Capture callbacks from mocked components ─────────────────────────────────
 
 let capturedCheckoutOnSuccess: ((token: string, expiresAt: string) => void) | null = null;
@@ -204,9 +211,9 @@ function seedBatchWorkspace(overrides: Record<string, unknown> = {}) {
       resumeData: sampleResumeData,
       batchResults: [
         sampleBatchResult,
-        { ...sampleBatchResult, jobTitle: "Frontend Engineer", company: "Acme", jobDescription: "Acme is seeking a Frontend Engineer with React skills." },
+        secondBatchResult,
       ],
-      jobDescriptions: [sampleBatchResult.jobDescription, "Acme is seeking a Frontend Engineer with React skills."],
+      jobDescriptions: [sampleBatchResult.jobDescription, secondBatchResult.jobDescription],
       ...overrides,
     })
   );
@@ -338,8 +345,11 @@ describe("AppExperience paid phase auto-trigger", () => {
 
     render(<AppExperience />);
 
-    // Give effects time to fire
-    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+    // Rewrite data already exists — auto-trigger should not fire paid phases.
+    // Wait for any pending effects to settle, then verify no paid-phase fetch was made.
+    await waitFor(() => {
+      expect(screen.getByText(`ResumeRewriter:${sampleRewriteSuggestions.length}`)).toBeInTheDocument();
+    });
 
     const urls = (global.fetch as jest.Mock).mock.calls.map((c: unknown[]) => c[0]);
     expect(urls).not.toContain("/api/rewrite");
@@ -537,8 +547,7 @@ describe("AppExperience batch drill-down", () => {
     });
 
     // Now drill into the second JD (different JD text)
-    const secondJD = { ...sampleBatchResult, jobTitle: "Frontend Engineer", company: "Acme", jobDescription: "Acme is seeking a Frontend Engineer with React skills." };
-    act(() => { capturedBatchOnSelect!(secondJD); });
+    act(() => { capturedBatchOnSelect!(secondBatchResult); });
 
     // After switching, StarPrepPanel should receive the new JD
     await waitFor(() => {
