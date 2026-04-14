@@ -41,8 +41,30 @@ import type {
 } from "@/lib/types";
 
 const LS_KEY = "ps_workspace_v1";
+const BATCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 type ResultTab = "rewrites" | "study" | "cover" | "interview" | "resume";
+
+interface BatchAnalysisEntry {
+  rewriteSuggestions: RewriteSuggestion[] | null;
+  studyItems: StudyItem[] | null;
+  coverLetter: string | null;
+  coverLetterBlocked: string[] | null;
+  optimizedResume: string | null;
+  starQuestions: StarQuestion[];
+  starAnswers: StarAnswer[];
+  starMessages: ConversationMessage[];
+  activeStarQuestion: StarQuestion | null;
+  savedAt: number;
+}
+
+function hashJD(jd: string): string {
+  let h = 0;
+  for (let i = 0; i < jd.length; i++) {
+    h = (Math.imul(31, h) + jd.charCodeAt(i)) | 0;
+  }
+  return h.toString(36);
+}
 
 function StepPill({
   number,
@@ -105,11 +127,16 @@ export default function AppExperience() {
   const [optimizedResume, setOptimizedResume] = useState<string | null>(null);
   const [loadingOptimizedResume, setLoadingOptimizedResume] = useState(false);
 
+  // Per-JD paid result cache (batch drill-down)
+  const [batchAnalysisCache, setBatchAnalysisCache] = useState<Record<string, BatchAnalysisEntry>>({});
+
   const jobDescriptionsRef = useRef(jobDescriptions);
   const resumeDataRef = useRef(resumeData);
   const matchResultRef = useRef(matchResult);
   const githubProfileRef = useRef(githubProfile);
   const linkedinProfileRef = useRef(linkedinProfile);
+  const selectedBatchJDRef = useRef(selectedBatchJD);
+  const batchAnalysisCacheRef = useRef(batchAnalysisCache);
   const pollTimeoutRef = useRef<number | ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
 
@@ -118,6 +145,8 @@ export default function AppExperience() {
   useEffect(() => { matchResultRef.current = matchResult; }, [matchResult]);
   useEffect(() => { githubProfileRef.current = githubProfile; }, [githubProfile]);
   useEffect(() => { linkedinProfileRef.current = linkedinProfile; }, [linkedinProfile]);
+  useEffect(() => { selectedBatchJDRef.current = selectedBatchJD; }, [selectedBatchJD]);
+  useEffect(() => { batchAnalysisCacheRef.current = batchAnalysisCache; }, [batchAnalysisCache]);
 
   useEffect(() => {
     return () => {
@@ -168,6 +197,15 @@ export default function AppExperience() {
       if (d.optimizedResume) setOptimizedResume(d.optimizedResume as string);
       if (typeof d.analysisToken === "string") setAnalysisToken(d.analysisToken);
       if (typeof d.tokenExpiresAt === "string") setTokenExpiresAt(d.tokenExpiresAt);
+      if (d.batchAnalysisCache && typeof d.batchAnalysisCache === "object") {
+        const now = Date.now();
+        const pruned = Object.fromEntries(
+          Object.entries(d.batchAnalysisCache as Record<string, BatchAnalysisEntry>).filter(
+            ([, v]) => now - v.savedAt < BATCH_CACHE_TTL_MS
+          )
+        );
+        if (Object.keys(pruned).length > 0) setBatchAnalysisCache(pruned);
+      }
     } catch {
       localStorage.removeItem(LS_KEY);
     }
@@ -176,6 +214,10 @@ export default function AppExperience() {
   // Save whenever key state changes (skip if nothing to save)
   useEffect(() => {
     if (!resumeData && !matchResult && !batchResults) return;
+    const now = Date.now();
+    const prunedCache = Object.fromEntries(
+      Object.entries(batchAnalysisCache).filter(([, v]) => now - v.savedAt < BATCH_CACHE_TTL_MS)
+    );
     try {
       localStorage.setItem(LS_KEY, JSON.stringify({
         resumeData,
@@ -192,11 +234,12 @@ export default function AppExperience() {
         optimizedResume,
         analysisToken,
         tokenExpiresAt,
+        batchAnalysisCache: prunedCache,
       }));
     } catch {
       // Storage unavailable or full
     }
-  }, [analysisToken, batchResults, coverLetter, enrichedResumeData, interviewBrief, jobDescriptions, matchResult, optimizedResume, resumeData, rewriteSuggestions, starAnswers, starQuestions, studyItems, tokenExpiresAt]);
+  }, [analysisToken, batchAnalysisCache, batchResults, coverLetter, enrichedResumeData, interviewBrief, jobDescriptions, matchResult, optimizedResume, resumeData, rewriteSuggestions, starAnswers, starQuestions, studyItems, tokenExpiresAt]);
 
   const canAnalyze = Boolean((resumeFile || resumeData) && jobDescriptions.length > 0);
   const isBusy = loadingExtraction || loadingScore || loadingRewrite || loadingCoverLetter || loadingStudyPlan || loadingBatch;
@@ -320,8 +363,9 @@ export default function AppExperience() {
   useEffect(() => { enrichedResumeDataRef.current = enrichedResumeData; }, [enrichedResumeData]);
 
   const runPaidPhases = useCallback(
-    async (resumeDataArg: ResumeData, matchResultArg: MatchResult, jd: string) => {
-      if (!analysisToken) return;
+    async (resumeDataArg: ResumeData, matchResultArg: MatchResult, jd: string, tokenOverride?: string) => {
+      const token = tokenOverride ?? analysisToken;
+      if (!token) return;
 
       // Prefer enriched data if available
       const effectiveResumeData = enrichedResumeDataRef.current ?? resumeDataArg;
@@ -339,7 +383,7 @@ export default function AppExperience() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-analysis-token": analysisToken,
+          "x-analysis-token": token,
         },
         body: JSON.stringify({
           resumeData: effectiveResumeData,
@@ -361,7 +405,7 @@ export default function AppExperience() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-analysis-token": analysisToken,
+          "x-analysis-token": token,
         },
         body: JSON.stringify({
           matchResult: matchResultArg,
@@ -386,7 +430,7 @@ export default function AppExperience() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-analysis-token": analysisToken,
+            "x-analysis-token": token,
           },
           body: JSON.stringify({
             resumeData: effectiveResumeData,
@@ -422,16 +466,39 @@ export default function AppExperience() {
   );
 
   // Auto-trigger paid phases when token arrives and score is ready.
-  // Skips batch drill-down — user explicitly triggers via handleBatchAnalyze button.
+  // Skips batch drill-down — payment success handler triggers directly in that path.
   useEffect(() => {
     if (!analysisToken || !resumeData || !matchResult) return;
-    if (selectedBatchJD) return; // batch drill-down uses explicit button, not auto-trigger
+    if (selectedBatchJD) return; // batch drill-down is handled by handlePaymentSuccess
     if (rewriteSuggestions !== null || studyItems !== null || coverLetter !== null) return;
     if (loadingRewrite || loadingStudyPlan || loadingCoverLetter) return;
     const jd = jobDescriptionsRef.current[0];
     if (!jd) return;
     void runPaidPhases(resumeData, matchResult, jd);
   }, [analysisToken, coverLetter, loadingCoverLetter, loadingRewrite, loadingStudyPlan, matchResult, resumeData, rewriteSuggestions, runPaidPhases, selectedBatchJD, studyItems]);
+
+  // Sync current paid state into the batch analysis cache whenever it changes in drill-down mode.
+  useEffect(() => {
+    if (!selectedBatchJD) return;
+    if (!rewriteSuggestions && !studyItems && !coverLetter && !coverLetterBlocked && !optimizedResume
+      && starQuestions.length === 0 && starAnswers.length === 0) return;
+    const key = hashJD(selectedBatchJD);
+    setBatchAnalysisCache((prev) => ({
+      ...prev,
+      [key]: {
+        rewriteSuggestions,
+        studyItems,
+        coverLetter,
+        coverLetterBlocked,
+        optimizedResume,
+        starQuestions,
+        starAnswers,
+        starMessages,
+        activeStarQuestion,
+        savedAt: Date.now(),
+      },
+    }));
+  }, [activeStarQuestion, coverLetter, coverLetterBlocked, optimizedResume, rewriteSuggestions, selectedBatchJD, starAnswers, starMessages, starQuestions, studyItems]);
 
   const handleBatchAnalyze = useCallback(() => {
     if (!resumeData || !matchResult || !selectedBatchJD || !analysisToken) return;
@@ -579,16 +646,32 @@ export default function AppExperience() {
       setSelectedBatchJD(result.jobDescription);
       setJobDescriptions([result.jobDescription]);
       setMatchResult(drillMatchResult);
-      setRewriteSuggestions(null);
-      setStudyItems(null);
-      setCoverLetter(null);
-      setCoverLetterBlocked(null);
-      setOptimizedResume(null);
-      setStarQuestions([]);
-      setStarAnswers([]);
-      setActiveStarQuestion(null);
-      setStarMessages([]);
-      // batchResults intentionally preserved — auto-trigger handles paid phases if token exists
+
+      // Restore from cache if available and within TTL
+      const key = hashJD(result.jobDescription);
+      const cached = batchAnalysisCacheRef.current[key];
+      if (cached && Date.now() - cached.savedAt < BATCH_CACHE_TTL_MS) {
+        setRewriteSuggestions(cached.rewriteSuggestions);
+        setStudyItems(cached.studyItems);
+        setCoverLetter(cached.coverLetter);
+        setCoverLetterBlocked(cached.coverLetterBlocked);
+        setOptimizedResume(cached.optimizedResume);
+        setStarQuestions(cached.starQuestions);
+        setStarAnswers(cached.starAnswers);
+        setActiveStarQuestion(cached.activeStarQuestion);
+        setStarMessages(cached.starMessages);
+        setActiveTab("rewrites");
+      } else {
+        setRewriteSuggestions(null);
+        setStudyItems(null);
+        setCoverLetter(null);
+        setCoverLetterBlocked(null);
+        setOptimizedResume(null);
+        setStarQuestions([]);
+        setStarAnswers([]);
+        setActiveStarQuestion(null);
+        setStarMessages([]);
+      }
     },
     []
   );
@@ -623,7 +706,15 @@ export default function AppExperience() {
     setTokenExpiresAt(expiresAt);
     setPaymentState("paid");
     setCheckoutClientSecret(null);
-  }, []);
+    // In batch drill-down mode the auto-trigger is suppressed, so fire paid phases directly
+    // using the fresh token before it lands in state (avoids stale closure).
+    const batchJD = selectedBatchJDRef.current;
+    const rd = resumeDataRef.current;
+    const mr = matchResultRef.current;
+    if (batchJD && rd && mr) {
+      void runPaidPhases(rd, mr, batchJD, token);
+    }
+  }, [runPaidPhases]);
 
   const handlePay = useCallback(async () => {
     try {
@@ -781,6 +872,7 @@ export default function AppExperience() {
     setTokenExpiresAt(null);
     setPaymentState("idle");
     setCheckoutClientSecret(null);
+    setBatchAnalysisCache({});
     try { localStorage.removeItem(LS_KEY); } catch { /* ignore */ }
   }, []);
 
