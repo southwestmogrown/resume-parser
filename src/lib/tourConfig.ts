@@ -35,7 +35,7 @@ export const TOUR_STEPS: TourStep[] = [
     description:
       "Paste the job description you're targeting. You can add up to 6 at once for batch comparison. The more specific the posting, the more useful the analysis.",
     targetSelector: ".tour-target-job-input",
-    placement: "left",
+    placement: "top",
     autoAdvanceMs: 9000,
   },
   {
@@ -43,7 +43,7 @@ export const TOUR_STEPS: TourStep[] = [
     description:
       "GitHub is optional, but it helps PassStack see what you actually ship — repos, languages, and public proof of work.",
     targetSelector: ".tour-target-github-input",
-    placement: "bottom",
+    placement: "right",
     autoAdvanceMs: 8000,
   },
   {
@@ -51,7 +51,7 @@ export const TOUR_STEPS: TourStep[] = [
     description:
       "LinkedIn is optional too. It adds role history, education, and softer signals that won't show up cleanly in a PDF alone.",
     targetSelector: ".tour-target-linkedin-url",
-    placement: "bottom",
+    placement: "right",
     autoAdvanceMs: 8000,
   },
   {
@@ -59,7 +59,7 @@ export const TOUR_STEPS: TourStep[] = [
     description:
       "Click Analyze. Phase 1 extracts your resume data. Phase 2 scores you against the job description — both free, no account required.",
     targetSelector: ".tour-analyze-button",
-    placement: "top",
+    placement: "bottom",
     autoAdvanceMs: 8000,
   },
   {
@@ -75,7 +75,7 @@ export const TOUR_STEPS: TourStep[] = [
     description:
       "A one-time $5 payment unlocks bullet rewrites tailored to the JD, a structured study plan, a cover letter draft, and STAR interview coaching. The score is always free.",
     targetSelector: ".tour-anchor-interview-paygate .tour-pay-button",
-    placement: "bottom",
+    placement: "top",
     autoAdvanceMs: 10000,
     // NOTE: do NOT auto-click the unlock button — that would open the payment modal mid-tour.
     // analysisToken is set via handleTourNext directly (no onActivate here).

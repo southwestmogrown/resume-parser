@@ -31,6 +31,7 @@ const TOOLTIP_GAP = 16;
 const NAV_OFFSET = 96;
 const VIEWPORT_MARGIN = 24;
 const LAYOUT_SETTLE_MS = 350;
+const SCROLL_EXEMPT_ANCESTOR_SELECTOR = ".site-nav";
 // Balanced backdrop dimming: dark enough to focus attention, light enough that the lifted target still reads clearly.
 const OVERLAY_ALPHA = 0.58;
 // Reserve up to roughly a third of the viewport for top/bottom tooltips so late steps stay visible on laptop/tablet screens.
@@ -168,6 +169,9 @@ function scrollTargetIntoView(
   tooltipSize: { width: number; height: number }
 ) {
   if (!target) return;
+  if (target.closest(SCROLL_EXEMPT_ANCESTOR_SELECTOR)) return;
+  const targetStyle = window.getComputedStyle(target);
+  if (targetStyle.position === "fixed") return;
   const rect = target.getBoundingClientRect();
   const tooltipBuffer =
     placement === "top" || placement === "bottom"
@@ -340,6 +344,8 @@ export default function TourOverlay({
 
     // Wait for state-driven layout changes and sticky positioning to settle before the final measurement.
     settleTimerRef.current = setTimeout(() => {
+      const target = getTargetElement(step.targetSelector);
+      scrollTargetIntoView(target, step.placement ?? "bottom", tooltipSize);
       scheduleUpdate();
     }, LAYOUT_SETTLE_MS);
 
