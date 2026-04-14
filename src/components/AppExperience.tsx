@@ -224,13 +224,20 @@ export default function AppExperience() {
       if (d.rewriteSuggestions) setRewriteSuggestions(d.rewriteSuggestions as RewriteSuggestion[]);
       if (d.studyItems) setStudyItems(d.studyItems as StudyItem[]);
       if (d.coverLetter) setCoverLetter(d.coverLetter as string);
+      if (Array.isArray(d.coverLetterBlocked)) setCoverLetterBlocked(d.coverLetterBlocked as string[]);
       if (Array.isArray(d.jobDescriptions) && (d.jobDescriptions as string[]).length > 0) {
         setJobDescriptions(d.jobDescriptions as string[]);
       }
+      if (d.githubProfile) setGithubProfile(d.githubProfile as GitHubProfile);
+      if (d.linkedinProfile) setLinkedinProfile(d.linkedinProfile as LinkedInProfile);
       if (d.interviewBrief) setInterviewBrief(d.interviewBrief as InterviewBrief);
       if (d.enrichedResumeData) setEnrichedResumeData(d.enrichedResumeData as ResumeData);
       if (d.starQuestions) setStarQuestions(d.starQuestions as StarQuestion[]);
       if (d.starAnswers) setStarAnswers(d.starAnswers as StarAnswer[]);
+      if (d.activeStarQuestion) setActiveStarQuestion(d.activeStarQuestion as StarQuestion);
+      if (Array.isArray(d.starMessages) && (d.starMessages as ConversationMessage[]).length > 0) {
+        setStarMessages(d.starMessages as ConversationMessage[]);
+      }
       if (d.optimizedResume) setOptimizedResume(d.optimizedResume as string);
       if (typeof d.analysisToken === "string") setAnalysisToken(d.analysisToken);
       if (typeof d.tokenExpiresAt === "string") setTokenExpiresAt(d.tokenExpiresAt);
@@ -263,11 +270,16 @@ export default function AppExperience() {
         rewriteSuggestions,
         studyItems,
         coverLetter,
+        coverLetterBlocked,
         jobDescriptions,
+        githubProfile,
+        linkedinProfile,
         interviewBrief,
         enrichedResumeData,
         starQuestions,
         starAnswers,
+        activeStarQuestion,
+        starMessages,
         optimizedResume,
         analysisToken,
         tokenExpiresAt,
@@ -276,7 +288,7 @@ export default function AppExperience() {
     } catch {
       // Storage unavailable or full
     }
-  }, [analysisToken, batchAnalysisCache, batchResults, coverLetter, enrichedResumeData, interviewBrief, jobDescriptions, matchResult, optimizedResume, resumeData, rewriteSuggestions, starAnswers, starQuestions, studyItems, tokenExpiresAt]);
+  }, [activeStarQuestion, analysisToken, batchAnalysisCache, batchResults, coverLetter, coverLetterBlocked, enrichedResumeData, githubProfile, interviewBrief, jobDescriptions, linkedinProfile, matchResult, optimizedResume, resumeData, rewriteSuggestions, starAnswers, starMessages, starQuestions, studyItems, tokenExpiresAt]);
 
   const canAnalyze = Boolean((resumeFile || resumeData) && jobDescriptions.length > 0);
   const isBusy = loadingExtraction || loadingScore || loadingRewrite || loadingCoverLetter || loadingStudyPlan || loadingBatch;
@@ -1412,6 +1424,21 @@ export default function AppExperience() {
                             />
                           </div>
                         ) : null
+                      ) : selectedBatchJD && !hasPaidContent && !loadingPaid ? (
+                        <div
+                          style={{
+                            padding: "var(--space-16) var(--space-8)",
+                            textAlign: "center",
+                            color: "var(--ps-text-faint)",
+                            border: "1px dashed var(--ps-border)",
+                            borderRadius: "var(--radius-lg)",
+                          }}
+                        >
+                          <p className="eyebrow">interview prep locked</p>
+                          <p className="result-muted" style={{ marginTop: "var(--space-3)", fontSize: "13px" }}>
+                            Click &ldquo;Generate full analysis&rdquo; in the sidebar to unlock interview prep for this role.
+                          </p>
+                        </div>
                       ) : (
                         matchResult && resumeData ? (
                           <StarPrepPanel
