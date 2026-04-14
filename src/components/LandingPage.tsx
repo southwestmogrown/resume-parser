@@ -15,8 +15,8 @@ const phases = [
   },
   {
     number: "02",
-    title: "Gap Analysis",
-    body: "Every missing skill ranked by severity — dealbreaker, learnable, or soft. No more guessing what's killing your application.",
+    title: "Gap Analysis + Posting Sniffer",
+    body: "Every missing skill ranked by severity — dealbreaker, learnable, or soft. Plus an automatic scan of the job posting itself for red flags: ghost jobs, incoherent requirements, and scam indicators.",
   },
   {
     number: "03",
@@ -267,6 +267,7 @@ export default function LandingPage() {
                 <li>Learnable gaps in amber — skills worth investing time in</li>
                 <li>Soft gaps in green — nice-to-have optimizations</li>
                 <li>Specific reasons why each gap matters to the role</li>
+                <li>Job posting quality scan — flags ghost jobs, scam indicators, impossible requirements, and other red flags before you invest time applying</li>
               </ul>
             </div>
           </div>
@@ -508,6 +509,7 @@ export default function LandingPage() {
               <div className="eyebrow" style={{ marginBottom: "var(--space-4)" }}>what you get for $5</div>
               <ul className="feature-list">
                 <li>Match score + severity-tiered gap analysis</li>
+                <li>Job posting quality scan — ghost jobs, scam indicators, impossible requirements</li>
                 <li>Bullet rewrites — before &amp; after, per role</li>
                 <li>Personalized cover letter draft</li>
                 <li>Gap-based study plan with resources</li>

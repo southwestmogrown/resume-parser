@@ -17,7 +17,7 @@ A Next.js application toolkit for developers — upload a PDF resume and get a f
 
 - **Phase 0 — Experience Interviewer** (FREE, optional) — Multi-turn chat that surfaces concrete impact metrics and hidden skills from the user's actual experience. Produces an `InterviewBrief` that is merged into `ResumeData` before scoring via `mergeEnrichedResume`. Runs before Phase 1 scoring; skip anytime.
 1. **Extraction phase** (FREE) — Claude reads the PDF (base64-encoded) and returns structured `ResumeData`
-2. **Scoring phase** (FREE) — Claude compares `ResumeData` + optional `GitHubProfile` / `LinkedInProfile` against the JD and returns `MatchResult` with severity-tiered gaps
+2. **Scoring phase** (FREE) — Claude compares `ResumeData` + optional `GitHubProfile` / `LinkedInProfile` against the JD and returns `MatchResult` with severity-tiered gaps **and `jobPostingFlags`** — an automatic scan of the job posting for red flags (ghost jobs, impossible requirements, scam indicators)
 3. **Rewrite + Study phase** (PAID, parallel) — Claude generates bullet rewrites and a study plan
 4. **Cover letter phase** (PAID, streaming) — Claude streams a cover letter draft OR a "do not apply" redirect if dealbreakers exist (≤300 words, hard-capped at 500 tokens)
 - **Phase 5 — STAR Prep** (PAID) — Converts gap analysis into coached behavioral interview prep. Generates tailored `StarQuestion[]` then coaches the user through building STAR-format answers question by question. Fourth tab in the results panel.
@@ -51,9 +51,21 @@ DO_NOT_APPLY — <2-3 sentences>
 
 `MatchScore.tsx` parses this prefix and renders it as a `SeverityPill` badge (green/sage/amber/red). The prose is displayed below. Do not change this format without updating both the score route prompt and `MatchScore.tsx`.
 
-### Prompt Contract — Cover Letter Dealbreaker Guard
+### Prompt Contract — Phase 2 Job Posting Flags (Scam Sniffer)
 
-`/api/cover-letter` enforces a dealbreaker block at **two layers**:
+`/api/score` instructs Claude to scan the job description and return a `jobPostingFlags` array alongside the match result. This is the "bullshit sniffer" — free, automatic, no extra call.
+
+Two severity levels:
+- `"warning"` — mildly concerning but could be legitimate (vague company, no salary range, generic boilerplate)
+- `"suspicious"` — strong red-flag indicators: impossible experience requirements (e.g. "8 years of Kubernetes" posted in 2018), mutually exclusive requirements, unusually high pay with no verifiable company, ghost job indicators, keyword-stuffed or unprofessional language
+
+Returns `[]` if no meaningful flags are found. Minor style issues are intentionally omitted.
+
+`MatchScore.tsx` renders flags in a `PostingFlags` sub-component below the gap sections. Each flag card uses 🚩 (suspicious) or ⚠️ (warning) and a `SeverityPill` badge (red/amber).
+
+Do not add a token gate to `/api/score` — job posting quality analysis is part of the free scoring phase.
+
+### Prompt Contract — Cover Letter Dealbreaker Guard
 1. **Route level (422)**: If `matchResult.missingSkills` contains any `severity === "dealbreaker"` entries, the route returns 422 before calling Claude. Body: `{ error, dealbreakers: string[] }`.
 2. **Prompt level**: The Claude prompt includes an explicit guard instructing it to refuse and suggest alternative role types if dealbreakers exist.
 
@@ -125,6 +137,7 @@ Saved fields: `resumeData`, `matchResult`, `batchResults`, `rewriteSuggestions`,
 | `app/api/interview/route.ts` | POST — Phase 0: multi-turn Experience Interviewer → `InterviewResponse` (**free, no auth**, `claude-haiku-4-5-20251001`) |
 | `app/api/generate-star-questions/route.ts` | POST — Phase 5 setup: generates `StarQuestion[]` from gaps (**free, no auth**) |
 | `app/api/star-prep/route.ts` | POST — Phase 5: multi-turn STAR coaching → `StarPrepResponse` (token auth, first-turn consume only) |
+| `app/api/optimized-resume/route.ts` | POST — Phase 6: synthesizes STAR answers + rewrites → ATS-ready resume text (token auth, requires `star_prep_unlocked`; `maxDuration=60`) |
 | `app/api/github-profile/route.ts` | POST — GitHub username → `GitHubProfile` (public API, no auth) |
 | `app/api/linkedin-profile/route.ts` | POST — pasted LinkedIn text → `LinkedInProfile` via Claude (free) |
 | `app/api/create-payment-intent/route.ts` | POST — creates Stripe PaymentIntent, returns `clientSecret` |
@@ -136,6 +149,7 @@ Saved fields: `resumeData`, `matchResult`, `batchResults`, `rewriteSuggestions`,
 | `components/AppExperience.tsx` | All app state, phase logic, layout split, tabs, localStorage persistence |
 | `components/ExperienceInterviewer.tsx` | Phase 0 chat UI — typing indicator, skip button, `onBriefComplete` callback |
 | `components/StarPrepPanel.tsx` | Phase 5 two-column panel — question list + coaching chat + export |
+| `components/OptimizedResume.tsx` | Phase 6 output panel — renders the synthesized ATS-ready resume with download button |
 | `components/CheckoutModal.tsx` | In-app dark payment modal (Stripe `Elements` + `PaymentElement`) |
 | `components/ResumeUpload.tsx` | PDF drag-and-drop; shows "restored from session" after redirect |
 | `components/JobDescriptionList.tsx` | Card-based JD input (up to 6 JDs, one at a time) |
@@ -155,9 +169,10 @@ Saved fields: `resumeData`, `matchResult`, `batchResults`, `rewriteSuggestions`,
 
 **Core data:**
 - `ResumeData` — extracted candidate info (name, summary, skills, experience, education)
-- `MatchResult` — score (0–100), matched skills, `MissingSkill[]` with severity, `recommendation` (must start with `STRONG_FIT|GOOD_FIT|STRETCH|DO_NOT_APPLY — `)
+- `MatchResult` — score (0–100), matched skills, `MissingSkill[]` with severity, `recommendation` (must start with `STRONG_FIT|GOOD_FIT|STRETCH|DO_NOT_APPLY — `), optional `jobPostingFlags?: JobPostingFlag[]`
 - `MissingSkill` — `{ skill, severity: "dealbreaker" | "learnable" | "soft", reason }`
 - `GapSeverity` — union type `"dealbreaker" | "learnable" | "soft"`
+- `JobPostingFlag` — `{ flag: string, severity: "warning" | "suspicious", detail: string }` — returned by Phase 2 scam sniffer; rendered in `MatchScore.tsx` as `PostingFlags`
 
 **Profile enrichment:**
 - `GitHubProfile` — username, bio, publicRepos, followers, topLanguages, repos
@@ -184,6 +199,9 @@ Saved fields: `resumeData`, `matchResult`, `batchResults`, `rewriteSuggestions`,
 - `StarAnswer` — `{ questionId, question, situation, task, action, result, coachingNotes }`
 - `StarPrepRequest` — `{ messages: ConversationMessage[]; resumeData; matchResult; jobDescription; currentQuestion: StarQuestion }`
 - `StarPrepResponse` — `{ message: string; answer?: StarAnswer; question_complete: boolean }`
+
+**Phase 6 — Optimized Resume types:**
+- `OptimizedResumeRequest` — `{ resumeData, rewriteSuggestions, starAnswers, matchResult, jobDescription }` — synthesizes coaching output into a final ATS-ready resume
 
 ---
 
@@ -220,6 +238,7 @@ Body: `{ "resumeData": { ... }, "jobDescription": "<string>", "githubProfile"?: 
 Returns 400 if `resumeData` or `jobDescription` is missing.
 Returns `ScoreResponse` (`{ matchResult: MatchResult }`).
 `matchResult.recommendation` always begins with `STRONG_FIT|GOOD_FIT|STRETCH|DO_NOT_APPLY — `.
+`matchResult.jobPostingFlags` is always present (empty array `[]` if no flags found). Each flag: `{ flag, severity: "warning" | "suspicious", detail }`. See Prompt Contract — Phase 2 Job Posting Flags for details.
 
 **POST `/api/github-profile`** — Free
 
@@ -282,6 +301,13 @@ Requires `x-analysis-token` header.
 Returns `StarPrepResponse` (`{ message, answer?, question_complete }`).
 When `question_complete === true`, `answer` contains the full `StarAnswer`.
 Model: `claude-sonnet-4-6`.
+
+**POST `/api/optimized-resume`** — Phase 6 (**token-gated**)
+
+Body: `{ "resumeData": ResumeData, "rewriteSuggestions": RewriteSuggestion[], "starAnswers": StarAnswer[], "matchResult": MatchResult, "jobDescription": string }`
+Requires `x-analysis-token` header.
+**Access gate:** uses `checkStarPrepAccess` — returns 403 if STAR prep has not been activated yet (`'consume'` path). Requires `star_prep_unlocked === true` (`'allow'` path); no additional token use beyond what STAR prep already consumed.
+Returns plain-text ATS-ready resume. `maxDuration = 60`.
 
 ---
 
@@ -382,6 +408,7 @@ Returns 400/404/410 on error. Returns `{ token: "<analysis-token>" }` on success
 - Renders prefix as a `SeverityPill` badge (green/sage/amber/red) next to "Recommendation" label
 - Prose displayed below badge with prefix stripped
 - Missing skills in three severity sections (dealbreaker, learnable, soft) with per-item reasons
+- `PostingFlags` sub-component rendered below gaps when `result.jobPostingFlags` is non-empty: each flag card shows 🚩/⚠️ icon, a `SeverityPill` (red for `suspicious`, amber for `warning`), and the detail text
 - Shows skeleton loader during scoring phase
 
 **PayGate**

@@ -25,6 +25,13 @@ Missing skills classified into three tiers:
 
 Each gap includes a brief explanation. This turns a raw score into a **go/no-go decision**.
 
+### Job Posting Sniffer (Free, Phase 2)
+Every scoring run also scans the job description itself for red flags — automatically, at no extra cost. Flags surface alongside your match score in two tiers:
+- ⚠️ **Warning** — mildly concerning signals (vague company description, no salary range, generic boilerplate)
+- 🚩 **Suspicious** — strong red flags (impossible experience requirements, mutually exclusive skills, unusually high pay with no verifiable company, ghost job indicators, keyword-stuffed language)
+
+Don't waste time polishing an application for a posting that was never real.
+
 ### Resume Bullet Rewrites
 Claude rewrites existing bullet points to align with the specific JD's language and priorities. Rendered as before/after diffs with rationale and copy-to-clipboard.
 
@@ -217,10 +224,14 @@ src/
 ├── app/
 │   ├── api/
 │   │   ├── extract/route.ts              # Phase 1: PDF → ResumeData (free)
-│   │   ├── score/route.ts                # Phase 2: → MatchResult (free)
+│   │   ├── score/route.ts                # Phase 2: → MatchResult + jobPostingFlags (free)
+│   │   ├── interview/route.ts            # Phase 0: multi-turn Experience Interviewer (free)
 │   │   ├── rewrite/route.ts              # Phase 3a: → RewriteSuggestion[] (token)
 │   │   ├── study-plan/route.ts           # Phase 3b: → StudyItem[] (token)
 │   │   ├── cover-letter/route.ts         # Phase 4: → cover letter stream (token)
+│   │   ├── generate-star-questions/route.ts # Phase 5 setup: → StarQuestion[] (free)
+│   │   ├── star-prep/route.ts            # Phase 5: multi-turn STAR coaching (token)
+│   │   ├── optimized-resume/route.ts     # Phase 6: → ATS-ready resume text (token, star_prep_unlocked)
 │   │   ├── github-profile/route.ts       # GitHub public API → GitHubProfile
 │   │   ├── linkedin-profile/route.ts     # Pasted text → LinkedInProfile via Claude
 │   │   ├── create-payment-intent/route.ts # Stripe PaymentIntent → clientSecret
@@ -236,18 +247,23 @@ src/
 ├── components/
 │   ├── AppExperience.tsx                 # Production app: all state, phases, layout (no demo code)
 │   ├── DemoExperience.tsx                # Isolated demo: tour-driven, pre-baked fixtures, no API calls
+│   ├── ExperienceInterviewer.tsx         # Phase 0 chat UI — multi-turn experience interview
+│   ├── StarPrepPanel.tsx                 # Phase 5 two-column panel — STAR coaching + export
+│   ├── OptimizedResume.tsx               # Phase 6 output panel — ATS-ready resume + download
 │   ├── BatchResults.tsx                  # Sortable batch table with drill-down
 │   ├── CheckoutModal.tsx                 # In-app dark payment modal (Stripe PaymentElement)
 │   ├── CoverLetter.tsx                   # Streaming cover letter with copy button
 │   ├── GitHubConnect.tsx                 # GitHub username input + profile preview
 │   ├── JobDescriptionList.tsx            # Card-based JD input (up to 6)
 │   ├── LinkedInConnect.tsx               # 3-step paste flow → LinkedInProfile
-│   ├── MatchScore.tsx                    # Score + severity-tiered gap sections
+│   ├── MatchScore.tsx                    # Score + severity-tiered gaps + posting flags
 │   ├── PassStackLogo.tsx                 # Brand logo component
 │   ├── PayGate.tsx                       # Payment gate shown after free scoring
 │   ├── ResumeProfile.tsx                 # Structured candidate profile display
 │   ├── ResumeRewriter.tsx                # Before/after bullet rewrite suggestions
 │   ├── ResumeUpload.tsx                  # PDF drag-and-drop upload zone
+│   ├── ScoreRing.tsx                     # Circular score ring visualization
+│   ├── SeverityPill.tsx                  # Colored label pill (dealbreaker / learnable / soft / etc.)
 │   ├── Spinner.tsx                       # Inline loading spinner
 │   ├── TourOverlay.tsx                   # Step spotlight overlay (used only by DemoExperience)
 │   └── StudyPlan.tsx                     # Actionable study plan per gap
@@ -256,7 +272,12 @@ src/
     ├── demoData.ts                       # Demo fixtures consumed by DemoExperience
     ├── tourConfig.ts                     # TOUR_STEPS config consumed by DemoExperience
     ├── extractPdfText.ts                 # File → base64 for Anthropic document input
+    ├── mergeEnrichedResume.ts            # ResumeData + InterviewBrief → enriched ResumeData
+    ├── parseModelJson.ts                 # Strips markdown fences from Claude JSON responses
+    ├── rateLimit.ts                      # In-memory per-IP rate limiter used by API routes
+    ├── requestValidation.ts              # Shared input length constants and validators
     ├── stripe.ts                         # Stripe client singleton (server-side)
+    ├── stripePayments.ts                 # Stripe payment helpers (price lookup, PI creation)
     ├── supabaseAdmin.ts                  # Supabase service-role client
     ├── tokens.ts                         # Token minting, validation, consumption
     └── types.ts                          # All shared TypeScript interfaces
