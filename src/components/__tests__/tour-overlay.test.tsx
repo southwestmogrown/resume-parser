@@ -263,6 +263,59 @@ describe("TourOverlay", () => {
     expect(window.scrollTo).not.toHaveBeenCalled();
   });
 
+  it("keeps the tooltip inside viewport margins on narrow screens", () => {
+    const onNext = jest.fn();
+    const edgeStep: TourStep = {
+      title: "Edge step",
+      description: "Clamp me inside viewport.",
+      targetSelector: ".tour-target",
+      placement: "top",
+      autoAdvanceMs: 0,
+    };
+
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      writable: true,
+      value: 640,
+    });
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: 360,
+    });
+
+    currentRect = {
+      top: 8,
+      left: 8,
+      width: 120,
+      height: 36,
+      bottom: 44,
+      right: 128,
+      x: 8,
+      y: 8,
+      toJSON: () => ({}),
+    } as DOMRect;
+
+    render(
+      <div>
+        <div className="tour-target">Edge target</div>
+        <TourOverlay steps={[edgeStep]} currentStep={0} onNext={onNext} onPrev={jest.fn()} onSkip={jest.fn()} />
+      </div>
+    );
+
+    act(() => {
+      jest.runAllTimers();
+    });
+
+    const skipButton = screen.getByRole("button", { name: "Skip tour" });
+    const tooltip = skipButton.closest('div[style*="position: fixed"]') as HTMLElement | null;
+    expect(tooltip).not.toBeNull();
+    const tooltipTop = Number.parseFloat((tooltip as HTMLElement).style.top);
+    const tooltipLeft = Number.parseFloat((tooltip as HTMLElement).style.left);
+    expect(tooltipTop).toBeGreaterThanOrEqual(24);
+    expect(tooltipLeft).toBeGreaterThanOrEqual(24);
+  });
+
   it("shows a pause button on steps with autoAdvanceMs and hides it on manual steps", () => {
     const autoStep: TourStep = {
       title: "Auto step",
