@@ -30,6 +30,7 @@ const TOOLTIP_INITIAL_HEIGHT = 180;
 const TOOLTIP_GAP = 16;
 const TARGET_CLEARANCE = 12;
 const TOOLTIP_DISTANCE = TOOLTIP_GAP + TARGET_CLEARANCE;
+const TOP_PLACEMENT_EXTRA_OFFSET = 10;
 const NAV_OFFSET = 96;
 const VIEWPORT_MARGIN = 24;
 const LAYOUT_SETTLE_MS = 350;
@@ -85,7 +86,7 @@ function getRawTooltipPosition(
 
   if (placement === "top") {
     return {
-      top: rect.top - tooltipSize.height - TOOLTIP_DISTANCE,
+      top: rect.top - tooltipSize.height - TOOLTIP_DISTANCE - TOP_PLACEMENT_EXTRA_OFFSET,
       left: rect.left + rect.width / 2 - tooltipSize.width / 2,
     };
   }
