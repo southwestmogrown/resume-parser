@@ -232,6 +232,90 @@ describe("TourOverlay", () => {
     expect(window.scrollTo).toHaveBeenCalledWith({ top: 449, behavior: "smooth" });
   });
 
+  it("does not scroll when the active target lives inside the fixed site nav", () => {
+    const onNext = jest.fn();
+    const onPrev = jest.fn();
+    const onSkip = jest.fn();
+
+    currentRect = {
+      top: 20,
+      left: 980,
+      width: 160,
+      height: 36,
+      bottom: 56,
+      right: 1140,
+      x: 980,
+      y: 20,
+      toJSON: () => ({}),
+    } as DOMRect;
+
+    render(
+      <div className="site-nav">
+        <button className="tour-target">Export</button>
+        <TourOverlay steps={steps} currentStep={0} onNext={onNext} onPrev={onPrev} onSkip={onSkip} />
+      </div>
+    );
+
+    act(() => {
+      jest.runAllTimers();
+    });
+
+    expect(window.scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("keeps the tooltip inside viewport margins on narrow screens", () => {
+    const onNext = jest.fn();
+    const edgeStep: TourStep = {
+      title: "Edge step",
+      description: "Clamp me inside viewport.",
+      targetSelector: ".tour-target",
+      placement: "top",
+      autoAdvanceMs: 0,
+    };
+
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      writable: true,
+      value: 640,
+    });
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: 360,
+    });
+
+    currentRect = {
+      top: 8,
+      left: 8,
+      width: 120,
+      height: 36,
+      bottom: 44,
+      right: 128,
+      x: 8,
+      y: 8,
+      toJSON: () => ({}),
+    } as DOMRect;
+
+    render(
+      <div>
+        <div className="tour-target">Edge target</div>
+        <TourOverlay steps={[edgeStep]} currentStep={0} onNext={onNext} onPrev={jest.fn()} onSkip={jest.fn()} />
+      </div>
+    );
+
+    act(() => {
+      jest.runAllTimers();
+    });
+
+    const skipButton = screen.getByRole("button", { name: "Skip tour" });
+    const tooltip = skipButton.closest('div[style*="position: fixed"]') as HTMLElement | null;
+    expect(tooltip).not.toBeNull();
+    const tooltipTop = Number.parseFloat((tooltip as HTMLElement).style.top);
+    const tooltipLeft = Number.parseFloat((tooltip as HTMLElement).style.left);
+    expect(tooltipTop).toBeGreaterThanOrEqual(24);
+    expect(tooltipLeft).toBeGreaterThanOrEqual(24);
+  });
+
   it("shows a pause button on steps with autoAdvanceMs and hides it on manual steps", () => {
     const autoStep: TourStep = {
       title: "Auto step",
