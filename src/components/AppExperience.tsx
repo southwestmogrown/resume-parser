@@ -44,6 +44,7 @@ const LS_KEY = "ps_workspace_v1";
 const BATCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 type ResultTab = "rewrites" | "study" | "cover" | "interview" | "resume";
+type PaidRunResult = "no_token" | "token_invalid" | "completed";
 
 interface BatchAnalysisEntry {
   rewriteSuggestions: RewriteSuggestion[] | null;
@@ -64,6 +65,24 @@ function hashJD(jd: string): string {
     h = (Math.imul(31, h) + jd.charCodeAt(i)) | 0;
   }
   return h.toString(36);
+}
+
+function hasAnyPaidContent(params: {
+  rewriteSuggestions: RewriteSuggestion[] | null;
+  studyItems: StudyItem[] | null;
+  coverLetter: string | null;
+  coverLetterBlocked: string[] | null;
+  optimizedResume: string | null;
+  starQuestions: StarQuestion[];
+  starAnswers: StarAnswer[];
+}): boolean {
+  return Boolean(params.rewriteSuggestions)
+    || Boolean(params.studyItems)
+    || Boolean(params.coverLetter)
+    || Boolean(params.coverLetterBlocked)
+    || Boolean(params.optimizedResume)
+    || params.starQuestions.length > 0
+    || params.starAnswers.length > 0;
 }
 
 function StepPill({
@@ -137,6 +156,15 @@ export default function AppExperience() {
   const linkedinProfileRef = useRef(linkedinProfile);
   const selectedBatchJDRef = useRef(selectedBatchJD);
   const batchAnalysisCacheRef = useRef(batchAnalysisCache);
+  const rewriteSuggestionsRef = useRef(rewriteSuggestions);
+  const studyItemsRef = useRef(studyItems);
+  const coverLetterRef = useRef(coverLetter);
+  const coverLetterBlockedRef = useRef(coverLetterBlocked);
+  const optimizedResumeRef = useRef(optimizedResume);
+  const starQuestionsRef = useRef(starQuestions);
+  const starAnswersRef = useRef(starAnswers);
+  const starMessagesRef = useRef(starMessages);
+  const activeStarQuestionRef = useRef(activeStarQuestion);
   const pollTimeoutRef = useRef<number | ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
 
@@ -147,6 +175,15 @@ export default function AppExperience() {
   useEffect(() => { linkedinProfileRef.current = linkedinProfile; }, [linkedinProfile]);
   useEffect(() => { selectedBatchJDRef.current = selectedBatchJD; }, [selectedBatchJD]);
   useEffect(() => { batchAnalysisCacheRef.current = batchAnalysisCache; }, [batchAnalysisCache]);
+  useEffect(() => { rewriteSuggestionsRef.current = rewriteSuggestions; }, [rewriteSuggestions]);
+  useEffect(() => { studyItemsRef.current = studyItems; }, [studyItems]);
+  useEffect(() => { coverLetterRef.current = coverLetter; }, [coverLetter]);
+  useEffect(() => { coverLetterBlockedRef.current = coverLetterBlocked; }, [coverLetterBlocked]);
+  useEffect(() => { optimizedResumeRef.current = optimizedResume; }, [optimizedResume]);
+  useEffect(() => { starQuestionsRef.current = starQuestions; }, [starQuestions]);
+  useEffect(() => { starAnswersRef.current = starAnswers; }, [starAnswers]);
+  useEffect(() => { starMessagesRef.current = starMessages; }, [starMessages]);
+  useEffect(() => { activeStarQuestionRef.current = activeStarQuestion; }, [activeStarQuestion]);
 
   useEffect(() => {
     return () => {
@@ -363,20 +400,54 @@ export default function AppExperience() {
   useEffect(() => { enrichedResumeDataRef.current = enrichedResumeData; }, [enrichedResumeData]);
 
   const runPaidPhases = useCallback(
-    async (resumeDataArg: ResumeData, matchResultArg: MatchResult, jd: string, tokenOverride?: string) => {
+    async (
+      resumeDataArg: ResumeData,
+      matchResultArg: MatchResult,
+      jd: string,
+      tokenOverride?: string,
+      options?: { onTokenInvalid?: () => void }
+    ): Promise<PaidRunResult> => {
       const token = tokenOverride ?? analysisToken;
-      if (!token) return;
+      if (!token) return "no_token";
 
       // Prefer enriched data if available
       const effectiveResumeData = enrichedResumeDataRef.current ?? resumeDataArg;
+      let tokenInvalid = false;
 
       setLoadingRewrite(true);
       setLoadingStudyPlan(true);
       setActiveTab("rewrites");
 
       const handleTokenInvalid = () => {
+        if (tokenInvalid) return;
+        tokenInvalid = true;
         setAnalysisToken(null);
         setPaymentState("idle");
+        options?.onTokenInvalid?.();
+      };
+
+      const batchRun = Boolean(selectedBatchJDRef.current);
+      const cacheBatchUpdate = (partial: Partial<BatchAnalysisEntry>) => {
+        if (!batchRun) return;
+        const key = hashJD(jd);
+        setBatchAnalysisCache((prev) => {
+          const existing = prev[key];
+          return {
+            ...prev,
+            [key]: {
+              rewriteSuggestions: partial.rewriteSuggestions ?? existing?.rewriteSuggestions ?? null,
+              studyItems: partial.studyItems ?? existing?.studyItems ?? null,
+              coverLetter: partial.coverLetter ?? existing?.coverLetter ?? null,
+              coverLetterBlocked: partial.coverLetterBlocked ?? existing?.coverLetterBlocked ?? null,
+              optimizedResume: partial.optimizedResume ?? existing?.optimizedResume ?? null,
+              starQuestions: partial.starQuestions ?? existing?.starQuestions ?? [],
+              starAnswers: partial.starAnswers ?? existing?.starAnswers ?? [],
+              starMessages: partial.starMessages ?? existing?.starMessages ?? [],
+              activeStarQuestion: partial.activeStarQuestion ?? existing?.activeStarQuestion ?? null,
+              savedAt: Date.now(),
+            },
+          };
+        });
       };
 
       const rewritePromise = fetch("/api/rewrite", {
@@ -396,6 +467,10 @@ export default function AppExperience() {
           if (res.status === 401 || res.status === 402) { handleTokenInvalid(); return; }
           if (!res.ok) throw new Error("Rewrite generation failed");
           const data: RewriteResponse = await res.json();
+          if (batchRun && selectedBatchJDRef.current !== jd) {
+            cacheBatchUpdate({ rewriteSuggestions: data.suggestions });
+            return;
+          }
           setRewriteSuggestions(data.suggestions);
         })
         .catch(() => undefined)
@@ -417,12 +492,18 @@ export default function AppExperience() {
           if (res.status === 401 || res.status === 402) { handleTokenInvalid(); return; }
           if (!res.ok) throw new Error("Study plan generation failed");
           const data: StudyPlanResponse = await res.json();
+          if (batchRun && selectedBatchJDRef.current !== jd) {
+            cacheBatchUpdate({ studyItems: data.items });
+            return;
+          }
           setStudyItems(data.items);
         })
         .catch(() => undefined)
         .finally(() => setLoadingStudyPlan(false));
 
       await Promise.all([rewritePromise, studyPromise]);
+      // Even after both promises settle, token invalidation can occur in either chain and should halt phase 4.
+      if (tokenInvalid) return "token_invalid";
 
       setLoadingCoverLetter(true);
       try {
@@ -445,7 +526,11 @@ export default function AppExperience() {
           handleTokenInvalid();
         } else if (coverRes.status === 422) {
           const body = await coverRes.json().catch(() => ({})) as { dealbreakers?: string[] };
-          setCoverLetterBlocked(body.dealbreakers ?? []);
+          if (batchRun && selectedBatchJDRef.current !== jd) {
+            cacheBatchUpdate({ coverLetterBlocked: body.dealbreakers ?? [] });
+          } else {
+            setCoverLetterBlocked(body.dealbreakers ?? []);
+          }
         } else if (coverRes.ok && coverRes.body) {
           const reader = coverRes.body.getReader();
           const decoder = new TextDecoder();
@@ -454,16 +539,63 @@ export default function AppExperience() {
             const { done, value } = await reader.read();
             if (done) break;
             text += decoder.decode(value, { stream: true });
-            setCoverLetter(text);
+            if (batchRun && selectedBatchJDRef.current !== jd) {
+              cacheBatchUpdate({ coverLetter: text });
+            } else {
+              setCoverLetter(text);
+            }
           }
         }
       } catch {
         // Non-blocking
       }
       setLoadingCoverLetter(false);
+      return tokenInvalid ? "token_invalid" : "completed";
     },
     [analysisToken, githubProfile, linkedinProfile]
   );
+
+  const persistCurrentBatchSelection = useCallback(() => {
+    const currentJD = selectedBatchJDRef.current;
+    if (!currentJD) return;
+
+    const currentRewrite = rewriteSuggestionsRef.current;
+    const currentStudy = studyItemsRef.current;
+    const currentCover = coverLetterRef.current;
+    const currentCoverBlocked = coverLetterBlockedRef.current;
+    const currentOptimizedResume = optimizedResumeRef.current;
+    const currentStarQuestions = starQuestionsRef.current;
+    const currentStarAnswers = starAnswersRef.current;
+    const currentStarMessages = starMessagesRef.current;
+    const currentActiveQuestion = activeStarQuestionRef.current;
+
+    if (!hasAnyPaidContent({
+      rewriteSuggestions: currentRewrite,
+      studyItems: currentStudy,
+      coverLetter: currentCover,
+      coverLetterBlocked: currentCoverBlocked,
+      optimizedResume: currentOptimizedResume,
+      starQuestions: currentStarQuestions,
+      starAnswers: currentStarAnswers,
+    })) return;
+
+    const key = hashJD(currentJD);
+    setBatchAnalysisCache((prev) => ({
+      ...prev,
+      [key]: {
+        rewriteSuggestions: currentRewrite,
+        studyItems: currentStudy,
+        coverLetter: currentCover,
+        coverLetterBlocked: currentCoverBlocked,
+        optimizedResume: currentOptimizedResume,
+        starQuestions: currentStarQuestions,
+        starAnswers: currentStarAnswers,
+        starMessages: currentStarMessages,
+        activeStarQuestion: currentActiveQuestion,
+        savedAt: Date.now(),
+      },
+    }));
+  }, []);
 
   // Auto-trigger paid phases when token arrives and score is ready.
   // Skips batch drill-down — payment success handler triggers directly in that path.
@@ -480,8 +612,15 @@ export default function AppExperience() {
   // Sync current paid state into the batch analysis cache whenever it changes in drill-down mode.
   useEffect(() => {
     if (!selectedBatchJD) return;
-    if (!rewriteSuggestions && !studyItems && !coverLetter && !coverLetterBlocked && !optimizedResume
-      && starQuestions.length === 0 && starAnswers.length === 0) return;
+    if (!hasAnyPaidContent({
+      rewriteSuggestions,
+      studyItems,
+      coverLetter,
+      coverLetterBlocked,
+      optimizedResume,
+      starQuestions,
+      starAnswers,
+    })) return;
     const key = hashJD(selectedBatchJD);
     setBatchAnalysisCache((prev) => ({
       ...prev,
@@ -500,10 +639,25 @@ export default function AppExperience() {
     }));
   }, [activeStarQuestion, coverLetter, coverLetterBlocked, optimizedResume, rewriteSuggestions, selectedBatchJD, starAnswers, starMessages, starQuestions, studyItems]);
 
+  const openCheckout = useCallback(async () => {
+    try {
+      const response = await fetch("/api/create-payment-intent", { method: "POST" });
+      if (!response.ok) throw new Error("Checkout setup failed.");
+      const { clientSecret } = await response.json();
+      setCheckoutClientSecret(clientSecret as string);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Checkout setup failed.");
+    }
+  }, []);
+
   const handleBatchAnalyze = useCallback(() => {
     if (!resumeData || !matchResult || !selectedBatchJD || !analysisToken) return;
-    void runPaidPhases(resumeData, matchResult, selectedBatchJD);
-  }, [analysisToken, matchResult, resumeData, runPaidPhases, selectedBatchJD]);
+    void runPaidPhases(resumeData, matchResult, selectedBatchJD, undefined, {
+      onTokenInvalid: () => {
+        void openCheckout();
+      },
+    });
+  }, [analysisToken, matchResult, openCheckout, resumeData, runPaidPhases, selectedBatchJD]);
 
   const handleAnalyze = useCallback(async () => {
     const currentJDs = jobDescriptionsRef.current;
@@ -637,6 +791,8 @@ export default function AppExperience() {
   // Batch drill-down: keep batchResults visible, track selected JD
   const handleBatchDrillDown = useCallback(
     (result: BatchScoreResult) => {
+      persistCurrentBatchSelection();
+
       const drillMatchResult: MatchResult = {
         score: result.score,
         matchedSkills: result.matchedSkills,
@@ -673,10 +829,11 @@ export default function AppExperience() {
         setStarMessages([]);
       }
     },
-    []
+    [persistCurrentBatchSelection]
   );
 
   const handleBatchBack = useCallback(() => {
+    persistCurrentBatchSelection();
     setSelectedBatchJD(null);
     setMatchResult(null);
     setRewriteSuggestions(null);
@@ -688,7 +845,7 @@ export default function AppExperience() {
     setStarAnswers([]);
     setActiveStarQuestion(null);
     setStarMessages([]);
-  }, []);
+  }, [persistCurrentBatchSelection]);
 
   const handleBriefComplete = useCallback(
     (brief: InterviewBrief) => {
@@ -717,15 +874,8 @@ export default function AppExperience() {
   }, [runPaidPhases]);
 
   const handlePay = useCallback(async () => {
-    try {
-      const response = await fetch("/api/create-payment-intent", { method: "POST" });
-      if (!response.ok) throw new Error("Checkout setup failed.");
-      const { clientSecret } = await response.json();
-      setCheckoutClientSecret(clientSecret as string);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Checkout setup failed.");
-    }
-  }, []);
+    await openCheckout();
+  }, [openCheckout]);
 
   // ── Export ────────────────────────────────────────────────────────────────
 
