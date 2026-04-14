@@ -30,12 +30,20 @@ export interface MissingSkill {
   reason: string; // brief explanation of why this severity
 }
 
+// Job posting quality flags (bullshit sniffer — Phase 2)
+export interface JobPostingFlag {
+  flag: string;        // short label e.g. "Requirements inflation"
+  severity: 'warning' | 'suspicious';
+  detail: string;      // brief explanation
+}
+
 // Match scoring output from Claude phase 2
 export interface MatchResult {
   score: number; // 0-100
   matchedSkills: string[];
   missingSkills: MissingSkill[];
   recommendation: string;
+  jobPostingFlags?: JobPostingFlag[];
 }
 
 // Resume bullet rewrite suggestions (phase 3)

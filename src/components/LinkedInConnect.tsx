@@ -13,15 +13,16 @@ interface LinkedInConnectProps {
 type Step = "paste" | "done";
 
 export default function LinkedInConnect({ onProfile, initialProfile = null }: LinkedInConnectProps) {
-  const [profileUrl, setProfileUrl] = useState("");
+  const [profileSlug, setProfileSlug] = useState("");
   const [profileText, setProfileText] = useState("");
   const [step, setStep] = useState<Step>(initialProfile ? "done" : "paste");
   const [profile, setProfile] = useState<LinkedInProfile | null>(initialProfile);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const openHref = profileUrl.trim()
-    ? profileUrl.startsWith("http") ? profileUrl : `https://${profileUrl}`
+  const slug = profileSlug.trim().replace(/^linkedin\.com\/in\//i, "").replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+  const openHref = slug
+    ? `https://www.linkedin.com/in/${slug}`
     : "https://www.linkedin.com";
 
   useEffect(() => {
@@ -60,7 +61,7 @@ export default function LinkedInConnect({ onProfile, initialProfile = null }: Li
   }, [onProfile, profileText]);
 
   const handleClear = () => {
-    setProfileUrl("");
+    setProfileSlug("");
     setProfileText("");
     setStep("paste");
     setProfile(null);
@@ -82,14 +83,19 @@ export default function LinkedInConnect({ onProfile, initialProfile = null }: Li
             style={{ padding: "var(--space-4)", display: "grid", gap: "var(--space-3)" }}
           >
             <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center", flexWrap: "wrap" }}>
-              <input
-                type="url"
-                value={profileUrl}
-                onChange={(e) => setProfileUrl(e.target.value)}
-                placeholder="linkedin.com/in/yourname (optional)"
-                className="text-input tour-target-linkedin-url"
-                style={{ flex: 1, minWidth: "180px", fontSize: "12px" }}
-              />
+              <div style={{ display: "flex", alignItems: "center", flex: 1, minWidth: "180px", border: "1px solid var(--ps-border-mid)", borderRadius: "6px", background: "var(--ps-bg-elevated)", overflow: "hidden" }}>
+                <span style={{ padding: "0 var(--space-2) 0 var(--space-3)", fontSize: "12px", color: "var(--ps-text-secondary)", whiteSpace: "nowrap", userSelect: "none" }}>
+                  linkedin.com/in/
+                </span>
+                <input
+                  type="text"
+                  value={profileSlug}
+                  onChange={(e) => setProfileSlug(e.target.value)}
+                  placeholder="your-username"
+                  className="tour-target-linkedin-url"
+                  style={{ flex: 1, fontSize: "12px", background: "transparent", border: "none", outline: "none", padding: "var(--space-2) var(--space-3) var(--space-2) 0", color: "var(--ps-text-primary)" }}
+                />
+              </div>
               <a
                 href={openHref}
                 target="_blank"

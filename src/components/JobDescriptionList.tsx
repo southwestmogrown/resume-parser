@@ -93,6 +93,7 @@ export default function JobDescriptionList({ value, onChange, disabled }: JobDes
             ref={textareaRef}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
+            onBlur={addDraft}
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();

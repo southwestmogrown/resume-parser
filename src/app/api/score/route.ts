@@ -78,8 +78,16 @@ Return a JSON object only, with no additional text or markdown:
   "missingSkills": [
     { "skill": "skill name", "severity": "dealbreaker" | "learnable" | "soft", "reason": "brief explanation" }
   ],
-  "recommendation": "Must begin with exactly one of: STRONG_FIT | GOOD_FIT | STRETCH | DO_NOT_APPLY — then an em dash, then 2-3 sentences of plain-text reasoning from the candidate's perspective covering whether to apply, what to emphasize, and the honest interview outlook. Use DO_NOT_APPLY when dealbreaker gaps make this role unrealistic without years of additional experience or credentials the candidate does not have."
-}`,
+  "recommendation": "Must begin with exactly one of: STRONG_FIT | GOOD_FIT | STRETCH | DO_NOT_APPLY — then an em dash, then 2-3 sentences of plain-text reasoning from the candidate's perspective covering whether to apply, what to emphasize, and the honest interview outlook. Use DO_NOT_APPLY when dealbreaker gaps make this role unrealistic without years of additional experience or credentials the candidate does not have.",
+  "jobPostingFlags": [
+    { "flag": "short label", "severity": "warning" | "suspicious", "detail": "brief explanation" }
+  ]
+}
+
+For "jobPostingFlags", scan the job description for signals that the posting may be inauthentic, misleading, or a waste of the candidate's time:
+- "warning": Mildly concerning but could be legitimate — e.g., vague company description, generic boilerplate with no role-specific details, slightly inflated requirements, no salary range.
+- "suspicious": Strong red-flag indicators — e.g., years of experience required for a technology younger than that (e.g., "5 years of React Hooks experience" when Hooks shipped in 2019), mutually exclusive or incoherent requirements, promises of unusually high compensation with no verifiable company details, signs of a ghost job (reposted verbatim with no updates), unprofessional language or excessive keyword stuffing typical of fake postings.
+Return an empty array [] if no meaningful flags are found. Omit minor style issues — only flag things a real candidate should know before investing time in an application.`,
         },
       ],
     });
