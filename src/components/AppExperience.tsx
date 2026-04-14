@@ -137,6 +137,15 @@ export default function AppExperience() {
   const linkedinProfileRef = useRef(linkedinProfile);
   const selectedBatchJDRef = useRef(selectedBatchJD);
   const batchAnalysisCacheRef = useRef(batchAnalysisCache);
+  const rewriteSuggestionsRef = useRef(rewriteSuggestions);
+  const studyItemsRef = useRef(studyItems);
+  const coverLetterRef = useRef(coverLetter);
+  const coverLetterBlockedRef = useRef(coverLetterBlocked);
+  const optimizedResumeRef = useRef(optimizedResume);
+  const starQuestionsRef = useRef(starQuestions);
+  const starAnswersRef = useRef(starAnswers);
+  const starMessagesRef = useRef(starMessages);
+  const activeStarQuestionRef = useRef(activeStarQuestion);
   const pollTimeoutRef = useRef<number | ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
 
@@ -147,6 +156,15 @@ export default function AppExperience() {
   useEffect(() => { linkedinProfileRef.current = linkedinProfile; }, [linkedinProfile]);
   useEffect(() => { selectedBatchJDRef.current = selectedBatchJD; }, [selectedBatchJD]);
   useEffect(() => { batchAnalysisCacheRef.current = batchAnalysisCache; }, [batchAnalysisCache]);
+  useEffect(() => { rewriteSuggestionsRef.current = rewriteSuggestions; }, [rewriteSuggestions]);
+  useEffect(() => { studyItemsRef.current = studyItems; }, [studyItems]);
+  useEffect(() => { coverLetterRef.current = coverLetter; }, [coverLetter]);
+  useEffect(() => { coverLetterBlockedRef.current = coverLetterBlocked; }, [coverLetterBlocked]);
+  useEffect(() => { optimizedResumeRef.current = optimizedResume; }, [optimizedResume]);
+  useEffect(() => { starQuestionsRef.current = starQuestions; }, [starQuestions]);
+  useEffect(() => { starAnswersRef.current = starAnswers; }, [starAnswers]);
+  useEffect(() => { starMessagesRef.current = starMessages; }, [starMessages]);
+  useEffect(() => { activeStarQuestionRef.current = activeStarQuestion; }, [activeStarQuestion]);
 
   useEffect(() => {
     return () => {
@@ -363,20 +381,30 @@ export default function AppExperience() {
   useEffect(() => { enrichedResumeDataRef.current = enrichedResumeData; }, [enrichedResumeData]);
 
   const runPaidPhases = useCallback(
-    async (resumeDataArg: ResumeData, matchResultArg: MatchResult, jd: string, tokenOverride?: string) => {
+    async (
+      resumeDataArg: ResumeData,
+      matchResultArg: MatchResult,
+      jd: string,
+      tokenOverride?: string,
+      options?: { onTokenInvalid?: () => void }
+    ) => {
       const token = tokenOverride ?? analysisToken;
-      if (!token) return;
+      if (!token) return "no_token";
 
       // Prefer enriched data if available
       const effectiveResumeData = enrichedResumeDataRef.current ?? resumeDataArg;
+      let tokenInvalid = false;
 
       setLoadingRewrite(true);
       setLoadingStudyPlan(true);
       setActiveTab("rewrites");
 
       const handleTokenInvalid = () => {
+        if (tokenInvalid) return;
+        tokenInvalid = true;
         setAnalysisToken(null);
         setPaymentState("idle");
+        options?.onTokenInvalid?.();
       };
 
       const rewritePromise = fetch("/api/rewrite", {
@@ -423,6 +451,7 @@ export default function AppExperience() {
         .finally(() => setLoadingStudyPlan(false));
 
       await Promise.all([rewritePromise, studyPromise]);
+      if (tokenInvalid) return "token_invalid";
 
       setLoadingCoverLetter(true);
       try {
@@ -461,9 +490,45 @@ export default function AppExperience() {
         // Non-blocking
       }
       setLoadingCoverLetter(false);
+      return tokenInvalid ? "token_invalid" : "completed";
     },
     [analysisToken, githubProfile, linkedinProfile]
   );
+
+  const persistCurrentBatchSelection = useCallback(() => {
+    const currentJD = selectedBatchJDRef.current;
+    if (!currentJD) return;
+
+    const currentRewrite = rewriteSuggestionsRef.current;
+    const currentStudy = studyItemsRef.current;
+    const currentCover = coverLetterRef.current;
+    const currentCoverBlocked = coverLetterBlockedRef.current;
+    const currentOptimizedResume = optimizedResumeRef.current;
+    const currentStarQuestions = starQuestionsRef.current;
+    const currentStarAnswers = starAnswersRef.current;
+    const currentStarMessages = starMessagesRef.current;
+    const currentActiveQuestion = activeStarQuestionRef.current;
+
+    if (!currentRewrite && !currentStudy && !currentCover && !currentCoverBlocked && !currentOptimizedResume
+      && currentStarQuestions.length === 0 && currentStarAnswers.length === 0) return;
+
+    const key = hashJD(currentJD);
+    setBatchAnalysisCache((prev) => ({
+      ...prev,
+      [key]: {
+        rewriteSuggestions: currentRewrite,
+        studyItems: currentStudy,
+        coverLetter: currentCover,
+        coverLetterBlocked: currentCoverBlocked,
+        optimizedResume: currentOptimizedResume,
+        starQuestions: currentStarQuestions,
+        starAnswers: currentStarAnswers,
+        starMessages: currentStarMessages,
+        activeStarQuestion: currentActiveQuestion,
+        savedAt: Date.now(),
+      },
+    }));
+  }, []);
 
   // Auto-trigger paid phases when token arrives and score is ready.
   // Skips batch drill-down — payment success handler triggers directly in that path.
@@ -500,10 +565,25 @@ export default function AppExperience() {
     }));
   }, [activeStarQuestion, coverLetter, coverLetterBlocked, optimizedResume, rewriteSuggestions, selectedBatchJD, starAnswers, starMessages, starQuestions, studyItems]);
 
+  const openCheckout = useCallback(async () => {
+    try {
+      const response = await fetch("/api/create-payment-intent", { method: "POST" });
+      if (!response.ok) throw new Error("Checkout setup failed.");
+      const { clientSecret } = await response.json();
+      setCheckoutClientSecret(clientSecret as string);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Checkout setup failed.");
+    }
+  }, []);
+
   const handleBatchAnalyze = useCallback(() => {
     if (!resumeData || !matchResult || !selectedBatchJD || !analysisToken) return;
-    void runPaidPhases(resumeData, matchResult, selectedBatchJD);
-  }, [analysisToken, matchResult, resumeData, runPaidPhases, selectedBatchJD]);
+    void runPaidPhases(resumeData, matchResult, selectedBatchJD, undefined, {
+      onTokenInvalid: () => {
+        void openCheckout();
+      },
+    });
+  }, [analysisToken, matchResult, openCheckout, resumeData, runPaidPhases, selectedBatchJD]);
 
   const handleAnalyze = useCallback(async () => {
     const currentJDs = jobDescriptionsRef.current;
@@ -637,6 +717,8 @@ export default function AppExperience() {
   // Batch drill-down: keep batchResults visible, track selected JD
   const handleBatchDrillDown = useCallback(
     (result: BatchScoreResult) => {
+      persistCurrentBatchSelection();
+
       const drillMatchResult: MatchResult = {
         score: result.score,
         matchedSkills: result.matchedSkills,
@@ -673,10 +755,11 @@ export default function AppExperience() {
         setStarMessages([]);
       }
     },
-    []
+    [persistCurrentBatchSelection]
   );
 
   const handleBatchBack = useCallback(() => {
+    persistCurrentBatchSelection();
     setSelectedBatchJD(null);
     setMatchResult(null);
     setRewriteSuggestions(null);
@@ -688,7 +771,7 @@ export default function AppExperience() {
     setStarAnswers([]);
     setActiveStarQuestion(null);
     setStarMessages([]);
-  }, []);
+  }, [persistCurrentBatchSelection]);
 
   const handleBriefComplete = useCallback(
     (brief: InterviewBrief) => {
@@ -717,15 +800,8 @@ export default function AppExperience() {
   }, [runPaidPhases]);
 
   const handlePay = useCallback(async () => {
-    try {
-      const response = await fetch("/api/create-payment-intent", { method: "POST" });
-      if (!response.ok) throw new Error("Checkout setup failed.");
-      const { clientSecret } = await response.json();
-      setCheckoutClientSecret(clientSecret as string);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Checkout setup failed.");
-    }
-  }, []);
+    await openCheckout();
+  }, [openCheckout]);
 
   // ── Export ────────────────────────────────────────────────────────────────
 
