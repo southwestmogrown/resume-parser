@@ -28,9 +28,16 @@ interface SavedTargetStyles {
 const TOOLTIP_WIDTH = 340;
 const TOOLTIP_INITIAL_HEIGHT = 180;
 const TOOLTIP_GAP = 16;
+const TARGET_CLEARANCE = 12;
+const TOOLTIP_DISTANCE = TOOLTIP_GAP + TARGET_CLEARANCE;
+const TOP_PLACEMENT_EXTRA_OFFSET = 10;
 const NAV_OFFSET = 96;
 const VIEWPORT_MARGIN = 24;
 const LAYOUT_SETTLE_MS = 350;
+const SCROLL_EXEMPT_ANCESTOR_SELECTOR = ".site-nav";
+const SCROLL_THRESHOLD_PX = 2;
+// Large enough that any overlap is always ranked worse than any non-overlapping candidate.
+const OVERLAP_PENALTY_BASE = 1_000_000;
 // Balanced backdrop dimming: dark enough to focus attention, light enough that the lifted target still reads clearly.
 const OVERLAY_ALPHA = 0.58;
 // Reserve up to roughly a third of the viewport for top/bottom tooltips so late steps stay visible on laptop/tablet screens.
@@ -72,14 +79,14 @@ function getRawTooltipPosition(
 ): { top: number; left: number } {
   if (placement === "bottom") {
     return {
-      top: rect.top + rect.height + TOOLTIP_GAP,
+      top: rect.top + rect.height + TOOLTIP_DISTANCE,
       left: rect.left + rect.width / 2 - tooltipSize.width / 2,
     };
   }
 
   if (placement === "top") {
     return {
-      top: rect.top - tooltipSize.height - TOOLTIP_GAP,
+      top: rect.top - tooltipSize.height - TOOLTIP_DISTANCE - TOP_PLACEMENT_EXTRA_OFFSET,
       left: rect.left + rect.width / 2 - tooltipSize.width / 2,
     };
   }
@@ -87,13 +94,13 @@ function getRawTooltipPosition(
   if (placement === "right") {
     return {
       top: rect.top + rect.height / 2 - tooltipSize.height / 2,
-      left: rect.left + rect.width + TOOLTIP_GAP,
+      left: rect.left + rect.width + TOOLTIP_DISTANCE,
     };
   }
 
   return {
     top: rect.top + rect.height / 2 - tooltipSize.height / 2,
-    left: rect.left - tooltipSize.width - TOOLTIP_GAP,
+    left: rect.left - tooltipSize.width - TOOLTIP_DISTANCE,
   };
 }
 
@@ -142,19 +149,29 @@ function getTooltipPosition(
       Math.max(0, VIEWPORT_MARGIN - raw.left) +
       Math.max(0, raw.left + tooltipSize.width + VIEWPORT_MARGIN - viewportWidth);
 
+    const paddedRectLeft = rect.left - TARGET_CLEARANCE;
+    const paddedRectTop = rect.top - TARGET_CLEARANCE;
+    const paddedRectRight = rect.left + rect.width + TARGET_CLEARANCE;
+    const paddedRectBottom = rect.top + rect.height + TARGET_CLEARANCE;
+
     const overlapWidth = Math.max(
       0,
-      Math.min(clampedLeft + tooltipSize.width, rect.left + rect.width) - Math.max(clampedLeft, rect.left)
+      Math.min(clampedLeft + tooltipSize.width, paddedRectRight) - Math.max(clampedLeft, paddedRectLeft)
     );
     const overlapHeight = Math.max(
       0,
-      Math.min(clampedTop + tooltipSize.height, rect.top + rect.height) - Math.max(clampedTop, rect.top)
+      Math.min(clampedTop + tooltipSize.height, paddedRectBottom) - Math.max(clampedTop, paddedRectTop)
     );
+
+    const overlapArea = overlapWidth * overlapHeight;
+    // Never cover the highlighted element when there is any non-overlapping option.
+    // Trade-off: this intentionally prioritizes readability over minimizing viewport overflow.
+    const overlapPenalty = overlapArea > 0 ? OVERLAP_PENALTY_BASE + overlapArea : 0;
 
     return {
       top: clampedTop,
       left: clampedLeft,
-      score: overflow * 10 + overlapWidth * overlapHeight,
+      score: overlapPenalty + overflow,
     };
   });
 
@@ -166,8 +183,11 @@ function scrollTargetIntoView(
   target: HTMLElement | null,
   placement: TourStep["placement"],
   tooltipSize: { width: number; height: number }
-) {
-  if (!target) return;
+) : boolean {
+  if (!target) return false;
+  if (target.closest(SCROLL_EXEMPT_ANCESTOR_SELECTOR)) return false;
+  const targetStyle = window.getComputedStyle(target);
+  if (targetStyle.position === "fixed") return false;
   const rect = target.getBoundingClientRect();
   const tooltipBuffer =
     placement === "top" || placement === "bottom"
@@ -176,7 +196,7 @@ function scrollTargetIntoView(
   const topEdge = NAV_OFFSET + 12 + (placement === "top" ? tooltipBuffer : 0);
   const bottomEdge = window.innerHeight - VIEWPORT_MARGIN - (placement === "bottom" ? tooltipBuffer : 0);
   const needsScroll = rect.top < topEdge || rect.bottom > bottomEdge;
-  if (!needsScroll) return;
+  if (!needsScroll) return false;
 
   const absoluteTop = window.scrollY + rect.top;
   const availableHeight = window.innerHeight - NAV_OFFSET - VIEWPORT_MARGIN;
@@ -186,7 +206,9 @@ function scrollTargetIntoView(
       : Math.max(NAV_OFFSET, (window.innerHeight - rect.height - tooltipBuffer) / 2);
   const maxScrollTop = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
   const targetTop = Math.max(0, Math.min(absoluteTop - centeredOffset, maxScrollTop));
+  if (Math.abs(window.scrollY - targetTop) < SCROLL_THRESHOLD_PX) return false;
   window.scrollTo({ top: targetTop, behavior: "smooth" });
+  return true;
 }
 
 export default function TourOverlay({
@@ -207,6 +229,7 @@ export default function TourOverlay({
   const rafRef = useRef<number | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const activeTargetRef = useRef<SavedTargetStyles | null>(null);
+  const scrolledStepRef = useRef<number | null>(null);
   // Track when the step's auto-timer started and how much time was left when paused.
   const stepTimerStartRef = useRef<number>(0);
   const pausedRemainingRef = useRef<number>(0);
@@ -310,7 +333,10 @@ export default function TourOverlay({
     rafRef.current = window.requestAnimationFrame(() => {
       const target = getTargetElement(step.targetSelector);
       highlightTarget(target);
-      scrollTargetIntoView(target, step.placement ?? "bottom", tooltipSize);
+      if (scrolledStepRef.current !== currentStep) {
+        const didScroll = scrollTargetIntoView(target, step.placement ?? "bottom", tooltipSize);
+        if (didScroll) scrolledStepRef.current = currentStep;
+      }
       updatePosition();
 
       if (target && typeof ResizeObserver !== "undefined") {
@@ -340,6 +366,11 @@ export default function TourOverlay({
 
     // Wait for state-driven layout changes and sticky positioning to settle before the final measurement.
     settleTimerRef.current = setTimeout(() => {
+      const target = getTargetElement(step.targetSelector);
+      if (scrolledStepRef.current !== currentStep) {
+        const didScroll = scrollTargetIntoView(target, step.placement ?? "bottom", tooltipSize);
+        if (didScroll) scrolledStepRef.current = currentStep;
+      }
       scheduleUpdate();
     }, LAYOUT_SETTLE_MS);
 

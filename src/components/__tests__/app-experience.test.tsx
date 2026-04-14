@@ -561,6 +561,9 @@ describe("AppExperience batch drill-down", () => {
     await waitFor(() => {
       expect(screen.getByText(`ResumeRewriter:${sampleRewriteSuggestions.length}`)).toBeInTheDocument();
     });
+
+    // Since paid phases have started, the explicit batch button should not show.
+    expect(screen.queryByRole("button", { name: /Generate full analysis/i })).not.toBeInTheDocument();
   });
 
   it("clears STAR coaching state when switching between batch drill-down JDs", async () => {

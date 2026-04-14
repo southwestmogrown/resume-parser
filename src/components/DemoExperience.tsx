@@ -275,11 +275,6 @@ export default function DemoExperience() {
               <PassStackLogo />
             </Link>
             <div className="nav-actions">
-              {showResults && (
-                <Link href="/demo" className="btn-ghost">
-                  ↩ Restart demo
-                </Link>
-              )}
               {!isTourActive && tourCompleted && (
                 <button type="button" onClick={handleRestartTour} className="btn-ghost">
                   ↺ Take a tour

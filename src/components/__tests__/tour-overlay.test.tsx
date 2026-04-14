@@ -200,6 +200,87 @@ describe("TourOverlay", () => {
     expect(target.style.isolation).toBe("");
   });
 
+  it("keeps horizontal breathing room from the highlighted target on side placement", () => {
+    const sideStep: TourStep = {
+      title: "Side step",
+      description: "Keep margin from target.",
+      targetSelector: ".tour-target",
+      placement: "right",
+      autoAdvanceMs: 0,
+    };
+
+    currentRect = {
+      top: 140,
+      left: 120,
+      width: 180,
+      height: 52,
+      bottom: 192,
+      right: 300,
+      x: 120,
+      y: 140,
+      toJSON: () => ({}),
+    } as DOMRect;
+
+    render(
+      <div>
+        <div className="tour-target">Sidebar card</div>
+        <TourOverlay steps={[sideStep]} currentStep={0} onNext={jest.fn()} onPrev={jest.fn()} onSkip={jest.fn()} />
+      </div>
+    );
+
+    act(() => {
+      jest.runAllTimers();
+    });
+
+    const skipButton = screen.getByRole("button", { name: "Skip tour" });
+    const tooltip = skipButton.closest('div[style*="position: fixed"]') as HTMLElement | null;
+    expect(tooltip).not.toBeNull();
+    const tooltipLeft = Number.parseFloat((tooltip as HTMLElement).style.left);
+    expect(tooltipLeft).toBeGreaterThanOrEqual(currentRect.right + 24);
+  });
+
+  it("adds extra breathing room above the target when top placement is used", () => {
+    const topStep: TourStep = {
+      title: "Top step",
+      description: "Stay clearly above target.",
+      targetSelector: ".tour-target",
+      placement: "top",
+      autoAdvanceMs: 0,
+    };
+
+    currentRect = {
+      top: 460,
+      left: 320,
+      width: 180,
+      height: 52,
+      bottom: 512,
+      right: 500,
+      x: 320,
+      y: 460,
+      toJSON: () => ({}),
+    } as DOMRect;
+
+    render(
+      <div>
+        <div className="tour-target">Analyze button</div>
+        <TourOverlay steps={[topStep]} currentStep={0} onNext={jest.fn()} onPrev={jest.fn()} onSkip={jest.fn()} />
+      </div>
+    );
+
+    act(() => {
+      jest.runAllTimers();
+    });
+
+    const skipButton = screen.getByRole("button", { name: "Skip tour" });
+    const tooltip = skipButton.closest('div[style*="position: fixed"]') as HTMLElement | null;
+    expect(tooltip).not.toBeNull();
+
+    const tooltipTop = Number.parseFloat((tooltip as HTMLElement).style.top);
+    const tooltipHeight = 210;
+    const gap = currentRect.top - (tooltipTop + tooltipHeight);
+    expect(gap).toBeGreaterThanOrEqual(34);
+  });
+
   it("scrolls low targets into view when the tooltip needs room below them", () => {
     const onNext = jest.fn();
     const onPrev = jest.fn();
@@ -228,8 +309,94 @@ describe("TourOverlay", () => {
       jest.runAllTimers();
     });
 
-    // 760px target top - 311px centered offset = 449px scroll target once the tooltip buffer is accounted for.
-    expect(window.scrollTo).toHaveBeenCalledWith({ top: 449, behavior: "smooth" });
+    // 760px target top - 326px centered offset = 434px.
+    // The centered offset includes NAV_OFFSET plus the current computed tooltip buffer.
+    expect(window.scrollTo).toHaveBeenCalledWith({ top: 434, behavior: "smooth" });
+    expect(window.scrollTo).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not scroll when the active target lives inside the fixed site nav", () => {
+    const onNext = jest.fn();
+    const onPrev = jest.fn();
+    const onSkip = jest.fn();
+
+    currentRect = {
+      top: 20,
+      left: 980,
+      width: 160,
+      height: 36,
+      bottom: 56,
+      right: 1140,
+      x: 980,
+      y: 20,
+      toJSON: () => ({}),
+    } as DOMRect;
+
+    render(
+      <div className="site-nav">
+        <button className="tour-target">Export</button>
+        <TourOverlay steps={steps} currentStep={0} onNext={onNext} onPrev={onPrev} onSkip={onSkip} />
+      </div>
+    );
+
+    act(() => {
+      jest.runAllTimers();
+    });
+
+    expect(window.scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("keeps the tooltip inside viewport margins on narrow screens", () => {
+    const onNext = jest.fn();
+    const edgeStep: TourStep = {
+      title: "Edge step",
+      description: "Clamp me inside viewport.",
+      targetSelector: ".tour-target",
+      placement: "top",
+      autoAdvanceMs: 0,
+    };
+
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      writable: true,
+      value: 640,
+    });
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: 360,
+    });
+
+    currentRect = {
+      top: 8,
+      left: 8,
+      width: 120,
+      height: 36,
+      bottom: 44,
+      right: 128,
+      x: 8,
+      y: 8,
+      toJSON: () => ({}),
+    } as DOMRect;
+
+    render(
+      <div>
+        <div className="tour-target">Edge target</div>
+        <TourOverlay steps={[edgeStep]} currentStep={0} onNext={onNext} onPrev={jest.fn()} onSkip={jest.fn()} />
+      </div>
+    );
+
+    act(() => {
+      jest.runAllTimers();
+    });
+
+    const skipButton = screen.getByRole("button", { name: "Skip tour" });
+    const tooltip = skipButton.closest('div[style*="position: fixed"]') as HTMLElement | null;
+    expect(tooltip).not.toBeNull();
+    const tooltipTop = Number.parseFloat((tooltip as HTMLElement).style.top);
+    const tooltipLeft = Number.parseFloat((tooltip as HTMLElement).style.left);
+    expect(tooltipTop).toBeGreaterThanOrEqual(24);
+    expect(tooltipLeft).toBeGreaterThanOrEqual(24);
   });
 
   it("shows a pause button on steps with autoAdvanceMs and hides it on manual steps", () => {
