@@ -20,7 +20,7 @@ describe("LandingPage and ErrorBoundary", () => {
     });
 
     expect(nav).toHaveClass("site-nav--scrolled");
-    expect(screen.getByText("Five phases. One run. No fluff.")).toBeInTheDocument();
+    expect(screen.getByText("Six phases. One run. No fluff.")).toBeInTheDocument();
     expect(screen.getByText("STAR Interview Coaching")).toBeInTheDocument();
   });
 
