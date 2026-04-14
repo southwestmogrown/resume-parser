@@ -467,7 +467,7 @@ describe("AppExperience batch drill-down", () => {
     jest.clearAllMocks();
   });
 
-  it("shows 'Generate full analysis' button in sidebar after batch drill-down + payment", async () => {
+  it("auto-runs paid phases after payment in batch drill-down mode", async () => {
     seedBatchWorkspace();
     mockPaidPhaseFetches();
 
@@ -491,40 +491,15 @@ describe("AppExperience batch drill-down", () => {
       capturedCheckoutOnSuccess!("tok_batch", new Date(Date.now() + 86400000).toISOString());
     });
 
-    // "Generate full analysis" button should appear
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Generate full analysis/i })).toBeInTheDocument();
-    });
-  });
-
-  it("fires paid phases when 'Generate full analysis' button is clicked", async () => {
-    seedBatchWorkspace();
-    mockPaidPhaseFetches();
-
-    const user = userEvent.setup();
-    render(<AppExperience />);
-
-    // Drill down
-    act(() => { capturedBatchOnSelect!(sampleBatchResult); });
-
-    // Pay
-    await user.click(screen.getByRole("button", { name: /Unlock/i }));
-    act(() => {
-      capturedCheckoutOnSuccess!("tok_batch2", new Date(Date.now() + 86400000).toISOString());
-    });
-
-    // Click Generate full analysis
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Generate full analysis/i })).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole("button", { name: /Generate full analysis/i }));
-
-    // Paid phase fetches should fire
+    // Paid phase fetches should fire immediately after payment success.
     await waitFor(() => {
       const urls = (global.fetch as jest.Mock).mock.calls.map((c: unknown[]) => c[0]);
       expect(urls).toContain("/api/rewrite");
       expect(urls).toContain("/api/study-plan");
     });
+
+    // Since paid phases have started, the explicit batch button should not show.
+    expect(screen.queryByRole("button", { name: /Generate full analysis/i })).not.toBeInTheDocument();
   });
 
   it("clears STAR coaching state when switching between batch drill-down JDs", async () => {

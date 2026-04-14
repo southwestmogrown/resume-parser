@@ -228,8 +228,10 @@ describe("TourOverlay", () => {
       jest.runAllTimers();
     });
 
-    // 760px target top - 311px centered offset = 449px scroll target once the tooltip buffer is accounted for.
-    expect(window.scrollTo).toHaveBeenCalledWith({ top: 449, behavior: "smooth" });
+    // 760px target top - 326px centered offset = 434px.
+    // The centered offset includes NAV_OFFSET plus the current computed tooltip buffer.
+    expect(window.scrollTo).toHaveBeenCalledWith({ top: 434, behavior: "smooth" });
+    expect(window.scrollTo).toHaveBeenCalledTimes(1);
   });
 
   it("does not scroll when the active target lives inside the fixed site nav", () => {
