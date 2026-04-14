@@ -32,7 +32,7 @@ const NAV_OFFSET = 96;
 const VIEWPORT_MARGIN = 24;
 const LAYOUT_SETTLE_MS = 350;
 const SCROLL_EXEMPT_ANCESTOR_SELECTOR = ".site-nav";
-const SCROLL_TARGET_EPSILON_PX = 2;
+const SCROLL_THRESHOLD_PX = 2;
 // Large enough that any overlap is always ranked worse than any non-overlapping candidate.
 const OVERLAP_PENALTY_BASE = 1_000_000;
 // Balanced backdrop dimming: dark enough to focus attention, light enough that the lifted target still reads clearly.
@@ -157,6 +157,7 @@ function getTooltipPosition(
 
     const overlapArea = overlapWidth * overlapHeight;
     // Never cover the highlighted element when there is any non-overlapping option.
+    // Trade-off: this intentionally prioritizes readability over minimizing viewport overflow.
     const overlapPenalty = overlapArea > 0 ? OVERLAP_PENALTY_BASE + overlapArea : 0;
 
     return {
@@ -197,7 +198,7 @@ function scrollTargetIntoView(
       : Math.max(NAV_OFFSET, (window.innerHeight - rect.height - tooltipBuffer) / 2);
   const maxScrollTop = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
   const targetTop = Math.max(0, Math.min(absoluteTop - centeredOffset, maxScrollTop));
-  if (Math.abs(window.scrollY - targetTop) < SCROLL_TARGET_EPSILON_PX) return false;
+  if (Math.abs(window.scrollY - targetTop) < SCROLL_THRESHOLD_PX) return false;
   window.scrollTo({ top: targetTop, behavior: "smooth" });
   return true;
 }
