@@ -20,9 +20,24 @@ export async function POST(req: NextRequest) {
   }
 
   const { profileText } = body;
+  // Read the raw value before the type-guard narrows the type, so we can
+  // distinguish "missing / whitespace" from "too long" in the error message.
+  const rawProfileText: unknown = profileText;
   if (!isStringWithinLimit(profileText, MAX_PROFILE_TEXT_CHARS)) {
-    return NextResponse.json({ error: 'profileText is required' }, { status: 400 });
+    const msg =
+      typeof rawProfileText === 'string' && rawProfileText.trim().length >= MAX_PROFILE_TEXT_CHARS
+        ? `Profile text is too long (max ${MAX_PROFILE_TEXT_CHARS.toLocaleString()} characters). Try copying a shorter section of your profile.`
+        : 'profileText is required';
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
+
+  // Sanitize: strip null bytes and normalize line endings to guard against
+  // encoding artifacts from browser paste events
+  const sanitizedText = profileText
+    .replace(/\x00/g, '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .trim();
 
   let extractionMessage;
   try {
@@ -37,7 +52,7 @@ export async function POST(req: NextRequest) {
           content: `Extract structured profile data from this LinkedIn profile text.
 
 Profile text:
-${profileText.slice(0, 8000)}
+${sanitizedText.slice(0, 8000)}
 
 Return a JSON object with exactly these fields:
 {

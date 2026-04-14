@@ -1667,6 +1667,12 @@ main {
   overflow: hidden;
 }
 
+.star-q-card--active .star-q-text {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
 .star-q-tag {
   font-size: 0.68rem;
   font-family: var(--font-mono, monospace);
@@ -1713,10 +1719,6 @@ main {
   line-height: 1.55;
   color: var(--ps-text-secondary);
   margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
 .star-chat-done {
@@ -1778,10 +1780,6 @@ main {
   .star-q-card {
     min-width: 200px;
     flex-shrink: 0;
-  }
-
-  .star-q-text {
-    -webkit-line-clamp: 2;
   }
 
   .chat-messages {

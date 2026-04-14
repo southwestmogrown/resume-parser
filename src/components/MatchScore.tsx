@@ -1,7 +1,7 @@
 import ScoreRing from "@/components/ScoreRing";
 import SeverityPill from "@/components/SeverityPill";
 import SkeletonBlock from "@/components/SkeletonBlock";
-import type { MatchResult, MissingSkill } from "@/lib/types";
+import type { JobPostingFlag, MatchResult, MissingSkill } from "@/lib/types";
 
 interface MatchScoreProps {
   result: MatchResult | null;
@@ -30,6 +30,39 @@ function GapGroup({ severity, gaps }: { severity: keyof typeof SECTION_LABELS; g
               <SeverityPill severity={gap.severity} label={gap.severity} />
             </div>
             <p className="result-muted" style={{ marginTop: "var(--space-3)" }}>{gap.reason}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PostingFlags({ flags }: { flags: JobPostingFlag[] }) {
+  if (flags.length === 0) return null;
+  return (
+    <div className="result-block">
+      <div className="field-label">
+        <span>Posting flags</span>
+      </div>
+      <div style={{ display: "grid", gap: "var(--space-3)" }}>
+        {flags.map((f, i) => (
+          <div
+            key={i}
+            style={{
+              padding: "var(--space-4)",
+              borderRadius: "8px",
+              border: `1px solid ${f.severity === "suspicious" ? "rgba(232,107,107,0.25)" : "rgba(212,168,75,0.25)"}`,
+              background: f.severity === "suspicious" ? "rgba(232,107,107,0.04)" : "rgba(212,168,75,0.04)",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-3)", alignItems: "flex-start", flexWrap: "wrap" }}>
+              <p style={{ fontWeight: 500 }}>
+                <span style={{ marginRight: "var(--space-2)" }}>{f.severity === "suspicious" ? "🚩" : "⚠️"}</span>
+                {f.flag}
+              </p>
+              <SeverityPill tone={f.severity === "suspicious" ? "red" : "amber"} label={f.severity} />
+            </div>
+            <p className="result-muted" style={{ marginTop: "var(--space-3)" }}>{f.detail}</p>
           </div>
         ))}
       </div>
@@ -112,6 +145,10 @@ export default function MatchScore({ result, loading }: MatchScoreProps) {
       <GapGroup severity="dealbreaker" gaps={dealbreakers} />
       <GapGroup severity="learnable" gaps={learnable} />
       <GapGroup severity="soft" gaps={soft} />
+
+      {result.jobPostingFlags && result.jobPostingFlags.length > 0 && (
+        <PostingFlags flags={result.jobPostingFlags} />
+      )}
 
       {recProse ? (
         <div className="accent-panel" style={{ padding: "var(--space-4)" }}>

@@ -161,9 +161,11 @@ export default function DemoExperience() {
     }
   }, []);
 
-  // Drive state from the active tour step
+  // Drive state from the active tour step.
+  // syncTourState batches many setState calls — React 18 flushes them together.
   useEffect(() => {
     if (!isTourActive) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     syncTourState(tourStep);
   }, [isTourActive, syncTourState, tourStep]);
 

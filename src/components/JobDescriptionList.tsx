@@ -29,6 +29,14 @@ export default function JobDescriptionList({ value, onChange, disabled }: JobDes
     textareaRef.current?.focus();
   };
 
+  const saveDraftOnBlur = () => {
+    const trimmed = draft.trim();
+    if (!trimmed || value.length >= MAX_JDS) return;
+    onChange([...value, trimmed]);
+    setDraft("");
+    // No refocus — user clicked away intentionally
+  };
+
   const remove = (index: number) => {
     onChange(value.filter((_, i) => i !== index));
   };
@@ -93,6 +101,7 @@ export default function JobDescriptionList({ value, onChange, disabled }: JobDes
             ref={textareaRef}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
+            onBlur={saveDraftOnBlur}
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
