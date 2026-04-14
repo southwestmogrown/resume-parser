@@ -200,6 +200,45 @@ describe("TourOverlay", () => {
     expect(target.style.isolation).toBe("");
   });
 
+  it("keeps horizontal breathing room from the highlighted target on side placement", () => {
+    const sideStep: TourStep = {
+      title: "Side step",
+      description: "Keep margin from target.",
+      targetSelector: ".tour-target",
+      placement: "right",
+      autoAdvanceMs: 0,
+    };
+
+    currentRect = {
+      top: 140,
+      left: 120,
+      width: 180,
+      height: 52,
+      bottom: 192,
+      right: 300,
+      x: 120,
+      y: 140,
+      toJSON: () => ({}),
+    } as DOMRect;
+
+    render(
+      <div>
+        <div className="tour-target">Sidebar card</div>
+        <TourOverlay steps={[sideStep]} currentStep={0} onNext={jest.fn()} onPrev={jest.fn()} onSkip={jest.fn()} />
+      </div>
+    );
+
+    act(() => {
+      jest.runAllTimers();
+    });
+
+    const skipButton = screen.getByRole("button", { name: "Skip tour" });
+    const tooltip = skipButton.closest('div[style*="position: fixed"]') as HTMLElement | null;
+    expect(tooltip).not.toBeNull();
+    const tooltipLeft = Number.parseFloat((tooltip as HTMLElement).style.left);
+    expect(tooltipLeft).toBeGreaterThanOrEqual(currentRect.right + 24);
+  });
+
   it("scrolls low targets into view when the tooltip needs room below them", () => {
     const onNext = jest.fn();
     const onPrev = jest.fn();

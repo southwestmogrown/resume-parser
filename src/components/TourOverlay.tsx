@@ -28,6 +28,8 @@ interface SavedTargetStyles {
 const TOOLTIP_WIDTH = 340;
 const TOOLTIP_INITIAL_HEIGHT = 180;
 const TOOLTIP_GAP = 16;
+const TARGET_CLEARANCE = 12;
+const TOOLTIP_DISTANCE = TOOLTIP_GAP + TARGET_CLEARANCE;
 const NAV_OFFSET = 96;
 const VIEWPORT_MARGIN = 24;
 const LAYOUT_SETTLE_MS = 350;
@@ -76,14 +78,14 @@ function getRawTooltipPosition(
 ): { top: number; left: number } {
   if (placement === "bottom") {
     return {
-      top: rect.top + rect.height + TOOLTIP_GAP,
+      top: rect.top + rect.height + TOOLTIP_DISTANCE,
       left: rect.left + rect.width / 2 - tooltipSize.width / 2,
     };
   }
 
   if (placement === "top") {
     return {
-      top: rect.top - tooltipSize.height - TOOLTIP_GAP,
+      top: rect.top - tooltipSize.height - TOOLTIP_DISTANCE,
       left: rect.left + rect.width / 2 - tooltipSize.width / 2,
     };
   }
@@ -91,13 +93,13 @@ function getRawTooltipPosition(
   if (placement === "right") {
     return {
       top: rect.top + rect.height / 2 - tooltipSize.height / 2,
-      left: rect.left + rect.width + TOOLTIP_GAP,
+      left: rect.left + rect.width + TOOLTIP_DISTANCE,
     };
   }
 
   return {
     top: rect.top + rect.height / 2 - tooltipSize.height / 2,
-    left: rect.left - tooltipSize.width - TOOLTIP_GAP,
+    left: rect.left - tooltipSize.width - TOOLTIP_DISTANCE,
   };
 }
 
@@ -146,13 +148,18 @@ function getTooltipPosition(
       Math.max(0, VIEWPORT_MARGIN - raw.left) +
       Math.max(0, raw.left + tooltipSize.width + VIEWPORT_MARGIN - viewportWidth);
 
+    const paddedRectLeft = rect.left - TARGET_CLEARANCE;
+    const paddedRectTop = rect.top - TARGET_CLEARANCE;
+    const paddedRectRight = rect.left + rect.width + TARGET_CLEARANCE;
+    const paddedRectBottom = rect.top + rect.height + TARGET_CLEARANCE;
+
     const overlapWidth = Math.max(
       0,
-      Math.min(clampedLeft + tooltipSize.width, rect.left + rect.width) - Math.max(clampedLeft, rect.left)
+      Math.min(clampedLeft + tooltipSize.width, paddedRectRight) - Math.max(clampedLeft, paddedRectLeft)
     );
     const overlapHeight = Math.max(
       0,
-      Math.min(clampedTop + tooltipSize.height, rect.top + rect.height) - Math.max(clampedTop, rect.top)
+      Math.min(clampedTop + tooltipSize.height, paddedRectBottom) - Math.max(clampedTop, paddedRectTop)
     );
 
     const overlapArea = overlapWidth * overlapHeight;
