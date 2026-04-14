@@ -86,7 +86,7 @@ Return a JSON object only, with no additional text or markdown:
 
 For "jobPostingFlags", scan the job description for signals that the posting may be inauthentic, misleading, or a waste of the candidate's time:
 - "warning": Mildly concerning but could be legitimate — e.g., vague company description, generic boilerplate with no role-specific details, slightly inflated requirements, no salary range.
-- "suspicious": Strong red-flag indicators — e.g., years of experience required for a technology younger than that (e.g., "5 years of React Hooks experience" when Hooks shipped in 2019), mutually exclusive or incoherent requirements, promises of unusually high compensation with no verifiable company details, signs of a ghost job (reposted verbatim with no updates), unprofessional language or excessive keyword stuffing typical of fake postings.
+- "suspicious": Strong red-flag indicators — e.g., years of experience required that exceed how long a technology has existed (e.g., "8 years of Kubernetes experience" when Kubernetes launched in 2014 and the role was posted in 2018), mutually exclusive or incoherent requirements, promises of unusually high compensation with no verifiable company details, signs of a ghost job (reposted verbatim with no updates), unprofessional language or excessive keyword stuffing typical of fake postings.
 Return an empty array [] if no meaningful flags are found. Omit minor style issues — only flag things a real candidate should know before investing time in an application.`,
         },
       ],

@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   const { profileText } = body;
   if (!isStringWithinLimit(profileText, MAX_PROFILE_TEXT_CHARS)) {
     const msg =
-      typeof profileText === 'string' && profileText.trim().length > MAX_PROFILE_TEXT_CHARS
+      typeof profileText === 'string' && profileText.trim().length >= MAX_PROFILE_TEXT_CHARS
         ? `Profile text is too long (max ${MAX_PROFILE_TEXT_CHARS.toLocaleString()} characters). Try copying a shorter section of your profile.`
         : 'profileText is required';
     return NextResponse.json({ error: msg }, { status: 400 });

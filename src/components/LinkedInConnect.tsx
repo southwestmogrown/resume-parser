@@ -12,6 +12,14 @@ interface LinkedInConnectProps {
 
 type Step = "paste" | "done";
 
+function normalizeLinkedInSlug(input: string): string {
+  return input
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/^linkedin\.com\/in\//i, "")
+    .replace(/\/+$/, "");
+}
+
 export default function LinkedInConnect({ onProfile, initialProfile = null }: LinkedInConnectProps) {
   const [profileSlug, setProfileSlug] = useState("");
   const [profileText, setProfileText] = useState("");
@@ -20,9 +28,9 @@ export default function LinkedInConnect({ onProfile, initialProfile = null }: Li
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const slug = profileSlug.trim().replace(/^linkedin\.com\/in\//i, "").replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+  const slug = normalizeLinkedInSlug(profileSlug);
   const openHref = slug
-    ? `https://www.linkedin.com/in/${slug}`
+    ? `https://www.linkedin.com/in/${encodeURIComponent(slug)}`
     : "https://www.linkedin.com";
 
   useEffect(() => {
