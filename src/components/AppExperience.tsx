@@ -129,7 +129,7 @@ export default function AppExperience() {
   // Default to Interview Prep tab when score arrives and user hasn't paid yet
   useEffect(() => {
     if (matchResult && !analysisToken) setActiveTab("interview");
-  }, [matchResult]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [matchResult, analysisToken]);
 
   // Auto-switch to cover letter tab when it starts streaming
   useEffect(() => {
@@ -166,6 +166,8 @@ export default function AppExperience() {
       if (d.starQuestions) setStarQuestions(d.starQuestions as StarQuestion[]);
       if (d.starAnswers) setStarAnswers(d.starAnswers as StarAnswer[]);
       if (d.optimizedResume) setOptimizedResume(d.optimizedResume as string);
+      if (typeof d.analysisToken === "string") setAnalysisToken(d.analysisToken);
+      if (typeof d.tokenExpiresAt === "string") setTokenExpiresAt(d.tokenExpiresAt);
     } catch {
       localStorage.removeItem(LS_KEY);
     }
@@ -188,11 +190,13 @@ export default function AppExperience() {
         starQuestions,
         starAnswers,
         optimizedResume,
+        analysisToken,
+        tokenExpiresAt,
       }));
     } catch {
       // Storage unavailable or full
     }
-  }, [batchResults, coverLetter, enrichedResumeData, interviewBrief, jobDescriptions, matchResult, optimizedResume, resumeData, rewriteSuggestions, starAnswers, starQuestions, studyItems]);
+  }, [analysisToken, batchResults, coverLetter, enrichedResumeData, interviewBrief, jobDescriptions, matchResult, optimizedResume, resumeData, rewriteSuggestions, starAnswers, starQuestions, studyItems, tokenExpiresAt]);
 
   const canAnalyze = Boolean((resumeFile || resumeData) && jobDescriptions.length > 0);
   const isBusy = loadingExtraction || loadingScore || loadingRewrite || loadingCoverLetter || loadingStudyPlan || loadingBatch;
@@ -580,6 +584,10 @@ export default function AppExperience() {
       setCoverLetter(null);
       setCoverLetterBlocked(null);
       setOptimizedResume(null);
+      setStarQuestions([]);
+      setStarAnswers([]);
+      setActiveStarQuestion(null);
+      setStarMessages([]);
       // batchResults intentionally preserved — auto-trigger handles paid phases if token exists
     },
     []
@@ -593,6 +601,10 @@ export default function AppExperience() {
     setCoverLetter(null);
     setCoverLetterBlocked(null);
     setOptimizedResume(null);
+    setStarQuestions([]);
+    setStarAnswers([]);
+    setActiveStarQuestion(null);
+    setStarMessages([]);
   }, []);
 
   const handleBriefComplete = useCallback(
@@ -1028,8 +1040,17 @@ export default function AppExperience() {
                   />
                 ) : null}
 
-
-
+                {selectedBatchJD && analysisToken && !hasPaidContent && !loadingPaid && (
+                  <button
+                    type="button"
+                    className="btn-primary btn-large btn-full"
+                    onClick={handleBatchAnalyze}
+                    disabled={isBusy}
+                  >
+                    {isBusy && <Spinner />}
+                    Generate full analysis
+                  </button>
+                )}
                 <div className="card card-soft" style={{ display: "grid", gap: "var(--space-3)" }}>
                   <div className="eyebrow" style={{ marginBottom: "var(--space-1)" }}>session</div>
                   {resumeData?.name && (
