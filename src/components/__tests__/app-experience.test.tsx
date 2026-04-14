@@ -1,7 +1,7 @@
 import type { AnchorHTMLAttributes, ReactNode } from "react";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { sampleResumeData, sampleMatchResult, sampleBatchResult, sampleRewriteSuggestions, sampleStudyItems } from "@/test-utils/fixtures";
+import { sampleResumeData, sampleMatchResult, sampleBatchResult, sampleRewriteSuggestions, sampleStudyItems, sampleGitHubProfile } from "@/test-utils/fixtures";
 import type { BatchScoreResult } from "@/lib/types";
 
 const LS_KEY = "ps_workspace_v1";
@@ -596,6 +596,203 @@ describe("AppExperience batch drill-down", () => {
       // The new JD should be passed to StarPrepPanel
       const interviewTab = screen.getByRole("button", { name: /Interview Prep/i });
       expect(interviewTab).toBeInTheDocument();
+    });
+  });
+});
+
+describe("AppExperience state persistence", () => {
+  const originalFetch = global.fetch;
+
+  beforeEach(() => {
+    window.localStorage.clear();
+    window.history.replaceState({}, "", "/app");
+    global.fetch = jest.fn() as typeof fetch;
+    capturedCheckoutOnSuccess = null;
+    capturedBatchOnSelect = null;
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    jest.clearAllMocks();
+  });
+
+  it("persists coverLetterBlocked to localStorage", async () => {
+    seedScoredWorkspace({
+      analysisToken: "tok_test",
+      tokenExpiresAt: new Date(Date.now() + 86400000).toISOString(),
+      coverLetterBlocked: ["AWS", "5+ years experience"],
+    });
+    (global.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 404 });
+
+    render(<AppExperience />);
+
+    await waitFor(() => {
+      const saved = JSON.parse(localStorage.getItem(LS_KEY) ?? "{}");
+      expect(saved.coverLetterBlocked).toEqual(["AWS", "5+ years experience"]);
+    });
+  });
+
+  it("restores coverLetterBlocked from localStorage", async () => {
+    seedScoredWorkspace({
+      analysisToken: "tok_test",
+      tokenExpiresAt: new Date(Date.now() + 86400000).toISOString(),
+      rewriteSuggestions: sampleRewriteSuggestions,
+      studyItems: sampleStudyItems,
+      coverLetterBlocked: ["AWS"],
+    });
+    (global.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 404 });
+
+    render(<AppExperience />);
+
+    // coverLetterBlocked means hasPaidContent is true — tabs should be visible
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Cover Letter/i })).toBeInTheDocument();
+    });
+  });
+
+  it("persists githubProfile to localStorage", async () => {
+    seedScoredWorkspace({
+      githubProfile: sampleGitHubProfile,
+    });
+    (global.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 404 });
+
+    render(<AppExperience />);
+
+    await waitFor(() => {
+      const saved = JSON.parse(localStorage.getItem(LS_KEY) ?? "{}");
+      expect(saved.githubProfile).toEqual(sampleGitHubProfile);
+    });
+  });
+
+  it("restores githubProfile from localStorage and passes it to GitHubConnect", async () => {
+    // GitHubConnect is only visible in the pre-analysis panel (no resumeData/matchResult)
+    localStorage.setItem(
+      LS_KEY,
+      JSON.stringify({
+        jobDescriptions: ["Build a Next.js SaaS app."],
+        githubProfile: sampleGitHubProfile,
+      })
+    );
+    (global.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 404 });
+
+    render(<AppExperience />);
+
+    // MockGitHubConnect renders the username when initialProfile is provided
+    await waitFor(() => {
+      expect(screen.getByText(`GitHub:${sampleGitHubProfile.username}`)).toBeInTheDocument();
+    });
+  });
+
+  it("persists all paid content fields and restores them across sessions", async () => {
+    const expiresAt = new Date(Date.now() + 86400000).toISOString();
+    seedScoredWorkspace({
+      analysisToken: "tok_full",
+      tokenExpiresAt: expiresAt,
+      rewriteSuggestions: sampleRewriteSuggestions,
+      studyItems: sampleStudyItems,
+      coverLetter: "Dear Hiring Manager,",
+      optimizedResume: "Optimized resume content",
+      starQuestions: [{ id: "q1", question: "Tell me about a time...", targetSkill: "React", difficulty: "standard" }],
+      starAnswers: [{ questionId: "q1", question: "Tell me about a time...", situation: "S", task: "T", action: "A", result: "R", coachingNotes: "Good" }],
+    });
+    (global.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 404 });
+
+    render(<AppExperience />);
+
+    // Verify all paid content is restored by checking that paid tabs are visible
+    await waitFor(() => {
+      expect(screen.getByText(`ResumeRewriter:${sampleRewriteSuggestions.length}`)).toBeInTheDocument();
+    });
+
+    // Verify localStorage has all fields
+    const saved = JSON.parse(localStorage.getItem(LS_KEY) ?? "{}");
+    expect(saved.rewriteSuggestions).toEqual(sampleRewriteSuggestions);
+    expect(saved.studyItems).toEqual(sampleStudyItems);
+    expect(saved.coverLetter).toBe("Dear Hiring Manager,");
+    expect(saved.optimizedResume).toBe("Optimized resume content");
+    expect(saved.analysisToken).toBe("tok_full");
+  });
+});
+
+describe("AppExperience batch drill-down Interview Prep tab", () => {
+  const originalFetch = global.fetch;
+
+  beforeEach(() => {
+    window.localStorage.clear();
+    window.history.replaceState({}, "", "/app");
+    global.fetch = jest.fn() as typeof fetch;
+    capturedCheckoutOnSuccess = null;
+    capturedBatchOnSelect = null;
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    jest.clearAllMocks();
+  });
+
+  it("shows locked message on Interview Prep tab when drilling into unanalyzed batch JD with token", async () => {
+    seedBatchWorkspace({
+      analysisToken: "tok_batch",
+      tokenExpiresAt: new Date(Date.now() + 86400000).toISOString(),
+    });
+    (global.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 404 });
+
+    const user = userEvent.setup();
+    render(<AppExperience />);
+
+    // Drill into a batch result (no cached paid content)
+    act(() => {
+      capturedBatchOnSelect!(sampleBatchResult);
+    });
+
+    // Click the Interview Prep tab
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Interview Prep/i })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: /Interview Prep/i }));
+
+    // Should show the locked CTA, not StarPrepPanel
+    await waitFor(() => {
+      expect(screen.getByText(/interview prep locked/i)).toBeInTheDocument();
+    });
+
+    // The sidebar "Generate full analysis" button should also be present
+    expect(screen.getByRole("button", { name: /Generate full analysis/i })).toBeInTheDocument();
+
+    // StarPrepPanel should NOT be rendered
+    expect(screen.queryByText(/StarPrepPanel:/)).not.toBeInTheDocument();
+  });
+
+  it("shows StarPrepPanel on Interview Prep tab after paid content is generated in batch mode", async () => {
+    seedBatchWorkspace({
+      analysisToken: "tok_batch_paid",
+      tokenExpiresAt: new Date(Date.now() + 86400000).toISOString(),
+    });
+    mockPaidPhaseFetches();
+
+    const user = userEvent.setup();
+    render(<AppExperience />);
+
+    // Drill into batch result
+    act(() => {
+      capturedBatchOnSelect!(sampleBatchResult);
+    });
+
+    // Generate full analysis
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Generate full analysis/i })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: /Generate full analysis/i }));
+
+    // Wait for paid content to load
+    await waitFor(() => {
+      expect(screen.getByText(`ResumeRewriter:${sampleRewriteSuggestions.length}`)).toBeInTheDocument();
+    });
+
+    // Now switch to Interview Prep — should show StarPrepPanel with the batch JD
+    await user.click(screen.getByRole("button", { name: /Interview Prep/i }));
+    await waitFor(() => {
+      expect(screen.getByText(/StarPrepPanel:/)).toBeInTheDocument();
     });
   });
 });
