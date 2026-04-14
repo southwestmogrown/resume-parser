@@ -44,6 +44,7 @@ const LS_KEY = "ps_workspace_v1";
 const BATCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 type ResultTab = "rewrites" | "study" | "cover" | "interview" | "resume";
+type PaidRunResult = "no_token" | "token_invalid" | "completed";
 
 interface BatchAnalysisEntry {
   rewriteSuggestions: RewriteSuggestion[] | null;
@@ -64,6 +65,24 @@ function hashJD(jd: string): string {
     h = (Math.imul(31, h) + jd.charCodeAt(i)) | 0;
   }
   return h.toString(36);
+}
+
+function hasAnyPaidContent(params: {
+  rewriteSuggestions: RewriteSuggestion[] | null;
+  studyItems: StudyItem[] | null;
+  coverLetter: string | null;
+  coverLetterBlocked: string[] | null;
+  optimizedResume: string | null;
+  starQuestions: StarQuestion[];
+  starAnswers: StarAnswer[];
+}): boolean {
+  return Boolean(params.rewriteSuggestions)
+    || Boolean(params.studyItems)
+    || Boolean(params.coverLetter)
+    || Boolean(params.coverLetterBlocked)
+    || Boolean(params.optimizedResume)
+    || params.starQuestions.length > 0
+    || params.starAnswers.length > 0;
 }
 
 function StepPill({
@@ -387,7 +406,7 @@ export default function AppExperience() {
       jd: string,
       tokenOverride?: string,
       options?: { onTokenInvalid?: () => void }
-    ) => {
+    ): Promise<PaidRunResult> => {
       const token = tokenOverride ?? analysisToken;
       if (!token) return "no_token";
 
@@ -407,6 +426,30 @@ export default function AppExperience() {
         options?.onTokenInvalid?.();
       };
 
+      const batchRun = Boolean(selectedBatchJDRef.current);
+      const cacheBatchUpdate = (partial: Partial<BatchAnalysisEntry>) => {
+        if (!batchRun) return;
+        const key = hashJD(jd);
+        setBatchAnalysisCache((prev) => {
+          const existing = prev[key];
+          return {
+            ...prev,
+            [key]: {
+              rewriteSuggestions: partial.rewriteSuggestions ?? existing?.rewriteSuggestions ?? null,
+              studyItems: partial.studyItems ?? existing?.studyItems ?? null,
+              coverLetter: partial.coverLetter ?? existing?.coverLetter ?? null,
+              coverLetterBlocked: partial.coverLetterBlocked ?? existing?.coverLetterBlocked ?? null,
+              optimizedResume: partial.optimizedResume ?? existing?.optimizedResume ?? null,
+              starQuestions: partial.starQuestions ?? existing?.starQuestions ?? [],
+              starAnswers: partial.starAnswers ?? existing?.starAnswers ?? [],
+              starMessages: partial.starMessages ?? existing?.starMessages ?? [],
+              activeStarQuestion: partial.activeStarQuestion ?? existing?.activeStarQuestion ?? null,
+              savedAt: Date.now(),
+            },
+          };
+        });
+      };
+
       const rewritePromise = fetch("/api/rewrite", {
         method: "POST",
         headers: {
@@ -424,6 +467,10 @@ export default function AppExperience() {
           if (res.status === 401 || res.status === 402) { handleTokenInvalid(); return; }
           if (!res.ok) throw new Error("Rewrite generation failed");
           const data: RewriteResponse = await res.json();
+          if (batchRun && selectedBatchJDRef.current !== jd) {
+            cacheBatchUpdate({ rewriteSuggestions: data.suggestions });
+            return;
+          }
           setRewriteSuggestions(data.suggestions);
         })
         .catch(() => undefined)
@@ -445,12 +492,17 @@ export default function AppExperience() {
           if (res.status === 401 || res.status === 402) { handleTokenInvalid(); return; }
           if (!res.ok) throw new Error("Study plan generation failed");
           const data: StudyPlanResponse = await res.json();
+          if (batchRun && selectedBatchJDRef.current !== jd) {
+            cacheBatchUpdate({ studyItems: data.items });
+            return;
+          }
           setStudyItems(data.items);
         })
         .catch(() => undefined)
         .finally(() => setLoadingStudyPlan(false));
 
       await Promise.all([rewritePromise, studyPromise]);
+      // Even after both promises settle, token invalidation can occur in either chain and should halt phase 4.
       if (tokenInvalid) return "token_invalid";
 
       setLoadingCoverLetter(true);
@@ -474,7 +526,11 @@ export default function AppExperience() {
           handleTokenInvalid();
         } else if (coverRes.status === 422) {
           const body = await coverRes.json().catch(() => ({})) as { dealbreakers?: string[] };
-          setCoverLetterBlocked(body.dealbreakers ?? []);
+          if (batchRun && selectedBatchJDRef.current !== jd) {
+            cacheBatchUpdate({ coverLetterBlocked: body.dealbreakers ?? [] });
+          } else {
+            setCoverLetterBlocked(body.dealbreakers ?? []);
+          }
         } else if (coverRes.ok && coverRes.body) {
           const reader = coverRes.body.getReader();
           const decoder = new TextDecoder();
@@ -483,7 +539,11 @@ export default function AppExperience() {
             const { done, value } = await reader.read();
             if (done) break;
             text += decoder.decode(value, { stream: true });
-            setCoverLetter(text);
+            if (batchRun && selectedBatchJDRef.current !== jd) {
+              cacheBatchUpdate({ coverLetter: text });
+            } else {
+              setCoverLetter(text);
+            }
           }
         }
       } catch {
@@ -509,8 +569,15 @@ export default function AppExperience() {
     const currentStarMessages = starMessagesRef.current;
     const currentActiveQuestion = activeStarQuestionRef.current;
 
-    if (!currentRewrite && !currentStudy && !currentCover && !currentCoverBlocked && !currentOptimizedResume
-      && currentStarQuestions.length === 0 && currentStarAnswers.length === 0) return;
+    if (!hasAnyPaidContent({
+      rewriteSuggestions: currentRewrite,
+      studyItems: currentStudy,
+      coverLetter: currentCover,
+      coverLetterBlocked: currentCoverBlocked,
+      optimizedResume: currentOptimizedResume,
+      starQuestions: currentStarQuestions,
+      starAnswers: currentStarAnswers,
+    })) return;
 
     const key = hashJD(currentJD);
     setBatchAnalysisCache((prev) => ({
@@ -545,8 +612,15 @@ export default function AppExperience() {
   // Sync current paid state into the batch analysis cache whenever it changes in drill-down mode.
   useEffect(() => {
     if (!selectedBatchJD) return;
-    if (!rewriteSuggestions && !studyItems && !coverLetter && !coverLetterBlocked && !optimizedResume
-      && starQuestions.length === 0 && starAnswers.length === 0) return;
+    if (!hasAnyPaidContent({
+      rewriteSuggestions,
+      studyItems,
+      coverLetter,
+      coverLetterBlocked,
+      optimizedResume,
+      starQuestions,
+      starAnswers,
+    })) return;
     const key = hashJD(selectedBatchJD);
     setBatchAnalysisCache((prev) => ({
       ...prev,

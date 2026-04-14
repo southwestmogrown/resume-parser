@@ -467,7 +467,7 @@ describe("AppExperience batch drill-down", () => {
     jest.clearAllMocks();
   });
 
-  it("shows 'Generate full analysis' button in sidebar after batch drill-down + payment", async () => {
+  it("fires paid phases immediately when payment succeeds in batch drill-down", async () => {
     seedBatchWorkspace();
     mockPaidPhaseFetches();
 
@@ -491,15 +491,31 @@ describe("AppExperience batch drill-down", () => {
       capturedCheckoutOnSuccess!("tok_batch", new Date(Date.now() + 86400000).toISOString());
     });
 
-    // "Generate full analysis" button should appear
+    // Batch payment success should trigger paid phases for the selected JD immediately.
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Generate full analysis/i })).toBeInTheDocument();
+      const urls = (global.fetch as jest.Mock).mock.calls.map((c: unknown[]) => c[0]);
+      expect(urls).toContain("/api/rewrite");
+      expect(urls).toContain("/api/study-plan");
     });
   });
 
-  it("fires paid phases when 'Generate full analysis' button is clicked", async () => {
-    seedBatchWorkspace();
-    mockPaidPhaseFetches();
+  it("opens checkout immediately when Generate full analysis hits an exhausted token", async () => {
+    seedBatchWorkspace({
+      analysisToken: "tok_exhausted",
+      tokenExpiresAt: new Date(Date.now() + 86400000).toISOString(),
+    });
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url === "/api/rewrite" || url === "/api/study-plan") {
+        return Promise.resolve({ ok: false, status: 401, json: async () => ({}) });
+      }
+      if (url === "/api/create-payment-intent") {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ clientSecret: "pi_secret_retry" }),
+        });
+      }
+      return Promise.resolve({ ok: false, status: 404, json: async () => ({}) });
+    });
 
     const user = userEvent.setup();
     render(<AppExperience />);
@@ -507,23 +523,43 @@ describe("AppExperience batch drill-down", () => {
     // Drill down
     act(() => { capturedBatchOnSelect!(sampleBatchResult); });
 
-    // Pay
-    await user.click(screen.getByRole("button", { name: /Unlock/i }));
-    act(() => {
-      capturedCheckoutOnSuccess!("tok_batch2", new Date(Date.now() + 86400000).toISOString());
-    });
-
-    // Click Generate full analysis
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /Generate full analysis/i })).toBeInTheDocument();
     });
     await user.click(screen.getByRole("button", { name: /Generate full analysis/i }));
 
-    // Paid phase fetches should fire
+    // First click should immediately open checkout modal.
     await waitFor(() => {
-      const urls = (global.fetch as jest.Mock).mock.calls.map((c: unknown[]) => c[0]);
-      expect(urls).toContain("/api/rewrite");
-      expect(urls).toContain("/api/study-plan");
+      expect(screen.getByText("CheckoutModal")).toBeInTheDocument();
+    });
+  });
+
+  it("restores first JD paid content after switching to another JD", async () => {
+    seedBatchWorkspace({
+      analysisToken: "tok_batch_cache",
+      tokenExpiresAt: new Date(Date.now() + 86400000).toISOString(),
+    });
+    mockPaidPhaseFetches();
+
+    const user = userEvent.setup();
+    render(<AppExperience />);
+
+    // Drill into first JD and generate paid outputs.
+    act(() => { capturedBatchOnSelect!(sampleBatchResult); });
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Generate full analysis/i })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: /Generate full analysis/i }));
+    await waitFor(() => {
+      expect(screen.getByText(`ResumeRewriter:${sampleRewriteSuggestions.length}`)).toBeInTheDocument();
+    });
+
+    // Switch to second JD (no cached paid outputs yet), then back to first.
+    act(() => { capturedBatchOnSelect!(secondBatchResult); });
+    act(() => { capturedBatchOnSelect!(sampleBatchResult); });
+
+    await waitFor(() => {
+      expect(screen.getByText(`ResumeRewriter:${sampleRewriteSuggestions.length}`)).toBeInTheDocument();
     });
   });
 
