@@ -11,7 +11,7 @@ export const maxDuration = 30;
  * Strip common LinkedIn page chrome that gets captured by Ctrl+A.
  * This includes navigation, sidebar suggestions, activity feed, ads, and
  * footer content. The goal is to keep only actual profile content so that
- * the 8 000-char truncation sent to Claude contains maximum signal.
+ * the 8,000-char truncation sent to Claude contains maximum signal.
  */
 function stripLinkedInNoise(text: string): string {
   let result = text;
