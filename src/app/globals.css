@@ -1805,3 +1805,284 @@ main {
     height: 480px;
   }
 }
+
+/* ── New UX classes ─────────────────────────────────────────────────────── */
+
+.workspace-container {
+  padding-bottom: var(--space-16);
+}
+
+.workspace-main {
+  display: grid;
+  gap: var(--space-6);
+  align-content: start;
+}
+
+.step-indicator--spaced {
+  margin-bottom: var(--space-6);
+}
+
+.analyze-actions {
+  margin-top: var(--space-6);
+  display: grid;
+  gap: var(--space-3);
+  justify-items: center;
+}
+
+.interview-complete-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--ps-accent-dim);
+  border: 1px solid color-mix(in srgb, var(--ps-accent) 25%, transparent);
+  margin-top: var(--space-4);
+  justify-self: center;
+}
+
+.interview-complete-chip__icon {
+  color: var(--ps-accent);
+  font-size: 0.9rem;
+}
+
+.interview-complete-chip__text {
+  font-size: 0.82rem;
+}
+
+.interviewer-wrapper {
+  margin-top: var(--space-6);
+  max-width: 680px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Session card in sidebar */
+.session-card {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.session-card__label {
+  margin-bottom: var(--space-1);
+}
+
+.session-card__name {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.session-card__meta {
+  font-size: 12px;
+}
+
+.session-card__action {
+  font-size: 12px;
+  align-self: flex-start;
+}
+
+/* Batch drill-down header */
+.batch-drilldown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.batch-drilldown-header__back {
+  font-size: 13px;
+}
+
+.batch-drilldown-header__label {
+  font-size: 11px;
+}
+
+/* Tab lock icon */
+.tab-lock {
+  font-size: 0.7em;
+  margin-right: 0.3em;
+  opacity: 0.7;
+}
+
+/* Tab notification dot */
+.tab-notification-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--ps-accent);
+  margin-left: var(--space-2);
+  vertical-align: middle;
+}
+
+/* Tab loading dot */
+.tab-loading-dot {
+  opacity: 0.5;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.tab-count {
+  opacity: 0.5;
+}
+
+/* Locked tab inline upsell */
+.tab-locked-upsell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-12) var(--space-8);
+  text-align: center;
+  border: 1px dashed var(--ps-border);
+  border-radius: var(--radius-lg);
+}
+
+.tab-locked-upsell__text {
+  color: var(--ps-text-secondary);
+  font-size: 0.9rem;
+}
+
+/* Content placeholder for batch locked states */
+.content-placeholder {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-16) var(--space-8);
+  text-align: center;
+  border: 1px dashed var(--ps-border);
+  border-radius: var(--radius-lg);
+}
+
+.content-placeholder__desc {
+  font-size: 13px;
+}
+
+/* Scoring loading state */
+.scoring-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-16);
+}
+
+/* Phase 0 decision modal */
+.phase0-decision-modal {
+  background: var(--ps-bg-card);
+  border: 1px solid var(--ps-border-mid);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  max-width: 480px;
+  width: 90%;
+  display: grid;
+  gap: var(--space-6);
+}
+
+.phase0-decision-header {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.phase0-decision-title {
+  font-size: 1.3rem;
+}
+
+.phase0-decision-desc {
+  font-size: 0.85rem;
+}
+
+.phase0-decision-actions {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* Reset confirm modal */
+.reset-confirm-modal {
+  background: var(--ps-bg-card);
+  border: 1px solid var(--ps-border-mid);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  max-width: 520px;
+  width: 90%;
+  display: grid;
+  gap: var(--space-5);
+}
+
+.reset-confirm-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.reset-confirm-header h2 {
+  font-size: 1.1rem;
+}
+
+.reset-confirm-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  color: var(--ps-amber);
+}
+
+.reset-confirm-body {
+  color: var(--ps-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.reset-confirm-lostlist {
+  background: color-mix(in srgb, var(--ps-red) 6%, var(--ps-bg-surface));
+  border: 1px solid color-mix(in srgb, var(--ps-red) 20%, transparent);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+
+.reset-confirm-lostlist-label {
+  font-size: 0.8rem;
+  color: var(--ps-red);
+  font-weight: 500;
+  margin-bottom: var(--space-2);
+}
+
+.reset-confirm-lostlist ul {
+  margin: 0;
+  padding-left: var(--space-5);
+  color: var(--ps-text-secondary);
+  font-size: 0.82rem;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.reset-confirm-export {
+  background: transparent;
+  border: 1px solid var(--ps-border-mid);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  color: var(--ps-text-secondary);
+  font-size: 0.82rem;
+  cursor: pointer;
+  text-align: center;
+}
+
+.reset-confirm-export:hover {
+  background: var(--ps-bg-elevated);
+}
+
+.reset-confirm-actions {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.reset-confirm-destroy {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--ps-red) 40%, transparent);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  color: var(--ps-red);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+}
+
+.reset-confirm-destroy:hover {
+  background: color-mix(in srgb, var(--ps-red) 10%, transparent);
+}

@@ -1,89 +1,31 @@
 "use client";
 
 import OptimizedResume from "@/components/OptimizedResume";
-import JSZip from "jszip";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import BatchResults from "@/components/BatchResults";
 import CheckoutModal from "@/components/CheckoutModal";
 import CoverLetter from "@/components/CoverLetter";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import ErrorCard from "@/components/ErrorCard";
 import ExperienceInterviewer from "@/components/ExperienceInterviewer";
 import GitHubConnect from "@/components/GitHubConnect";
 import JobDescriptionList from "@/components/JobDescriptionList";
 import LinkedInConnect from "@/components/LinkedInConnect";
 import MatchScore from "@/components/MatchScore";
 import PassStackLogo from "@/components/PassStackLogo";
-import PayGate from "@/components/PayGate";
 import ResumeRewriter from "@/components/ResumeRewriter";
 import ResumeUpload from "@/components/ResumeUpload";
 import Spinner from "@/components/Spinner";
 import StarPrepPanel from "@/components/StarPrepPanel";
 import StudyPlan from "@/components/StudyPlan";
-import { mergeEnrichedResume } from "@/lib/mergeEnrichedResume";
-import { extractPdfBase64 } from "@/lib/extractPdfText";
-import type {
-  BatchScoreResult,
-  ConversationMessage,
-  ExtractResponse,
-  GitHubProfile,
-  InterviewBrief,
-  LinkedInProfile,
-  MatchResult,
-  ResumeData,
-  RewriteResponse,
-  RewriteSuggestion,
-  ScoreResponse,
-  StarAnswer,
-  StarQuestion,
-  StudyItem,
-  StudyPlanResponse,
-} from "@/lib/types";
+import { useWorkspace, LS_KEY } from "@/lib/useWorkspace";
+import { usePayment } from "@/lib/usePayment";
+import { usePaidPhases } from "@/lib/usePaidPhases";
 
-const LS_KEY = "ps_workspace_v1";
-const BATCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+export { LS_KEY };
 
 type ResultTab = "rewrites" | "study" | "cover" | "interview" | "resume";
-type PaidRunResult = "no_token" | "token_invalid" | "completed";
-
-interface BatchAnalysisEntry {
-  rewriteSuggestions: RewriteSuggestion[] | null;
-  studyItems: StudyItem[] | null;
-  coverLetter: string | null;
-  coverLetterBlocked: string[] | null;
-  optimizedResume: string | null;
-  starQuestions: StarQuestion[];
-  starAnswers: StarAnswer[];
-  starMessages: ConversationMessage[];
-  activeStarQuestion: StarQuestion | null;
-  savedAt: number;
-}
-
-function hashJD(jd: string): string {
-  let h = 0;
-  for (let i = 0; i < jd.length; i++) {
-    h = (Math.imul(31, h) + jd.charCodeAt(i)) | 0;
-  }
-  return h.toString(36);
-}
-
-function hasAnyPaidContent(params: {
-  rewriteSuggestions: RewriteSuggestion[] | null;
-  studyItems: StudyItem[] | null;
-  coverLetter: string | null;
-  coverLetterBlocked: string[] | null;
-  optimizedResume: string | null;
-  starQuestions: StarQuestion[];
-  starAnswers: StarAnswer[];
-}): boolean {
-  return Boolean(params.rewriteSuggestions)
-    || Boolean(params.studyItems)
-    || Boolean(params.coverLetter)
-    || Boolean(params.coverLetterBlocked)
-    || Boolean(params.optimizedResume)
-    || params.starQuestions.length > 0
-    || params.starAnswers.length > 0;
-}
 
 function StepPill({
   number,
@@ -104,939 +46,87 @@ function StepPill({
   );
 }
 
-export default function AppExperience() {
-  const [resumeFile, setResumeFile] = useState<File | null>(null);
-  const [jobDescriptions, setJobDescriptions] = useState<string[]>([]);
-  const [resumeData, setResumeData] = useState<ResumeData | null>(null);
-  const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
-  const [rewriteSuggestions, setRewriteSuggestions] = useState<RewriteSuggestion[] | null>(null);
-  const [coverLetter, setCoverLetter] = useState<string | null>(null);
-  const [coverLetterBlocked, setCoverLetterBlocked] = useState<string[] | null>(null);
-  const [studyItems, setStudyItems] = useState<StudyItem[] | null>(null);
-  const [githubProfile, setGithubProfile] = useState<GitHubProfile | null>(null);
-  const [linkedinProfile, setLinkedinProfile] = useState<LinkedInProfile | null>(null);
-  const [batchResults, setBatchResults] = useState<BatchScoreResult[] | null>(null);
-  const [selectedBatchJD, setSelectedBatchJD] = useState<string | null>(null);
-  const [loadingExtraction, setLoadingExtraction] = useState(false);
-  const [loadingScore, setLoadingScore] = useState(false);
-  const [loadingRewrite, setLoadingRewrite] = useState(false);
-  const [loadingCoverLetter, setLoadingCoverLetter] = useState(false);
-  const [loadingStudyPlan, setLoadingStudyPlan] = useState(false);
-  const [loadingBatch, setLoadingBatch] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [analysisToken, setAnalysisToken] = useState<string | null>(null);
-  const [tokenExpiresAt, setTokenExpiresAt] = useState<string | null>(null);
-  const [paymentState, setPaymentState] = useState<"idle" | "pending" | "paid" | "canceled">("idle");
-  const [activeTab, setActiveTab] = useState<ResultTab>("rewrites");
-  const [checkoutClientSecret, setCheckoutClientSecret] = useState<string | null>(null);
-
-  // Phase 0 — Experience Interviewer
-  const [showInterviewer, setShowInterviewer] = useState(false);
-  const [interviewBrief, setInterviewBrief] = useState<InterviewBrief | null>(null);
-  const [enrichedResumeData, setEnrichedResumeData] = useState<ResumeData | null>(null);
-
-  // Phase 5 — STAR Prep
-  const [starQuestions, setStarQuestions] = useState<StarQuestion[]>([]);
-  const [starAnswers, setStarAnswers] = useState<StarAnswer[]>([]);
-  const [activeStarQuestion, setActiveStarQuestion] = useState<StarQuestion | null>(null);
-  const [starMessages, setStarMessages] = useState<ConversationMessage[]>([]);
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
-
-  // Phase 6 — Optimized Resume
-  const [optimizedResume, setOptimizedResume] = useState<string | null>(null);
-  const [loadingOptimizedResume, setLoadingOptimizedResume] = useState(false);
-
-  // Per-JD paid result cache (batch drill-down)
-  const [batchAnalysisCache, setBatchAnalysisCache] = useState<Record<string, BatchAnalysisEntry>>({});
-
-  const jobDescriptionsRef = useRef(jobDescriptions);
-  const resumeDataRef = useRef(resumeData);
-  const matchResultRef = useRef(matchResult);
-  const githubProfileRef = useRef(githubProfile);
-  const linkedinProfileRef = useRef(linkedinProfile);
-  const selectedBatchJDRef = useRef(selectedBatchJD);
-  const batchAnalysisCacheRef = useRef(batchAnalysisCache);
-  const rewriteSuggestionsRef = useRef(rewriteSuggestions);
-  const studyItemsRef = useRef(studyItems);
-  const coverLetterRef = useRef(coverLetter);
-  const coverLetterBlockedRef = useRef(coverLetterBlocked);
-  const optimizedResumeRef = useRef(optimizedResume);
-  const starQuestionsRef = useRef(starQuestions);
-  const starAnswersRef = useRef(starAnswers);
-  const starMessagesRef = useRef(starMessages);
-  const activeStarQuestionRef = useRef(activeStarQuestion);
-  const pollTimeoutRef = useRef<number | ReturnType<typeof setTimeout> | null>(null);
-  const isMountedRef = useRef(true);
-
-  useEffect(() => { jobDescriptionsRef.current = jobDescriptions; }, [jobDescriptions]);
-  useEffect(() => { resumeDataRef.current = resumeData; }, [resumeData]);
-  useEffect(() => { matchResultRef.current = matchResult; }, [matchResult]);
-  useEffect(() => { githubProfileRef.current = githubProfile; }, [githubProfile]);
-  useEffect(() => { linkedinProfileRef.current = linkedinProfile; }, [linkedinProfile]);
-  useEffect(() => { selectedBatchJDRef.current = selectedBatchJD; }, [selectedBatchJD]);
-  useEffect(() => { batchAnalysisCacheRef.current = batchAnalysisCache; }, [batchAnalysisCache]);
-  useEffect(() => { rewriteSuggestionsRef.current = rewriteSuggestions; }, [rewriteSuggestions]);
-  useEffect(() => { studyItemsRef.current = studyItems; }, [studyItems]);
-  useEffect(() => { coverLetterRef.current = coverLetter; }, [coverLetter]);
-  useEffect(() => { coverLetterBlockedRef.current = coverLetterBlocked; }, [coverLetterBlocked]);
-  useEffect(() => { optimizedResumeRef.current = optimizedResume; }, [optimizedResume]);
-  useEffect(() => { starQuestionsRef.current = starQuestions; }, [starQuestions]);
-  useEffect(() => { starAnswersRef.current = starAnswers; }, [starAnswers]);
-  useEffect(() => { starMessagesRef.current = starMessages; }, [starMessages]);
-  useEffect(() => { activeStarQuestionRef.current = activeStarQuestion; }, [activeStarQuestion]);
+/** Focus trap hook for modals — keeps Tab/Shift+Tab within the container */
+function useFocusTrap(active: boolean) {
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    return () => {
-      isMountedRef.current = false;
-      if (pollTimeoutRef.current !== null) window.clearTimeout(pollTimeoutRef.current);
-    };
-  }, []);
+    if (!active) return;
+    const container = containerRef.current;
+    if (!container) return;
 
-  // Default to Interview Prep tab when score arrives and user hasn't paid yet
-  useEffect(() => {
-    if (matchResult && !analysisToken) setActiveTab("interview");
-  }, [matchResult, analysisToken]);
-
-  // Auto-switch to cover letter tab when it starts streaming
-  useEffect(() => {
-    if (loadingCoverLetter) setActiveTab("cover");
-  }, [loadingCoverLetter]);
-
-  // Auto-switch to optimized resume tab when it starts generating
-  useEffect(() => {
-    if (loadingOptimizedResume) setActiveTab("resume");
-  }, [loadingOptimizedResume]);
-
-  // ── workspace persistence ────────────────────────────────────────────────
-
-  // Restore from localStorage on mount (skip if coming back from Stripe redirect)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("success") || params.get("canceled")) return;
-
-    try {
-      const saved = localStorage.getItem(LS_KEY);
-      if (!saved) return;
-      const d = JSON.parse(saved) as Record<string, unknown>;
-      if (d.resumeData) setResumeData(d.resumeData as ResumeData);
-      if (d.matchResult) setMatchResult(d.matchResult as MatchResult);
-      if (d.batchResults) setBatchResults(d.batchResults as BatchScoreResult[]);
-      if (d.rewriteSuggestions) setRewriteSuggestions(d.rewriteSuggestions as RewriteSuggestion[]);
-      if (d.studyItems) setStudyItems(d.studyItems as StudyItem[]);
-      if (d.coverLetter) setCoverLetter(d.coverLetter as string);
-      if (Array.isArray(d.coverLetterBlocked)) setCoverLetterBlocked(d.coverLetterBlocked as string[]);
-      if (Array.isArray(d.jobDescriptions) && (d.jobDescriptions as string[]).length > 0) {
-        setJobDescriptions(d.jobDescriptions as string[]);
-      }
-      if (d.githubProfile) setGithubProfile(d.githubProfile as GitHubProfile);
-      if (d.linkedinProfile) setLinkedinProfile(d.linkedinProfile as LinkedInProfile);
-      if (d.interviewBrief) setInterviewBrief(d.interviewBrief as InterviewBrief);
-      if (d.enrichedResumeData) setEnrichedResumeData(d.enrichedResumeData as ResumeData);
-      if (d.starQuestions) setStarQuestions(d.starQuestions as StarQuestion[]);
-      if (d.starAnswers) setStarAnswers(d.starAnswers as StarAnswer[]);
-      if (d.activeStarQuestion) setActiveStarQuestion(d.activeStarQuestion as StarQuestion);
-      if (Array.isArray(d.starMessages) && (d.starMessages as ConversationMessage[]).length > 0) {
-        setStarMessages(d.starMessages as ConversationMessage[]);
-      }
-      if (d.optimizedResume) setOptimizedResume(d.optimizedResume as string);
-      if (typeof d.analysisToken === "string") setAnalysisToken(d.analysisToken);
-      if (typeof d.tokenExpiresAt === "string") setTokenExpiresAt(d.tokenExpiresAt);
-      if (d.batchAnalysisCache && typeof d.batchAnalysisCache === "object") {
-        const now = Date.now();
-        const pruned = Object.fromEntries(
-          Object.entries(d.batchAnalysisCache as Record<string, BatchAnalysisEntry>).filter(
-            ([, v]) => now - v.savedAt < BATCH_CACHE_TTL_MS
-          )
-        );
-        if (Object.keys(pruned).length > 0) setBatchAnalysisCache(pruned);
-      }
-    } catch {
-      localStorage.removeItem(LS_KEY);
-    }
-  }, []);
-
-  // Save whenever key state changes (skip if nothing to save)
-  useEffect(() => {
-    if (!resumeData && !matchResult && !batchResults) return;
-    const now = Date.now();
-    const prunedCache = Object.fromEntries(
-      Object.entries(batchAnalysisCache).filter(([, v]) => now - v.savedAt < BATCH_CACHE_TTL_MS)
+    const focusable = container.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
     );
-    try {
-      localStorage.setItem(LS_KEY, JSON.stringify({
-        resumeData,
-        matchResult,
-        batchResults,
-        rewriteSuggestions,
-        studyItems,
-        coverLetter,
-        coverLetterBlocked,
-        jobDescriptions,
-        githubProfile,
-        linkedinProfile,
-        interviewBrief,
-        enrichedResumeData,
-        starQuestions,
-        starAnswers,
-        activeStarQuestion,
-        starMessages,
-        optimizedResume,
-        analysisToken,
-        tokenExpiresAt,
-        batchAnalysisCache: prunedCache,
-      }));
-    } catch {
-      // Storage unavailable or full
-    }
-  }, [activeStarQuestion, analysisToken, batchAnalysisCache, batchResults, coverLetter, coverLetterBlocked, enrichedResumeData, githubProfile, interviewBrief, jobDescriptions, linkedinProfile, matchResult, optimizedResume, resumeData, rewriteSuggestions, starAnswers, starMessages, starQuestions, studyItems, tokenExpiresAt]);
+    if (focusable.length === 0) return;
 
-  const canAnalyze = Boolean((resumeFile || resumeData) && jobDescriptions.length > 0);
-  const isBusy = loadingExtraction || loadingScore || loadingRewrite || loadingCoverLetter || loadingStudyPlan || loadingBatch;
-  const showPayGate = !analysisToken && Boolean(matchResult) && !loadingScore && !loadingExtraction;
-  const hasPaidContent = Boolean(rewriteSuggestions) || Boolean(studyItems) || Boolean(coverLetter) || Boolean(coverLetterBlocked) || Boolean(optimizedResume);
-  const loadingPaid = loadingRewrite || loadingStudyPlan || loadingCoverLetter;
-  const showResults =
-    Boolean(resumeData) ||
-    Boolean(matchResult) ||
-    Boolean(batchResults) ||
-    loadingExtraction ||
-    loadingScore ||
-    loadingRewrite ||
-    loadingCoverLetter ||
-    loadingStudyPlan ||
-    loadingBatch;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    first?.focus();
 
-  // Redirect handling: restore session state and poll for token after Stripe redirect
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const sessionId = params.get("token");
-    const success = params.get("success");
-    const canceled = params.get("canceled");
-
-    if (success || canceled) {
-      const savedJds = sessionStorage.getItem("pending_jds");
-      const savedResumeData = sessionStorage.getItem("pending_resume_data");
-      const savedMatchResult = sessionStorage.getItem("pending_match_result");
-      const savedGithubProfile = sessionStorage.getItem("pending_github_profile");
-      const savedLinkedinProfile = sessionStorage.getItem("pending_linkedin_profile");
-
-      if (savedJds) {
-        try { setJobDescriptions(JSON.parse(savedJds)); } catch { sessionStorage.removeItem("pending_jds"); }
-      }
-      if (savedResumeData) {
-        try { setResumeData(JSON.parse(savedResumeData)); } catch { sessionStorage.removeItem("pending_resume_data"); }
-      }
-      if (savedMatchResult) {
-        try { setMatchResult(JSON.parse(savedMatchResult)); } catch { sessionStorage.removeItem("pending_match_result"); }
-      }
-      if (savedGithubProfile) {
-        try { setGithubProfile(JSON.parse(savedGithubProfile)); } catch { sessionStorage.removeItem("pending_github_profile"); }
-      }
-      if (savedLinkedinProfile) {
-        try { setLinkedinProfile(JSON.parse(savedLinkedinProfile)); } catch { sessionStorage.removeItem("pending_linkedin_profile"); }
-      }
-
-      sessionStorage.removeItem("pending_jds");
-      sessionStorage.removeItem("pending_resume_data");
-      sessionStorage.removeItem("pending_match_result");
-      sessionStorage.removeItem("pending_github_profile");
-      sessionStorage.removeItem("pending_linkedin_profile");
-    }
-
-    if (canceled) {
-      setPaymentState("canceled");
-      window.history.replaceState({}, "", "/app");
-      return;
-    }
-
-    if (success && sessionId) {
-      setPaymentState("pending");
-      let attempts = 0;
-      let redeeming = false;
-
-      const clearPollTimeout = () => {
-        if (pollTimeoutRef.current !== null) {
-          window.clearTimeout(pollTimeoutRef.current);
-          pollTimeoutRef.current = null;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key !== "Tab") return;
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last?.focus();
         }
-      };
-
-      const pollForToken = () => {
-        pollTimeoutRef.current = window.setTimeout(async () => {
-          if (!isMountedRef.current) { clearPollTimeout(); return; }
-          if (redeeming) { pollForToken(); return; }
-
-          redeeming = true;
-          attempts += 1;
-
-          try {
-            const response = await fetch("/api/redeem-token", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ sessionId }),
-            });
-
-            if (!isMountedRef.current) { clearPollTimeout(); return; }
-
-            if (response.ok) {
-              const { token } = await response.json();
-              if (!isMountedRef.current) { clearPollTimeout(); return; }
-              setAnalysisToken(token);
-              setPaymentState("paid");
-              clearPollTimeout();
-              window.history.replaceState({}, "", "/app");
-              return;
-            }
-
-            if (attempts >= 10) {
-              clearPollTimeout();
-              setPaymentState("canceled");
-              window.history.replaceState({}, "", "/app");
-              return;
-            }
-          } finally {
-            redeeming = false;
-          }
-
-          if (isMountedRef.current) pollForToken();
-        }, 1000);
-      };
-
-      pollForToken();
-      return clearPollTimeout;
-    }
-  }, []);
-
-  // runPaidPhases — phases 3a, 3b (parallel), then 4 (streaming cover letter)
-  const enrichedResumeDataRef = useRef(enrichedResumeData);
-  useEffect(() => { enrichedResumeDataRef.current = enrichedResumeData; }, [enrichedResumeData]);
-
-  const runPaidPhases = useCallback(
-    async (
-      resumeDataArg: ResumeData,
-      matchResultArg: MatchResult,
-      jd: string,
-      tokenOverride?: string,
-      options?: { onTokenInvalid?: () => void }
-    ): Promise<PaidRunResult> => {
-      const token = tokenOverride ?? analysisToken;
-      if (!token) return "no_token";
-
-      // Prefer enriched data if available
-      const effectiveResumeData = enrichedResumeDataRef.current ?? resumeDataArg;
-      let tokenInvalid = false;
-
-      setLoadingRewrite(true);
-      setLoadingStudyPlan(true);
-      setActiveTab("rewrites");
-
-      const handleTokenInvalid = () => {
-        if (tokenInvalid) return;
-        tokenInvalid = true;
-        setAnalysisToken(null);
-        setPaymentState("idle");
-        options?.onTokenInvalid?.();
-      };
-
-      const batchRun = Boolean(selectedBatchJDRef.current);
-      const cacheBatchUpdate = (partial: Partial<BatchAnalysisEntry>) => {
-        if (!batchRun) return;
-        const key = hashJD(jd);
-        setBatchAnalysisCache((prev) => {
-          const existing = prev[key];
-          return {
-            ...prev,
-            [key]: {
-              rewriteSuggestions: partial.rewriteSuggestions ?? existing?.rewriteSuggestions ?? null,
-              studyItems: partial.studyItems ?? existing?.studyItems ?? null,
-              coverLetter: partial.coverLetter ?? existing?.coverLetter ?? null,
-              coverLetterBlocked: partial.coverLetterBlocked ?? existing?.coverLetterBlocked ?? null,
-              optimizedResume: partial.optimizedResume ?? existing?.optimizedResume ?? null,
-              starQuestions: partial.starQuestions ?? existing?.starQuestions ?? [],
-              starAnswers: partial.starAnswers ?? existing?.starAnswers ?? [],
-              starMessages: partial.starMessages ?? existing?.starMessages ?? [],
-              activeStarQuestion: partial.activeStarQuestion ?? existing?.activeStarQuestion ?? null,
-              savedAt: Date.now(),
-            },
-          };
-        });
-      };
-
-      const rewritePromise = fetch("/api/rewrite", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-analysis-token": token,
-        },
-        body: JSON.stringify({
-          resumeData: effectiveResumeData,
-          jobDescription: jd,
-          ...(githubProfile ? { githubProfile } : {}),
-          ...(linkedinProfile ? { linkedinProfile } : {}),
-        }),
-      })
-        .then(async (res) => {
-          if (res.status === 401 || res.status === 402) { handleTokenInvalid(); return; }
-          if (!res.ok) throw new Error("Rewrite generation failed");
-          const data: RewriteResponse = await res.json();
-          if (batchRun && selectedBatchJDRef.current !== jd) {
-            cacheBatchUpdate({ rewriteSuggestions: data.suggestions });
-            return;
-          }
-          setRewriteSuggestions(data.suggestions);
-        })
-        .catch(() => undefined)
-        .finally(() => setLoadingRewrite(false));
-
-      const studyPromise = fetch("/api/study-plan", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-analysis-token": token,
-        },
-        body: JSON.stringify({
-          matchResult: matchResultArg,
-          resumeData: effectiveResumeData,
-          ...(linkedinProfile ? { linkedinProfile } : {}),
-        }),
-      })
-        .then(async (res) => {
-          if (res.status === 401 || res.status === 402) { handleTokenInvalid(); return; }
-          if (!res.ok) throw new Error("Study plan generation failed");
-          const data: StudyPlanResponse = await res.json();
-          if (batchRun && selectedBatchJDRef.current !== jd) {
-            cacheBatchUpdate({ studyItems: data.items });
-            return;
-          }
-          setStudyItems(data.items);
-        })
-        .catch(() => undefined)
-        .finally(() => setLoadingStudyPlan(false));
-
-      await Promise.all([rewritePromise, studyPromise]);
-      // Even after both promises settle, token invalidation can occur in either chain and should halt phase 4.
-      if (tokenInvalid) return "token_invalid";
-
-      setLoadingCoverLetter(true);
-      try {
-        const coverRes = await fetch("/api/cover-letter", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-analysis-token": token,
-          },
-          body: JSON.stringify({
-            resumeData: effectiveResumeData,
-            matchResult: matchResultArg,
-            jobDescription: jd,
-            ...(githubProfile ? { githubProfile } : {}),
-            ...(linkedinProfile ? { linkedinProfile } : {}),
-          }),
-        });
-
-        if ((coverRes.status === 401 || coverRes.status === 402)) {
-          handleTokenInvalid();
-        } else if (coverRes.status === 422) {
-          const body = await coverRes.json().catch(() => ({})) as { dealbreakers?: string[] };
-          if (batchRun && selectedBatchJDRef.current !== jd) {
-            cacheBatchUpdate({ coverLetterBlocked: body.dealbreakers ?? [] });
-          } else {
-            setCoverLetterBlocked(body.dealbreakers ?? []);
-          }
-        } else if (coverRes.ok && coverRes.body) {
-          const reader = coverRes.body.getReader();
-          const decoder = new TextDecoder();
-          let text = "";
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            text += decoder.decode(value, { stream: true });
-            if (batchRun && selectedBatchJDRef.current !== jd) {
-              cacheBatchUpdate({ coverLetter: text });
-            } else {
-              setCoverLetter(text);
-            }
-          }
-        }
-      } catch {
-        // Non-blocking
-      }
-      setLoadingCoverLetter(false);
-      return tokenInvalid ? "token_invalid" : "completed";
-    },
-    [analysisToken, githubProfile, linkedinProfile]
-  );
-
-  const persistCurrentBatchSelection = useCallback(() => {
-    const currentJD = selectedBatchJDRef.current;
-    if (!currentJD) return;
-
-    const currentRewrite = rewriteSuggestionsRef.current;
-    const currentStudy = studyItemsRef.current;
-    const currentCover = coverLetterRef.current;
-    const currentCoverBlocked = coverLetterBlockedRef.current;
-    const currentOptimizedResume = optimizedResumeRef.current;
-    const currentStarQuestions = starQuestionsRef.current;
-    const currentStarAnswers = starAnswersRef.current;
-    const currentStarMessages = starMessagesRef.current;
-    const currentActiveQuestion = activeStarQuestionRef.current;
-
-    if (!hasAnyPaidContent({
-      rewriteSuggestions: currentRewrite,
-      studyItems: currentStudy,
-      coverLetter: currentCover,
-      coverLetterBlocked: currentCoverBlocked,
-      optimizedResume: currentOptimizedResume,
-      starQuestions: currentStarQuestions,
-      starAnswers: currentStarAnswers,
-    })) return;
-
-    const key = hashJD(currentJD);
-    setBatchAnalysisCache((prev) => ({
-      ...prev,
-      [key]: {
-        rewriteSuggestions: currentRewrite,
-        studyItems: currentStudy,
-        coverLetter: currentCover,
-        coverLetterBlocked: currentCoverBlocked,
-        optimizedResume: currentOptimizedResume,
-        starQuestions: currentStarQuestions,
-        starAnswers: currentStarAnswers,
-        starMessages: currentStarMessages,
-        activeStarQuestion: currentActiveQuestion,
-        savedAt: Date.now(),
-      },
-    }));
-  }, []);
-
-  // Auto-trigger paid phases when token arrives and score is ready.
-  // Skips batch drill-down — payment success handler triggers directly in that path.
-  useEffect(() => {
-    if (!analysisToken || !resumeData || !matchResult) return;
-    if (selectedBatchJD) return; // batch drill-down is handled by handlePaymentSuccess
-    if (rewriteSuggestions !== null || studyItems !== null || coverLetter !== null) return;
-    if (loadingRewrite || loadingStudyPlan || loadingCoverLetter) return;
-    const jd = jobDescriptionsRef.current[0];
-    if (!jd) return;
-    void runPaidPhases(resumeData, matchResult, jd);
-  }, [analysisToken, coverLetter, loadingCoverLetter, loadingRewrite, loadingStudyPlan, matchResult, resumeData, rewriteSuggestions, runPaidPhases, selectedBatchJD, studyItems]);
-
-  // Sync current paid state into the batch analysis cache whenever it changes in drill-down mode.
-  useEffect(() => {
-    if (!selectedBatchJD) return;
-    if (!hasAnyPaidContent({
-      rewriteSuggestions,
-      studyItems,
-      coverLetter,
-      coverLetterBlocked,
-      optimizedResume,
-      starQuestions,
-      starAnswers,
-    })) return;
-    const key = hashJD(selectedBatchJD);
-    setBatchAnalysisCache((prev) => ({
-      ...prev,
-      [key]: {
-        rewriteSuggestions,
-        studyItems,
-        coverLetter,
-        coverLetterBlocked,
-        optimizedResume,
-        starQuestions,
-        starAnswers,
-        starMessages,
-        activeStarQuestion,
-        savedAt: Date.now(),
-      },
-    }));
-  }, [activeStarQuestion, coverLetter, coverLetterBlocked, optimizedResume, rewriteSuggestions, selectedBatchJD, starAnswers, starMessages, starQuestions, studyItems]);
-
-  const openCheckout = useCallback(async () => {
-    try {
-      const response = await fetch("/api/create-payment-intent", { method: "POST" });
-      if (!response.ok) throw new Error("Checkout setup failed.");
-      const { clientSecret } = await response.json();
-      setCheckoutClientSecret(clientSecret as string);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Checkout setup failed.");
-    }
-  }, []);
-
-  const handleBatchAnalyze = useCallback(() => {
-    if (!resumeData || !matchResult || !selectedBatchJD || !analysisToken) return;
-    void runPaidPhases(resumeData, matchResult, selectedBatchJD, undefined, {
-      onTokenInvalid: () => {
-        void openCheckout();
-      },
-    });
-  }, [analysisToken, matchResult, openCheckout, resumeData, runPaidPhases, selectedBatchJD]);
-
-  const handleAnalyze = useCallback(async () => {
-    const currentJDs = jobDescriptionsRef.current;
-    if (currentJDs.length === 0) return;
-
-    const currentResumeData = resumeDataRef.current;
-    setError(null);
-    setMatchResult(null);
-    setRewriteSuggestions(null);
-    setCoverLetter(null);
-    setCoverLetterBlocked(null);
-    setStudyItems(null);
-    setOptimizedResume(null);
-    setBatchResults(null);
-    setSelectedBatchJD(null);
-
-    let extracted: ResumeData;
-
-    if (resumeFile) {
-      setResumeData(null);
-      setLoadingExtraction(true);
-      try {
-        const base64 = await extractPdfBase64(resumeFile);
-        const extractResponse = await fetch("/api/extract", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ resume: base64 }),
-        });
-        if (!extractResponse.ok) {
-          const data = await extractResponse.json().catch(() => ({}));
-          throw new Error(data.error ?? `Extraction failed (${extractResponse.status})`);
-        }
-        const extractData: ExtractResponse = await extractResponse.json();
-        extracted = extractData.resumeData;
-        setResumeData(extracted);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Extraction failed");
-        setLoadingExtraction(false);
-        return;
-      }
-      setLoadingExtraction(false);
-    } else if (currentResumeData) {
-      extracted = currentResumeData;
-    } else {
-      setError("Please upload your resume.");
-      return;
-    }
-
-    if (currentJDs.length > 1) {
-      // Batch mode: score all JDs for free, no token required
-      setLoadingBatch(true);
-      const settled = await Promise.all(
-        currentJDs.map(async (description) => {
-          try {
-            const scoreResponse = await fetch("/api/score", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                resumeData: enrichedResumeDataRef.current ?? extracted,
-                jobDescription: description,
-                ...(githubProfileRef.current ? { githubProfile: githubProfileRef.current } : {}),
-                ...(linkedinProfileRef.current ? { linkedinProfile: linkedinProfileRef.current } : {}),
-              }),
-            });
-            if (!scoreResponse.ok) return null;
-            const scoreData: ScoreResponse = await scoreResponse.json();
-            const lines = description.split("\n").filter((l) => l.trim().length > 0);
-            const firstLine = lines[0] ?? "Unknown Position";
-            const seekingMatch = firstLine.match(
-              /^(.+?)\s+(?:is seeking|is looking for|is hiring)\s+(?:a|an)\s+(.+)/i
-            );
-            let titleFallback = firstLine;
-            if (titleFallback.length > 80) {
-              const truncated = titleFallback.slice(0, 80);
-              const lastSpace = truncated.lastIndexOf(" ");
-              titleFallback = `${lastSpace > 40 ? truncated.slice(0, lastSpace) : truncated}…`;
-            }
-            return {
-              jobTitle: seekingMatch ? seekingMatch[2].trim() : titleFallback,
-              company: seekingMatch ? seekingMatch[1].trim() : "Unknown Company",
-              score: scoreData.matchResult.score,
-              matchedSkills: scoreData.matchResult.matchedSkills,
-              topGaps: scoreData.matchResult.missingSkills.slice(0, 3),
-              recommendation: scoreData.matchResult.recommendation,
-              jobDescription: description,
-            } satisfies BatchScoreResult;
-          } catch {
-            return null;
-          }
-        })
-      );
-      const results = settled.filter((r): r is BatchScoreResult => Boolean(r));
-      setBatchResults(results.length > 0 ? results : null);
-      if (results.length === 0) setError("Failed to score any job descriptions. Try again.");
-      setLoadingBatch(false);
-      return;
-    }
-
-    // Single JD: score for free
-    const jd = currentJDs[0];
-    setLoadingScore(true);
-    let scoreResult: MatchResult;
-    try {
-      const scoreResponse = await fetch("/api/score", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          resumeData: enrichedResumeDataRef.current ?? extracted,
-          jobDescription: jd,
-          ...(githubProfileRef.current ? { githubProfile: githubProfileRef.current } : {}),
-          ...(linkedinProfileRef.current ? { linkedinProfile: linkedinProfileRef.current } : {}),
-        }),
-      });
-      if (!scoreResponse.ok) {
-        const data = await scoreResponse.json().catch(() => ({}));
-        throw new Error(data.error ?? `Scoring failed (${scoreResponse.status})`);
-      }
-      const scoreData: ScoreResponse = await scoreResponse.json();
-      scoreResult = scoreData.matchResult;
-      setMatchResult(scoreResult);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Scoring failed");
-      setLoadingScore(false);
-      return;
-    }
-    setLoadingScore(false);
-    // Paid phases fire via the auto-trigger effect when matchResult + analysisToken are both set.
-    // No direct call here — avoids double-invocation with the effect.
-  }, [resumeFile]);
-
-  // Batch drill-down: keep batchResults visible, track selected JD
-  const handleBatchDrillDown = useCallback(
-    (result: BatchScoreResult) => {
-      persistCurrentBatchSelection();
-
-      const drillMatchResult: MatchResult = {
-        score: result.score,
-        matchedSkills: result.matchedSkills,
-        missingSkills: result.topGaps,
-        recommendation: result.recommendation,
-      };
-      setSelectedBatchJD(result.jobDescription);
-      setJobDescriptions([result.jobDescription]);
-      setMatchResult(drillMatchResult);
-
-      // Restore from cache if available and within TTL
-      const key = hashJD(result.jobDescription);
-      const cached = batchAnalysisCacheRef.current[key];
-      if (cached && Date.now() - cached.savedAt < BATCH_CACHE_TTL_MS) {
-        setRewriteSuggestions(cached.rewriteSuggestions);
-        setStudyItems(cached.studyItems);
-        setCoverLetter(cached.coverLetter);
-        setCoverLetterBlocked(cached.coverLetterBlocked);
-        setOptimizedResume(cached.optimizedResume);
-        setStarQuestions(cached.starQuestions);
-        setStarAnswers(cached.starAnswers);
-        setActiveStarQuestion(cached.activeStarQuestion);
-        setStarMessages(cached.starMessages);
-        setActiveTab("rewrites");
       } else {
-        setRewriteSuggestions(null);
-        setStudyItems(null);
-        setCoverLetter(null);
-        setCoverLetterBlocked(null);
-        setOptimizedResume(null);
-        setStarQuestions([]);
-        setStarAnswers([]);
-        setActiveStarQuestion(null);
-        setStarMessages([]);
-      }
-    },
-    [persistCurrentBatchSelection]
-  );
-
-  const handleBatchBack = useCallback(() => {
-    persistCurrentBatchSelection();
-    setSelectedBatchJD(null);
-    setMatchResult(null);
-    setRewriteSuggestions(null);
-    setStudyItems(null);
-    setCoverLetter(null);
-    setCoverLetterBlocked(null);
-    setOptimizedResume(null);
-    setStarQuestions([]);
-    setStarAnswers([]);
-    setActiveStarQuestion(null);
-    setStarMessages([]);
-  }, [persistCurrentBatchSelection]);
-
-  const handleBriefComplete = useCallback(
-    (brief: InterviewBrief) => {
-      if (!resumeData) return;
-      const merged = mergeEnrichedResume(resumeData, brief);
-      setInterviewBrief(brief);
-      setEnrichedResumeData(merged);
-      setShowInterviewer(false);
-    },
-    [resumeData]
-  );
-
-  const handlePaymentSuccess = useCallback((token: string, expiresAt: string) => {
-    setAnalysisToken(token);
-    setTokenExpiresAt(expiresAt);
-    setPaymentState("paid");
-    setCheckoutClientSecret(null);
-    // In batch drill-down mode the auto-trigger is suppressed, so fire paid phases directly
-    // using the fresh token before it lands in state (avoids stale closure).
-    const batchJD = selectedBatchJDRef.current;
-    const rd = resumeDataRef.current;
-    const mr = matchResultRef.current;
-    if (batchJD && rd && mr) {
-      void runPaidPhases(rd, mr, batchJD, token);
-    }
-  }, [runPaidPhases]);
-
-  const handlePay = useCallback(async () => {
-    await openCheckout();
-  }, [openCheckout]);
-
-  // ── Export ────────────────────────────────────────────────────────────────
-
-  const handleGenerateResume = useCallback(async () => {
-    if (!analysisToken || !resumeData || !matchResult) return;
-    setLoadingOptimizedResume(true);
-    try {
-      const res = await fetch("/api/optimized-resume", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-analysis-token": analysisToken,
-        },
-        body: JSON.stringify({
-          resumeData: enrichedResumeDataRef.current ?? resumeData,
-          rewriteSuggestions: rewriteSuggestions ?? [],
-          starAnswers,
-          matchResult,
-          jobDescription: jobDescriptionsRef.current[0] ?? "",
-        }),
-      });
-      if (res.status === 401 || res.status === 402) {
-        setAnalysisToken(null);
-        setPaymentState("idle");
-      } else if (res.ok && res.body) {
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let text = "";
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          text += decoder.decode(value, { stream: true });
-          setOptimizedResume(text);
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first?.focus();
         }
       }
-    } catch {
-      // Non-blocking
-    }
-    setLoadingOptimizedResume(false);
-  }, [analysisToken, matchResult, resumeData, rewriteSuggestions, starAnswers]);
-
-  // ── Export ────────────────────────────────────────────────────────────────
-
-  const handleExportZip = useCallback(async () => {
-    const zip = new JSZip();
-
-    if (coverLetter) {
-      zip.file("cover-letter.txt", coverLetter);
     }
 
-    if (optimizedResume) {
-      zip.file("optimized-resume.txt", optimizedResume);
-    }
+    container.addEventListener("keydown", handleKeyDown);
+    return () => container.removeEventListener("keydown", handleKeyDown);
+  }, [active]);
 
-    if (rewriteSuggestions?.length) {
-      const bulletsText = rewriteSuggestions
-        .map((s) =>
-          [
-            s.originalRole,
-            "",
-            `Before: ${s.originalBullet}`,
-            "",
-            `After:  ${s.rewrittenBullet}`,
-            "",
-            `Why:    ${s.rationale}`,
-          ].join("\n")
-        )
-        .join("\n\n---\n\n");
-      zip.file("optimized-bullets.txt", bulletsText);
-    }
+  return containerRef;
+}
 
-    if (studyItems?.length) {
-      const studyText = studyItems
-        .map((item) =>
-          [
-            `[${item.severity.toUpperCase()}] ${item.skill}`,
-            item.action,
-            `Resource: ${item.resource}`,
-          ].join("\n")
-        )
-        .join("\n\n---\n\n");
-      zip.file("study-plan.txt", studyText);
-    }
+export default function AppExperience() {
+  const ws = useWorkspace();
+  const { openCheckout, handlePay } = usePayment(ws);
+  const phases = usePaidPhases(ws, openCheckout);
 
-    if (matchResult) {
-      const reportLines = [
-        "MATCH REPORT",
-        "============",
-        `Score: ${matchResult.score}%`,
-        "",
-        `Recommendation: ${matchResult.recommendation}`,
-        "",
-        `Matched Skills: ${matchResult.matchedSkills.join(", ")}`,
-        "",
-        "Gaps:",
-        ...matchResult.missingSkills.map((g) => `  [${g.severity}] ${g.skill}: ${g.reason}`),
-      ];
-      zip.file("match-report.txt", reportLines.join("\n"));
-    }
+  const {
+    resumeData, matchResult, rewriteSuggestions, coverLetter, coverLetterBlocked,
+    studyItems, githubProfile, linkedinProfile, batchResults, selectedBatchJD,
+    loadingExtraction, loadingScore, loadingRewrite, loadingCoverLetter,
+    loadingStudyPlan, loadingBatch, loadingOptimizedResume,
+    error, analysisToken, checkoutClientSecret,
+    activeTab, showResetConfirm, tabNotifications,
+    showInterviewer, showPhase0Modal, interviewBrief, enrichedResumeData,
+    starQuestions, starAnswers, activeStarQuestion, starMessages,
+    optimizedResume, resumeFile, jobDescriptions,
 
-    if (batchResults?.length) {
-      const batchText = batchResults
-        .map((r) =>
-          [`${r.jobTitle} @ ${r.company}`, `Score: ${r.score}%`, r.recommendation].join("\n")
-        )
-        .join("\n\n---\n\n");
-      zip.file("batch-scores.txt", batchText);
-    }
+    // Setters
+    setResumeFile, setJobDescriptions, setGithubProfile, setLinkedinProfile,
+    setActiveTab, setShowResetConfirm, setShowInterviewer, setShowPhase0Modal,
+    setStarQuestions, setStarAnswers, setActiveStarQuestion, setStarMessages,
+    setCheckoutClientSecret, setError, tokenExpiresAt,
+    clearTabNotification,
 
-    const content = await zip.generateAsync({ type: "blob" });
-    const url = URL.createObjectURL(content);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `passstack-${resumeData?.name?.replace(/\s+/g, "-").toLowerCase() ?? "analysis"}.zip`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [coverLetter, optimizedResume, rewriteSuggestions, studyItems, matchResult, batchResults, resumeData]);
+    // Derived
+    canAnalyze, isBusy, hasPaidContent, loadingPaid, showResults, canExport,
+  } = ws;
 
-  const resetWorkspace = useCallback(() => {
-    setMatchResult(null);
-    setResumeData(null);
-    setResumeFile(null);
-    setGithubProfile(null);
-    setLinkedinProfile(null);
-    setRewriteSuggestions(null);
-    setCoverLetter(null);
-    setCoverLetterBlocked(null);
-    setStudyItems(null);
-    setBatchResults(null);
-    setSelectedBatchJD(null);
-    setJobDescriptions([]);
-    setError(null);
-    setActiveTab("rewrites");
-    setShowInterviewer(false);
-    setInterviewBrief(null);
-    setEnrichedResumeData(null);
-    setStarQuestions([]);
-    setStarAnswers([]);
-    setActiveStarQuestion(null);
-    setStarMessages([]);
-    setOptimizedResume(null);
-    setLoadingOptimizedResume(false);
-    setAnalysisToken(null);
-    setTokenExpiresAt(null);
-    setPaymentState("idle");
-    setCheckoutClientSecret(null);
-    setBatchAnalysisCache({});
-    try { localStorage.removeItem(LS_KEY); } catch { /* ignore */ }
-  }, []);
+  const {
+    handleAnalyze, handleBatchDrillDown, handleBatchBack,
+    handleBatchAnalyze, handleBriefComplete, handlePaymentSuccess,
+    handleGenerateResume, handleExportZip,
+  } = phases;
+
+  const { resetWorkspace, resetForNewRole } = ws;
+
+  // Focus trap for modals
+  const checkoutTrapRef = useFocusTrap(Boolean(checkoutClientSecret));
+  const resetTrapRef = useFocusTrap(showResetConfirm);
+  const phase0TrapRef = useFocusTrap(showPhase0Modal);
+
+  const showPayGate = !analysisToken && Boolean(matchResult) && !loadingScore && !loadingExtraction;
 
   const getAnalyzeButtonText = () => {
     if (loadingExtraction) return "Extracting resume…";
@@ -1044,23 +134,36 @@ export default function AppExperience() {
     return jobDescriptions.length > 1 ? "Score all jobs" : "Analyze";
   };
 
-  const canExport = (hasPaidContent || Boolean(batchResults)) && !loadingPaid && !loadingBatch;
+  // Tab click handler — clear notification and switch
+  const handleTabClick = useCallback((tab: ResultTab) => {
+    setActiveTab(tab);
+    clearTabNotification(tab);
+  }, [setActiveTab, clearTabNotification]);
+
+  // Determine which tabs are locked (no token, no paid content for that tab)
+  const isTabLocked = useCallback((tab: ResultTab): boolean => {
+    if (analysisToken) return false;
+    if (tab === "interview") return false; // always visible even without token (shows paygate inline)
+    return !hasPaidContent;
+  }, [analysisToken, hasPaidContent]);
 
   return (
     <ErrorBoundary>
       <main className="app-shell">
 
         {checkoutClientSecret && (
-          <CheckoutModal
-            clientSecret={checkoutClientSecret}
-            onSuccess={handlePaymentSuccess}
-            onClose={() => setCheckoutClientSecret(null)}
-          />
+          <div ref={checkoutTrapRef}>
+            <CheckoutModal
+              clientSecret={checkoutClientSecret}
+              onSuccess={handlePaymentSuccess}
+              onClose={() => setCheckoutClientSecret(null)}
+            />
+          </div>
         )}
 
         {showResetConfirm && (
           <div className="modal-backdrop" onClick={() => setShowResetConfirm(false)}>
-            <div className="reset-confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="reset-confirm-modal" ref={resetTrapRef} onClick={(e) => e.stopPropagation()}>
               <div className="reset-confirm-header">
                 <span className="reset-confirm-icon">⚠</span>
                 <h2>This will permanently delete everything.</h2>
@@ -1114,6 +217,38 @@ export default function AppExperience() {
           </div>
         )}
 
+        {/* Phase 0 decision modal — shown after extraction, before scoring */}
+        {showPhase0Modal && (
+          <div className="modal-backdrop" onClick={() => { setShowPhase0Modal(false); void handleAnalyze(); }}>
+            <div className="phase0-decision-modal" ref={phase0TrapRef} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Enhance your resume">
+              <div className="phase0-decision-header">
+                <div className="eyebrow">optional · 2–3 minutes</div>
+                <h2 className="phase0-decision-title">Want to sharpen your resume first?</h2>
+                <p className="result-muted phase0-decision-desc">
+                  Answer a few questions about your experience. This surfaces concrete impact metrics and hidden skills that make every downstream phase sharper.
+                </p>
+              </div>
+              <div className="phase0-decision-actions">
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => { setShowPhase0Modal(false); setShowInterviewer(true); }}
+                  autoFocus
+                >
+                  Yes, enhance first →
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => { setShowPhase0Modal(false); void handleAnalyze(); }}
+                >
+                  No, score now
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <nav className="site-nav site-nav--scrolled">
           <div className="container nav-inner">
             <Link href="/" className="brand-mark" aria-label="PassStack home">
@@ -1158,10 +293,10 @@ export default function AppExperience() {
           </div>
         </section>
 
-        <section id="workspace" className="container" style={{ paddingBottom: "var(--space-16)" }}>
+        <section id="workspace" className="container workspace-container">
           {!showResults ? (
             <>
-              <div className="step-indicator" style={{ marginBottom: "var(--space-6)" }}>
+              <div className="step-indicator step-indicator--spaced">
                 <StepPill
                   number={1}
                   label="Upload"
@@ -1213,48 +348,17 @@ export default function AppExperience() {
                 </div>
               </div>
 
-              {/* Phase 0 — Experience Interviewer (optional enhancement) */}
-              {resumeData && !showInterviewer && !interviewBrief && (
-                <div className="interview-cta-banner" style={{ marginTop: "var(--space-5)" }}>
-                  <div>
-                    <div className="eyebrow" style={{ marginBottom: "var(--space-1)" }}>optional · phase 0</div>
-                    <p style={{ fontWeight: 500, fontSize: "0.9rem", color: "var(--ps-text-primary)", margin: 0 }}>
-                      Want a sharper analysis?
-                    </p>
-                    <p>
-                      Answer a few questions about your experience. Takes 2–3 minutes and sharpens the results that follow. Skip anytime.
-                    </p>
-                  </div>
-                  <div className="interview-cta-banner__actions">
-                    <button
-                      type="button"
-                      className="btn-primary btn-inline"
-                      onClick={() => setShowInterviewer(true)}
-                      disabled={isBusy}
-                    >
-                      Enhance my resume →
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-ghost btn-inline"
-                      onClick={() => void handleAnalyze()}
-                      disabled={!canAnalyze || isBusy}
-                    >
-                      Skip, analyze now
-                    </button>
-                  </div>
-                </div>
-              )}
-
+              {/* Phase 0 — Interview complete chip */}
               {resumeData && interviewBrief && !showInterviewer && (
-                <div style={{ marginTop: "var(--space-5)", padding: "var(--space-3) var(--space-4)", border: "1px solid rgba(57, 217, 184, 0.3)", borderRadius: 8, display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-                  <span style={{ color: "var(--ps-accent)", fontWeight: 600 }}>✓</span>
-                  <span className="result-muted" style={{ fontSize: "0.85rem" }}>Interview context added — {interviewBrief.enriched_experiences.length} role{interviewBrief.enriched_experiences.length !== 1 ? "s" : ""} covered</span>
+                <div className="interview-complete-chip">
+                  <span className="interview-complete-chip__icon">✓</span>
+                  <span className="result-muted interview-complete-chip__text">Interview context added — {interviewBrief.enriched_experiences.length} role{interviewBrief.enriched_experiences.length !== 1 ? "s" : ""} covered</span>
                 </div>
               )}
 
+              {/* Phase 0 — Experience Interviewer (open) */}
               {showInterviewer && resumeData && (
-                <div style={{ marginTop: "var(--space-5)" }}>
+                <div className="interviewer-wrapper">
                   <ExperienceInterviewer
                     resumeData={enrichedResumeData ?? resumeData}
                     onBriefComplete={handleBriefComplete}
@@ -1263,11 +367,18 @@ export default function AppExperience() {
                 </div>
               )}
 
-              <div style={{ marginTop: "var(--space-6)", display: "grid", gap: "var(--space-3)", justifyItems: "center" }}>
+              <div className="analyze-actions">
                 {!showInterviewer && (
                   <button
                     type="button"
-                    onClick={() => void handleAnalyze()}
+                    onClick={() => {
+                      // If resume is extracted and no interview done yet, show Phase 0 decision modal
+                      if (resumeData && !interviewBrief && !showInterviewer && canAnalyze) {
+                        setShowPhase0Modal(true);
+                        return;
+                      }
+                      void handleAnalyze();
+                    }}
                     disabled={!canAnalyze || isBusy}
                     className="btn-primary btn-large tour-analyze-button"
                   >
@@ -1276,23 +387,20 @@ export default function AppExperience() {
                   </button>
                 )}
                 <p className="fine-print">Score is free. Full analysis unlocked with a one-time $5 payment.</p>
-                {error && <p style={{ color: "var(--ps-red)" }}>{error}</p>}
+                {error && (
+                  <ErrorCard
+                    message={error}
+                    onDismiss={() => setError(null)}
+                    onRetry={canAnalyze ? () => void handleAnalyze() : undefined}
+                  />
+                )}
               </div>
             </>
           ) : (
             <div className="workspace-results">
-              {/* Left sidebar — score + paygate + session info */}
+              {/* Left sidebar — score + session info */}
               <div className="workspace-sidebar tour-anchor-score">
                 <MatchScore result={matchResult} loading={loadingExtraction || loadingScore} />
-
-                {showPayGate && matchResult && resumeData ? (
-                  <PayGate
-                    resumeData={resumeData}
-                    score={matchResult.score}
-                    paymentState={paymentState}
-                    onPay={() => void handlePay()}
-                  />
-                ) : null}
 
                 {selectedBatchJD && analysisToken && !hasPaidContent && !loadingPaid && (
                   <button
@@ -1305,21 +413,31 @@ export default function AppExperience() {
                     Generate full analysis
                   </button>
                 )}
-                <div className="card card-soft" style={{ display: "grid", gap: "var(--space-3)" }}>
-                  <div className="eyebrow" style={{ marginBottom: "var(--space-1)" }}>session</div>
+
+                <div className="card card-soft session-card">
+                  <div className="eyebrow session-card__label">session</div>
                   {resumeData?.name && (
-                    <p style={{ fontSize: "13px", fontWeight: 500 }}>{resumeData.name}</p>
+                    <p className="session-card__name">{resumeData.name}</p>
                   )}
-                  <p className="result-muted" style={{ fontSize: "12px" }}>
+                  <p className="result-muted session-card__meta">
                     {jobDescriptions.length} job{jobDescriptions.length !== 1 ? "s" : ""}
                     {githubProfile ? ` · @${githubProfile.username}` : ""}
                     {linkedinProfile?.currentCompany ? ` · ${linkedinProfile.currentCompany}` : ""}
                   </p>
+                  {matchResult && !selectedBatchJD && (
+                    <button
+                      type="button"
+                      className="btn-ghost btn-inline session-card__action"
+                      onClick={resetForNewRole}
+                    >
+                      Analyze another role →
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {/* Right main — batch results + paid content */}
-              <div style={{ display: "grid", gap: "var(--space-6)", alignContent: "start" }}>
+              {/* Right main — batch results + tabbed content */}
+              <div className="workspace-main">
                 {(batchResults || loadingBatch) && (
                   <BatchResults
                     results={batchResults}
@@ -1331,172 +449,169 @@ export default function AppExperience() {
 
                 {/* Drill-down header with back button */}
                 {selectedBatchJD && (
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-4)" }}>
+                  <div className="batch-drilldown-header">
                     <button
                       type="button"
                       onClick={handleBatchBack}
-                      className="btn-ghost btn-inline"
-                      style={{ fontSize: "11px" }}
+                      className="btn-ghost btn-inline batch-drilldown-header__back"
                     >
                       ← Back to all
                     </button>
-                    <span className="eyebrow" style={{ marginBottom: 0 }}>selected role</span>
+                    <span className="eyebrow batch-drilldown-header__label">selected role</span>
                   </div>
                 )}
 
-                {(hasPaidContent || loadingPaid || !!matchResult) && (
+                {/* Always show all 5 tabs after scoring — lock icons on unpaid tabs */}
+                {!!matchResult && (
                   <>
-                    <div className="result-tabs">
-                      {(hasPaidContent || loadingPaid) && (
-                        <>
+                    <div className="result-tabs" role="tablist">
+                      {(["rewrites", "study", "cover", "interview", "resume"] as ResultTab[]).map((tab) => {
+                        const locked = isTabLocked(tab);
+                        const labels: Record<ResultTab, string> = {
+                          rewrites: "Bullet Rewrites",
+                          study: "Study Plan",
+                          cover: "Cover Letter",
+                          interview: "Interview Prep",
+                          resume: "Optimized Resume",
+                        };
+                        const tourClass: Record<ResultTab, string> = {
+                          rewrites: "tour-tab-rewrites",
+                          study: "tour-tab-study",
+                          cover: "tour-tab-cover",
+                          interview: "tour-tab-interview",
+                          resume: "tour-tab-resume",
+                        };
+
+                        return (
                           <button
+                            key={tab}
                             type="button"
-                            className={`result-tab tour-tab-rewrites ${activeTab === "rewrites" ? "result-tab--active" : ""}`.trim()}
-                            onClick={() => setActiveTab("rewrites")}
+                            role="tab"
+                            aria-selected={activeTab === tab}
+                            className={`result-tab ${tourClass[tab]} ${activeTab === tab ? "result-tab--active" : ""}`.trim()}
+                            onClick={() => handleTabClick(tab)}
                           >
-                            Bullet Rewrites
-                            {loadingRewrite && <span style={{ opacity: 0.5 }}> ·</span>}
-                            {!loadingRewrite && rewriteSuggestions && (
-                              <span style={{ opacity: 0.5 }}> ({rewriteSuggestions.length})</span>
+                            {locked && <span className="tab-lock" aria-label="locked">🔒</span>}
+                            {labels[tab]}
+                            {tab === "rewrites" && loadingRewrite && <span className="tab-loading-dot"> ·</span>}
+                            {tab === "rewrites" && !loadingRewrite && rewriteSuggestions && (
+                              <span className="tab-count"> ({rewriteSuggestions.length})</span>
+                            )}
+                            {tab === "study" && loadingStudyPlan && <span className="tab-loading-dot"> ·</span>}
+                            {tab === "study" && !loadingStudyPlan && studyItems && (
+                              <span className="tab-count"> ({studyItems.length})</span>
+                            )}
+                            {tab === "cover" && loadingCoverLetter && <span className="tab-loading-dot"> writing…</span>}
+                            {tab === "interview" && starAnswers.length > 0 && (
+                              <span className="tab-count"> ({starAnswers.length})</span>
+                            )}
+                            {tab === "resume" && loadingOptimizedResume && <span className="tab-loading-dot"> ·</span>}
+                            {tabNotifications[tab] && activeTab !== tab && (
+                              <span className="tab-notification-dot" aria-label="new content available" />
                             )}
                           </button>
-                          <button
-                            type="button"
-                            className={`result-tab tour-tab-study ${activeTab === "study" ? "result-tab--active" : ""}`.trim()}
-                            onClick={() => setActiveTab("study")}
-                          >
-                            Study Plan
-                            {loadingStudyPlan && <span style={{ opacity: 0.5 }}> ·</span>}
-                            {!loadingStudyPlan && studyItems && (
-                              <span style={{ opacity: 0.5 }}> ({studyItems.length})</span>
-                            )}
-                          </button>
-                          <button
-                            type="button"
-                            className={`result-tab tour-tab-cover ${activeTab === "cover" ? "result-tab--active" : ""}`.trim()}
-                            onClick={() => setActiveTab("cover")}
-                          >
-                            Cover Letter
-                            {loadingCoverLetter && <span style={{ opacity: 0.5 }}> writing…</span>}
-                          </button>
-                        </>
-                      )}
-                      <button
-                        type="button"
-                        className={`result-tab tour-tab-interview ${activeTab === "interview" ? "result-tab--active" : ""}`.trim()}
-                        onClick={() => setActiveTab("interview")}
-                      >
-                        Interview Prep
-                        {starAnswers.length > 0 && (
-                          <span style={{ opacity: 0.5 }}> ({starAnswers.length})</span>
-                        )}
-                      </button>
-                      {(hasPaidContent || loadingPaid) && (
-                        <button
-                          type="button"
-                          className={`result-tab tour-tab-resume ${activeTab === "resume" ? "result-tab--active" : ""}`.trim()}
-                          onClick={() => setActiveTab("resume")}
-                        >
-                          Optimized Resume
-                          {loadingOptimizedResume && <span style={{ opacity: 0.5 }}> ·</span>}
-                        </button>
-                      )}
+                        );
+                      })}
                     </div>
 
-                    {activeTab === "rewrites" && (
-                      <ResumeRewriter suggestions={rewriteSuggestions} loading={loadingRewrite} />
-                    )}
-                    {activeTab === "study" && (
-                      <StudyPlan items={studyItems} loading={loadingStudyPlan} />
-                    )}
-                    {activeTab === "cover" && (
-                      <CoverLetter content={coverLetter} loading={loadingCoverLetter} blockedSkills={coverLetterBlocked} />
-                    )}
-                    {activeTab === "interview" && (
-                      !analysisToken ? (
-                        matchResult && resumeData ? (
-                          <div className="tour-anchor-interview-paygate">
-                            <PayGate
-                              resumeData={enrichedResumeData ?? resumeData}
-                              score={matchResult.score}
-                              paymentState={paymentState}
-                              onPay={() => void handlePay()}
-                            />
-                          </div>
-                        ) : null
-                      ) : selectedBatchJD && !hasPaidContent && !loadingPaid ? (
-                        <div
-                          style={{
-                            padding: "var(--space-16) var(--space-8)",
-                            textAlign: "center",
-                            color: "var(--ps-text-faint)",
-                            border: "1px dashed var(--ps-border)",
-                            borderRadius: "var(--radius-lg)",
-                          }}
+                    {/* Tab content — show inline upsell for locked tabs */}
+                    {isTabLocked(activeTab) && activeTab !== "interview" ? (
+                      <div className="tab-locked-upsell">
+                        <p className="tab-locked-upsell__text">
+                          This feature is part of the full analysis.
+                        </p>
+                        <button
+                          type="button"
+                          className="btn-primary btn-inline"
+                          onClick={() => void handlePay()}
                         >
-                          <p className="eyebrow">interview prep locked</p>
-                          <p className="result-muted" style={{ marginTop: "var(--space-3)", fontSize: "13px" }}>
-                            Click &ldquo;Generate full analysis&rdquo; in the sidebar to unlock interview prep for this role.
-                          </p>
-                        </div>
-                      ) : (
-                        matchResult && resumeData ? (
-                          <StarPrepPanel
-                            resumeData={enrichedResumeData ?? resumeData}
-                            matchResult={matchResult}
-                            jobDescription={jobDescriptions[0] ?? ""}
-                            token={analysisToken}
-                            tokenExpiresAt={tokenExpiresAt}
-                            questions={starQuestions}
-                            answers={starAnswers}
-                            activeQuestion={activeStarQuestion}
-                            starMessages={starMessages}
-                            onQuestionsLoaded={setStarQuestions}
-                            onAnswerComplete={(a) => setStarAnswers((prev) => [...prev, a])}
-                            onQuestionChange={(q) => {
-                              setActiveStarQuestion(q);
-                              setStarMessages([]);
-                            }}
-                            onMessageSend={setStarMessages}
+                          Unlock — $5 →
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        {activeTab === "rewrites" && (
+                          <ResumeRewriter suggestions={rewriteSuggestions} loading={loadingRewrite} />
+                        )}
+                        {activeTab === "study" && (
+                          <StudyPlan items={studyItems} loading={loadingStudyPlan} />
+                        )}
+                        {activeTab === "cover" && (
+                          <CoverLetter content={coverLetter} loading={loadingCoverLetter} blockedSkills={coverLetterBlocked} />
+                        )}
+                        {activeTab === "interview" && (
+                          !analysisToken ? (
+                            matchResult && resumeData ? (
+                              <div className="tour-anchor-interview-paygate tab-locked-upsell">
+                                <p className="tab-locked-upsell__text">
+                                  STAR interview coaching is part of the full analysis.
+                                </p>
+                                <button
+                                  type="button"
+                                  className="btn-primary btn-inline"
+                                  onClick={() => void handlePay()}
+                                >
+                                  Unlock — $5 →
+                                </button>
+                              </div>
+                            ) : null
+                          ) : selectedBatchJD && !hasPaidContent && !loadingPaid ? (
+                            <div className="content-placeholder">
+                              <p className="eyebrow">interview prep locked</p>
+                              <p className="result-muted content-placeholder__desc">
+                                Click &ldquo;Generate full analysis&rdquo; in the sidebar to unlock interview prep for this role.
+                              </p>
+                            </div>
+                          ) : (
+                            matchResult && resumeData ? (
+                              <StarPrepPanel
+                                resumeData={enrichedResumeData ?? resumeData}
+                                matchResult={matchResult}
+                                jobDescription={jobDescriptions[0] ?? ""}
+                                token={analysisToken}
+                                tokenExpiresAt={tokenExpiresAt}
+                                questions={starQuestions}
+                                answers={starAnswers}
+                                activeQuestion={activeStarQuestion}
+                                starMessages={starMessages}
+                                onQuestionsLoaded={setStarQuestions}
+                                onAnswerComplete={(a) => setStarAnswers((prev) => [...prev, a])}
+                                onQuestionChange={(q) => {
+                                  setActiveStarQuestion(q);
+                                  setStarMessages([]);
+                                }}
+                                onMessageSend={setStarMessages}
+                              />
+                            ) : null
+                          )
+                        )}
+                        {activeTab === "resume" && (
+                          <OptimizedResume
+                            content={optimizedResume}
+                            loading={loadingOptimizedResume}
+                            canGenerate={starAnswers.length > 0}
+                            onGenerate={() => void handleGenerateResume()}
                           />
-                        ) : null
-                      )
-                    )}
-                    {activeTab === "resume" && (
-                      <OptimizedResume
-                        content={optimizedResume}
-                        loading={loadingOptimizedResume}
-                        canGenerate={starAnswers.length > 0}
-                        onGenerate={() => void handleGenerateResume()}
-                      />
+                        )}
+                      </>
                     )}
                   </>
                 )}
 
-                {!batchResults && !loadingBatch && !hasPaidContent && !loadingPaid && activeTab !== "interview" && activeTab !== "resume" && (
-                  <div
-                    style={{
-                      padding: "var(--space-16) var(--space-8)",
-                      textAlign: "center",
-                      color: "var(--ps-text-faint)",
-                      border: "1px dashed var(--ps-border)",
-                      borderRadius: "var(--radius-lg)",
-                    }}
-                  >
-                    {loadingExtraction || loadingScore ? (
-                      <p className="eyebrow">Analyzing…</p>
-                    ) : showPayGate ? (
-                      <>
-                        <p className="eyebrow">ready to unlock</p>
-                        <p className="result-muted" style={{ marginTop: "var(--space-3)", fontSize: "13px" }}>
-                          Bullet rewrites, study plan, and cover letter appear here after payment.
-                        </p>
-                      </>
-                    ) : null}
+                {/* Loading state when scoring is in progress */}
+                {!matchResult && (loadingExtraction || loadingScore) && (
+                  <div className="scoring-loading-state">
+                    <Spinner />
+                    <p className="eyebrow">Scoring your match…</p>
                   </div>
                 )}
 
-                {error && <p style={{ color: "var(--ps-red)" }}>{error}</p>}
+                {error && (
+                  <ErrorCard
+                    message={error}
+                    onDismiss={() => setError(null)}
+                  />
+                )}
               </div>
             </div>
           )}

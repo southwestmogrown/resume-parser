@@ -18,8 +18,10 @@ export default function ExperienceInterviewer({
   const [userInput, setUserInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [lastError, setLastError] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const lastTurnRef = useRef<ConversationMessage[]>([]);
 
   // Kick off the first question on mount
   useEffect(() => {
@@ -34,6 +36,8 @@ export default function ExperienceInterviewer({
 
   async function sendTurn(history: ConversationMessage[]) {
     setLoading(true);
+    setLastError(false);
+    lastTurnRef.current = history;
     try {
       const res = await fetch('/api/interview', {
         method: 'POST',
@@ -60,15 +64,15 @@ export default function ExperienceInterviewer({
         ]);
       }
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: 'Something went wrong. Please try again or skip this step.',
-        },
-      ]);
+      setLastError(true);
     } finally {
       setLoading(false);
+    }
+  }
+
+  function handleRetry() {
+    if (lastTurnRef.current.length > 0) {
+      void sendTurn(lastTurnRef.current);
     }
   }
 
@@ -112,7 +116,7 @@ export default function ExperienceInterviewer({
         </button>
       </div>
 
-      <div className="chat-messages">
+      <div className="chat-messages" role="log" aria-live="polite">
         {messages.map((msg, i) => (
           <div
             key={i}
@@ -124,10 +128,24 @@ export default function ExperienceInterviewer({
 
         {loading && (
           <div className="chat-bubble chat-bubble--assistant" style={{ padding: 'var(--space-3) var(--space-4)' }}>
-            <div className="typing-indicator">
+            <div className="typing-indicator" role="status" aria-label="Typing">
               <span />
               <span />
               <span />
+            </div>
+          </div>
+        )}
+
+        {lastError && !loading && (
+          <div className="error-card" role="alert" style={{ margin: '0 var(--space-3)' }}>
+            <div className="error-card__content">
+              <span className="error-card__icon" aria-hidden="true">⚠</span>
+              <p className="error-card__message">Something went wrong. Please try again or skip this step.</p>
+            </div>
+            <div className="error-card__actions">
+              <button type="button" className="btn-primary btn-inline" onClick={handleRetry}>
+                Retry
+              </button>
             </div>
           </div>
         )}
@@ -146,6 +164,7 @@ export default function ExperienceInterviewer({
             placeholder="Type your answer… (⌘↵ to send)"
             rows={2}
             disabled={loading}
+            aria-label="Your answer"
           />
           <button
             type="button"

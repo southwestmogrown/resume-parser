@@ -375,8 +375,8 @@ describe("AppExperience paid phase auto-trigger", () => {
     const user = userEvent.setup();
     render(<AppExperience />);
 
-    // Open checkout
-    await user.click(screen.getByRole("button", { name: /Unlock/i }));
+    // Open checkout (first Unlock button is the nav one)
+    await user.click(screen.getAllByRole("button", { name: /Unlock/i })[0]);
     expect(capturedCheckoutOnSuccess).not.toBeNull();
 
     // Simulate payment success
@@ -422,7 +422,7 @@ describe("AppExperience localStorage token persistence", () => {
     render(<AppExperience />);
 
     // Open checkout and simulate success
-    await user.click(screen.getByRole("button", { name: /Unlock/i }));
+    await user.click(screen.getAllByRole("button", { name: /Unlock/i })[0]);
     const expiresAt = new Date(Date.now() + 86400000).toISOString();
 
     act(() => {
@@ -480,13 +480,13 @@ describe("AppExperience batch drill-down", () => {
       capturedBatchOnSelect!(sampleBatchResult);
     });
 
-    // Score is visible, PayGate shows (may appear in sidebar + interview tab)
+    // Score is visible, Unlock buttons show
     await waitFor(() => {
-      expect(screen.getAllByText(/PayGate:/).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByRole("button", { name: /Unlock/i }).length).toBeGreaterThanOrEqual(1);
     });
 
-    // Pay via nav Unlock button
-    await user.click(screen.getByRole("button", { name: /Unlock/i }));
+    // Pay via nav Unlock button (first one)
+    await user.click(screen.getAllByRole("button", { name: /Unlock/i })[0]);
     act(() => {
       capturedCheckoutOnSuccess!("tok_batch", new Date(Date.now() + 86400000).toISOString());
     });
@@ -584,7 +584,7 @@ describe("AppExperience batch drill-down", () => {
     // StarPrepPanel should get the first JD
     await waitFor(() => {
       // The Interview Prep tab should be available — click it to see StarPrepPanel
-      const interviewTab = screen.getByRole("button", { name: /Interview Prep/i });
+      const interviewTab = screen.getByRole("tab", { name: /Interview Prep/i });
       expect(interviewTab).toBeInTheDocument();
     });
 
@@ -594,7 +594,7 @@ describe("AppExperience batch drill-down", () => {
     // After switching, StarPrepPanel should receive the new JD
     await waitFor(() => {
       // The new JD should be passed to StarPrepPanel
-      const interviewTab = screen.getByRole("button", { name: /Interview Prep/i });
+      const interviewTab = screen.getByRole("tab", { name: /Interview Prep/i });
       expect(interviewTab).toBeInTheDocument();
     });
   });
@@ -646,7 +646,7 @@ describe("AppExperience state persistence", () => {
 
     // coverLetterBlocked means hasPaidContent is true — tabs should be visible
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Cover Letter/i })).toBeInTheDocument();
+      expect(screen.getByRole("tab", { name: /Cover Letter/i })).toBeInTheDocument();
     });
   });
 
@@ -747,9 +747,9 @@ describe("AppExperience batch drill-down Interview Prep tab", () => {
 
     // Click the Interview Prep tab
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Interview Prep/i })).toBeInTheDocument();
+      expect(screen.getByRole("tab", { name: /Interview Prep/i })).toBeInTheDocument();
     });
-    await user.click(screen.getByRole("button", { name: /Interview Prep/i }));
+    await user.click(screen.getByRole("tab", { name: /Interview Prep/i }));
 
     // Should show the locked CTA, not StarPrepPanel
     await waitFor(() => {
@@ -790,7 +790,7 @@ describe("AppExperience batch drill-down Interview Prep tab", () => {
     });
 
     // Now switch to Interview Prep — should show StarPrepPanel with the batch JD
-    await user.click(screen.getByRole("button", { name: /Interview Prep/i }));
+    await user.click(screen.getByRole("tab", { name: /Interview Prep/i }));
     await waitFor(() => {
       expect(screen.getByText(/StarPrepPanel:/)).toBeInTheDocument();
     });
