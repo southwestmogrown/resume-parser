@@ -3,8 +3,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { sampleResumeData, sampleMatchResult, sampleBatchResult, sampleRewriteSuggestions, sampleStudyItems, sampleGitHubProfile } from "@/test-utils/fixtures";
 import type { BatchScoreResult } from "@/lib/types";
-
-const LS_KEY = "ps_workspace_v1";
+import { LS_KEY } from "@/components/AppExperience";
 
 const secondBatchResult: BatchScoreResult = {
   ...sampleBatchResult,
