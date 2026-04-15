@@ -51,10 +51,7 @@ export async function runFreePipeline(page: Page) {
   await page.waitForResponse("**/api/extract");
 
   // Skip Phase 0 if the decision modal appears (button text is "No, score now")
-  const scoreNowButton = page.getByRole("button", { name: /no.*score now/i });
-  if (await scoreNowButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-    await scoreNowButton.click();
-  }
+  await skipPhase0IfVisible(page);
 
   // Wait for score ring to be visible
   await expect(page.locator('[role="img"][aria-label*="Match score"]')).toBeVisible();

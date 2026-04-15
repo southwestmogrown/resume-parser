@@ -150,9 +150,7 @@ export async function mockBatchScore(page: Page) {
 
 export async function mockAllApis(page: Page) {
   // Block external Stripe.js to prevent network-dependent hangs in CI
-  await page.route("https://js.stripe.com/**", (route: Route) => route.abort());
-  await page.route("https://m.stripe.com/**", (route: Route) => route.abort());
-  await page.route("https://r.stripe.com/**", (route: Route) => route.abort());
+  await blockExternalScripts(page);
 
   await mockExtract(page);
   await mockScore(page);
