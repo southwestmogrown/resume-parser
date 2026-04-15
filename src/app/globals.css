@@ -731,7 +731,7 @@ main {
   grid-template-columns: 1fr 1fr;
   gap: var(--space-16);
   align-items: center;
-  background: var(--ps-surface);
+  background: var(--ps-bg-surface);
   border: 1px solid color-mix(in srgb, var(--ps-red) 30%, transparent);
   border-radius: var(--radius-lg);
   padding: var(--space-8);
@@ -806,31 +806,8 @@ main {
   border-bottom: none;
   padding-top: var(--space-3);
   font-weight: 600;
-  color: var(--ps-teal);
+  color: var(--ps-accent);
   font-size: 1rem;
-}
-
-/* Feature list used in Why section and Phase 5 */
-.feature-list {
-  list-style: none;
-  padding: 0;
-  margin: var(--space-4) 0 0;
-  display: grid;
-  gap: var(--space-3);
-}
-
-.feature-list li {
-  color: var(--ps-text-secondary);
-  font-size: 0.9rem;
-  padding-left: var(--space-4);
-  position: relative;
-}
-
-.feature-list li::before {
-  content: "→";
-  position: absolute;
-  left: 0;
-  color: var(--ps-teal);
 }
 
 /* STAR mock card in Phase 5 callout */
@@ -845,7 +822,7 @@ main {
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--ps-text-muted);
+  color: var(--ps-text-secondary);
   border: 1px solid var(--ps-border);
   border-radius: 4px;
   padding: var(--space-2) var(--space-3);
@@ -1101,6 +1078,43 @@ main {
   height: 6px;
   border-radius: 999px;
   background: var(--ps-accent);
+}
+
+/* ── Error card ────────────────────────────────────────────────────────── */
+
+.error-card {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--ps-red) 30%, transparent);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--ps-red) 6%, var(--ps-bg-surface));
+}
+
+.error-card__content {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.error-card__icon {
+  flex-shrink: 0;
+  color: var(--ps-red);
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
+
+.error-card__message {
+  color: var(--ps-text-primary);
+  font-size: 0.875rem;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.error-card__actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
 }
 
 .copy-button {

@@ -571,7 +571,7 @@ export default function LandingPage() {
           </div>
           <p className="subtle-note">
             Built by{" "}
-            <a href="https://shanewilkey.com" target="_blank" rel="noreferrer" style={{ color: "var(--ps-teal)", textDecoration: "none" }}>
+            <a href="https://shanewilkey.com" target="_blank" rel="noreferrer" style={{ color: "var(--ps-accent)", textDecoration: "none" }}>
               Shane Wilkey
             </a>
             {" "}· Wilkey Digital Solutions · Springfield, MO
