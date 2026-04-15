@@ -5,7 +5,10 @@ import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-
 import { type FormEvent, useState } from "react";
 import Spinner from "@/components/Spinner";
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+// Gracefully handle Stripe.js load failures (e.g., blocked by test route interceptors in CI)
+const stripePromise = loadStripe(
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
+).catch(() => null);
 
 const stripeAppearance = {
   theme: "night" as const,
