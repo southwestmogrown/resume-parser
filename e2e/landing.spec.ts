@@ -1,7 +1,9 @@
 import { test, expect } from "@playwright/test";
+import { blockExternalScripts } from "./helpers/api-mocks";
 
 test.describe("Landing Page", () => {
   test.beforeEach(async ({ page }) => {
+    await blockExternalScripts(page);
     await page.goto("/");
   });
 

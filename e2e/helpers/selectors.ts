@@ -62,7 +62,6 @@ export const SEL = {
   generateResumeButton: '[data-testid="generate-resume-button"]',
 
   // ── Tour (demo only) ──────────────────────────────────────────────
-  // CSS class — tour overlay has no ARIA role
-  tourOverlay: '.tour-overlay',
-  tourTooltip: '.tour-tooltip',
+  // TourOverlay uses inline styles — no CSS classes. Target by text and aria-label.
+  skipTour: 'button[aria-label="Skip tour"]',
 } as const;

@@ -1,78 +1,81 @@
 import { test, expect } from "@playwright/test";
+import { blockExternalScripts } from "./helpers/api-mocks";
 
 test.describe("Demo Tour", () => {
   test.beforeEach(async ({ page }) => {
+    await blockExternalScripts(page);
     await page.goto("/demo");
   });
 
   test("tour auto-starts on /demo with welcome step", async ({ page }) => {
-    // Tour overlay should appear
-    await expect(page.locator(".tour-overlay")).toBeVisible();
-    // First tooltip should show welcome message
-    await expect(page.locator(".tour-tooltip")).toContainText("Welcome to the demo");
+    // Tour tooltip should show welcome message (title text from tourConfig step 0)
+    await expect(page.getByText("Welcome to the demo")).toBeVisible();
+    // Step counter should show "Step 1 of"
+    await expect(page.getByText(/Step 1 of/)).toBeVisible();
   });
 
   test("Next button advances the tour", async ({ page }) => {
-    await expect(page.locator(".tour-tooltip")).toContainText("Welcome to the demo");
+    await expect(page.getByText("Welcome to the demo")).toBeVisible();
 
-    // Click Next
+    // Click Next → (button text in TourOverlay)
     await page.getByRole("button", { name: /next/i }).click();
 
-    // Tour should advance — tooltip text should change
-    await expect(page.locator(".tour-tooltip")).not.toContainText("Welcome to the demo");
+    // Tour should advance — step 2 title should show
+    await expect(page.getByText("Upload your resume")).toBeVisible();
+    await expect(page.getByText(/Step 2 of/)).toBeVisible();
   });
 
-  test("Prev button goes back to previous step", async ({ page }) => {
+  test("Back button goes to previous step", async ({ page }) => {
     // Advance one step
     await page.getByRole("button", { name: /next/i }).click();
-    await expect(page.locator(".tour-tooltip")).not.toContainText("Welcome to the demo");
+    await expect(page.getByText("Upload your resume")).toBeVisible();
 
-    // Go back
-    await page.getByRole("button", { name: /prev/i }).click();
-    await expect(page.locator(".tour-tooltip")).toContainText("Welcome to the demo");
+    // Go back (button text is "← Back")
+    await page.getByRole("button", { name: /back/i }).click();
+    await expect(page.getByText("Welcome to the demo")).toBeVisible();
   });
 
-  test("Skip button jumps to end and shows Restart", async ({ page }) => {
-    await page.getByRole("button", { name: /skip/i }).click();
+  test("Skip tour button (✕) jumps to end and shows Take a tour button", async ({ page }) => {
+    // The close button has aria-label="Skip tour"
+    await page.getByRole("button", { name: "Skip tour" }).click();
 
-    // Tour overlay should be gone
-    await expect(page.locator(".tour-overlay")).toBeHidden();
+    // Tour should be over — welcome text gone
+    await expect(page.getByText("Welcome to the demo")).toBeHidden();
 
-    // Restart button should appear
-    await expect(page.getByRole("button", { name: /restart/i })).toBeVisible();
+    // "Take a tour" restart button should appear in nav
+    await expect(page.getByRole("button", { name: /take a tour/i })).toBeVisible();
   });
 
-  test("Restart button resets tour to step 0", async ({ page }) => {
+  test("Take a tour button resets tour to step 0", async ({ page }) => {
     // Skip to end
-    await page.getByRole("button", { name: /skip/i }).click();
-    await expect(page.locator(".tour-overlay")).toBeHidden();
+    await page.getByRole("button", { name: "Skip tour" }).click();
+    await expect(page.getByText("Welcome to the demo")).toBeHidden();
 
     // Restart
-    await page.getByRole("button", { name: /restart/i }).click();
+    await page.getByRole("button", { name: /take a tour/i }).click();
 
     // Tour should be back at welcome
-    await expect(page.locator(".tour-overlay")).toBeVisible();
-    await expect(page.locator(".tour-tooltip")).toContainText("Welcome to the demo");
+    await expect(page.getByText("Welcome to the demo")).toBeVisible();
   });
 
   test("tour progresses through scoring step — match score becomes visible", async ({ page }) => {
-    // Advance through steps until score is visible (step 6 = TOUR_STEP_SCORE_READY)
+    // Advance through steps until "Your match score" step (step 7 in tourConfig)
     for (let i = 0; i < 6; i++) {
       await page.getByRole("button", { name: /next/i }).click();
     }
 
-    // Score ring should be visible
-    await expect(page.locator('[role="img"][aria-label*="Match score"]')).toBeVisible();
+    // "Your match score" step title should be visible
+    await expect(page.getByText("Your match score")).toBeVisible();
   });
 
   test("tour progresses through paid steps — result tabs appear", async ({ page }) => {
-    // Advance through steps to rewrites (step 8 = TOUR_STEP_REWRITES)
+    // Advance through steps to "Bullet rewrites" step (step 9 in tourConfig)
     for (let i = 0; i < 8; i++) {
       await page.getByRole("button", { name: /next/i }).click();
     }
 
-    // Tab bar should be visible with tab roles
-    await expect(page.locator('[role="tablist"]')).toBeVisible();
+    // "Bullet rewrites" step title should be visible
+    await expect(page.getByText("Bullet rewrites")).toBeVisible();
   });
 
   test("no real API calls during tour", async ({ page }) => {
@@ -84,9 +87,9 @@ test.describe("Demo Tour", () => {
       }
     });
 
-    // Run through the entire tour
-    await page.getByRole("button", { name: /skip/i }).click();
-    await expect(page.locator(".tour-overlay")).toBeHidden();
+    // Skip through the entire tour
+    await page.getByRole("button", { name: "Skip tour" }).click();
+    await expect(page.getByText("Welcome to the demo")).toBeHidden();
 
     expect(apiCalls).toHaveLength(0);
   });

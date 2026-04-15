@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { mockAllApis } from "./helpers/api-mocks";
+import { mockAllApis, blockExternalScripts } from "./helpers/api-mocks";
 import {
   MOCK_RESUME_DATA,
   MOCK_MATCH_RESULT,
@@ -53,10 +53,11 @@ test.describe("localStorage State Persistence", () => {
   });
 
   test("demo mode does not persist to localStorage", async ({ page }) => {
+    await blockExternalScripts(page);
     await page.goto("/demo");
 
-    // Skip tour to load all fixtures
-    await page.getByRole("button", { name: /skip/i }).click();
+    // Skip tour to load all fixtures (aria-label="Skip tour" on close button)
+    await page.getByRole("button", { name: "Skip tour" }).click();
 
     // Check localStorage — should NOT have workspace key
     const stored = await page.evaluate(() => window.localStorage.getItem("ps_workspace_v1"));

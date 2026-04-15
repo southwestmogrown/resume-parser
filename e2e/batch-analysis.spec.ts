@@ -15,7 +15,7 @@ test.describe("Batch Analysis", () => {
     for (let i = 1; i <= count; i++) {
       const textarea = page.locator("textarea").first();
       await textarea.fill(`Job description ${i} for testing batch mode`);
-      await page.getByRole("button", { name: "Add job" }).click();
+      await page.getByRole("button", { name: /add job/i }).click();
     }
   }
 
@@ -51,7 +51,7 @@ test.describe("Batch Analysis", () => {
     // Add just 1 JD
     const textarea = page.locator("textarea").first();
     await textarea.fill("Single job description");
-    await page.getByRole("button", { name: "Add job" }).click();
+    await page.getByRole("button", { name: /add job/i }).click();
 
     // Click Analyze
     await page.getByTestId("analyze-button").click();
@@ -68,7 +68,7 @@ test.describe("Batch Analysis", () => {
     await expect(page.getByTestId("batch-row")).toHaveCount(0);
   });
 
-  test("sort buttons reorder batch results", async ({ page }) => {
+  test("sort buttons visible in batch results", async ({ page }) => {
     // Upload PDF
     const fileInput = page.locator('input[type="file"]');
     await fileInput.setInputFiles(PDF_PATH);

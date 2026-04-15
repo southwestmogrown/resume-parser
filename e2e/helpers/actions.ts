@@ -50,10 +50,10 @@ export async function runFreePipeline(page: Page) {
   // Wait for extraction API response
   await page.waitForResponse("**/api/extract");
 
-  // Skip Phase 0 if the decision modal appears
-  const skipButton = page.getByRole("button", { name: /skip/i });
-  if (await skipButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await skipButton.click();
+  // Skip Phase 0 if the decision modal appears (button text is "No, score now")
+  const scoreNowButton = page.getByRole("button", { name: /no.*score now/i });
+  if (await scoreNowButton.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await scoreNowButton.click();
   }
 
   // Wait for score ring to be visible
@@ -82,11 +82,11 @@ export async function seedFullWorkspaceState(page: Page) {
 
 /* ── Skip Phase 0 if modal appears ──────────────────────────────── */
 
-/** Click "Skip" on the Phase 0 decision modal if it becomes visible */
+/** Click "No, score now" on the Phase 0 decision modal if it becomes visible */
 export async function skipPhase0IfVisible(page: Page) {
-  const skipBtn = page.getByRole("button", { name: /skip/i });
-  if (await skipBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await skipBtn.click();
+  const scoreNowBtn = page.getByRole("button", { name: /no.*score now/i });
+  if (await scoreNowBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await scoreNowBtn.click();
   }
 }
 

@@ -1,8 +1,9 @@
 import { test, expect } from "@playwright/test";
-import { mockGitHub, mockGitHub404, mockLinkedIn } from "./helpers/api-mocks";
+import { mockGitHub, mockGitHub404, mockLinkedIn, blockExternalScripts } from "./helpers/api-mocks";
 
 test.describe("GitHub + LinkedIn Profile Connections", () => {
   test.beforeEach(async ({ page }) => {
+    await blockExternalScripts(page);
     await page.goto("/app");
   });
 
@@ -51,6 +52,7 @@ test.describe("GitHub + LinkedIn Profile Connections", () => {
     });
 
     test("empty username disables Connect button", async ({ page }) => {
+      // The Connect button is disabled when username is empty (!username.trim())
       const connectBtn = page.getByRole("button", { name: "Connect" });
       await expect(connectBtn).toBeDisabled();
     });
@@ -60,8 +62,8 @@ test.describe("GitHub + LinkedIn Profile Connections", () => {
     test("paste profile text and parse shows profile card", async ({ page }) => {
       await mockLinkedIn(page);
 
-      // Find the LinkedIn textarea (paste area)
-      const pasteArea = page.locator("textarea").last();
+      // Find the LinkedIn textarea — use placeholder text
+      const pasteArea = page.locator('textarea[placeholder*="Paste your LinkedIn"]');
       await pasteArea.fill("Jordan Rivera - Full-Stack Engineer...");
       await page.getByRole("button", { name: /parse profile/i }).click();
 
@@ -75,7 +77,7 @@ test.describe("GitHub + LinkedIn Profile Connections", () => {
     test("clear profile returns to paste step", async ({ page }) => {
       await mockLinkedIn(page);
 
-      const pasteArea = page.locator("textarea").last();
+      const pasteArea = page.locator('textarea[placeholder*="Paste your LinkedIn"]');
       await pasteArea.fill("Some LinkedIn text");
       await page.getByRole("button", { name: /parse profile/i }).click();
       await page.waitForResponse("**/api/linkedin-profile");
@@ -90,6 +92,7 @@ test.describe("GitHub + LinkedIn Profile Connections", () => {
     });
 
     test("empty paste area disables Parse button", async ({ page }) => {
+      // Parse button is disabled when profileText is empty (!profileText.trim())
       const parseBtn = page.getByRole("button", { name: /parse profile/i });
       await expect(parseBtn).toBeDisabled();
     });

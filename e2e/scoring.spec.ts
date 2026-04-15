@@ -26,7 +26,7 @@ test.describe("Scoring Pipeline", () => {
 
     const textarea = page.locator("textarea").first();
     await textarea.fill("Senior Full-Stack Engineer at Nexova...");
-    await page.getByRole("button", { name: "Add job" }).click();
+    await page.getByRole("button", { name: /add job/i }).click();
   }
 
   test("upload + JD + Analyze triggers extraction", async ({ page }) => {
@@ -44,8 +44,8 @@ test.describe("Scoring Pipeline", () => {
     // Wait for extraction response
     await page.waitForResponse("**/api/extract");
 
-    // Phase 0 modal should appear
-    await expect(page.locator('[role="dialog"][aria-label="Enhance your resume"]')).toBeVisible();
+    // Phase 0 modal should appear — text: "Want to sharpen your resume first?"
+    await expect(page.getByText("Want to sharpen your resume first?")).toBeVisible();
   });
 
   test("skip Phase 0 leads to score display with correct value", async ({ page }) => {

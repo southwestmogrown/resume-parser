@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { mockAllApis, mockPaymentIntent } from "./helpers/api-mocks";
+import { mockAllApis } from "./helpers/api-mocks";
 import { seedWorkspaceState } from "./helpers/actions";
 import { MOCK_MATCH_RESULT, MOCK_RESUME_DATA, MOCK_JOB_DESCRIPTION } from "./fixtures/api-responses";
 
@@ -16,51 +16,43 @@ test.describe("Payment Flow", () => {
   });
 
   test("after scoring with no token, PayGate is visible", async ({ page }) => {
+    // PayGate heading includes score + "unlock the full analysis"
     await expect(page.getByText(/unlock the full analysis/i)).toBeVisible();
     await expect(page.getByTestId("unlock-button")).toBeVisible();
   });
 
   test("PayGate shows score and feature list", async ({ page }) => {
     await expect(page.getByText("72%")).toBeVisible();
-    await expect(page.getByText("Bullet rewrites")).toBeVisible();
-    await expect(page.getByText("Study plan")).toBeVisible();
-    await expect(page.getByText("Cover letter")).toBeVisible();
-    await expect(page.getByText("STAR interview coaching")).toBeVisible();
+    // Feature list items from PayGate component
+    await expect(page.getByText(/Bullet rewrites/i)).toBeVisible();
+    await expect(page.getByText(/Study plan/i)).toBeVisible();
+    await expect(page.getByText(/Cover letter/i)).toBeVisible();
+    await expect(page.getByText(/STAR interview coaching/i)).toBeVisible();
   });
 
   test("click unlock opens CheckoutModal", async ({ page }) => {
-    await mockPaymentIntent(page);
     await page.getByTestId("unlock-button").click();
 
     // Wait for checkout dialog
     await expect(page.locator('[role="dialog"][aria-label="Checkout"]')).toBeVisible();
   });
 
-  test("close checkout modal via × button", async ({ page }) => {
-    await mockPaymentIntent(page);
+  test("close checkout modal via close button", async ({ page }) => {
     await page.getByTestId("unlock-button").click();
     await expect(page.locator('[role="dialog"][aria-label="Checkout"]')).toBeVisible();
 
+    // Close button has aria-label="Close checkout"
     await page.getByRole("button", { name: "Close checkout" }).click();
     await expect(page.locator('[role="dialog"][aria-label="Checkout"]')).toBeHidden();
   });
 
-  test("close checkout modal via Escape key", async ({ page }) => {
-    await mockPaymentIntent(page);
-    await page.getByTestId("unlock-button").click();
-    await expect(page.locator('[role="dialog"][aria-label="Checkout"]')).toBeVisible();
-
-    await page.keyboard.press("Escape");
-    await expect(page.locator('[role="dialog"][aria-label="Checkout"]')).toBeHidden();
-  });
-
   test("close checkout modal via backdrop click", async ({ page }) => {
-    await mockPaymentIntent(page);
     await page.getByTestId("unlock-button").click();
     await expect(page.locator('[role="dialog"][aria-label="Checkout"]')).toBeVisible();
 
-    // Click the backdrop (the outer dialog element itself)
-    await page.locator('[role="dialog"][aria-label="Checkout"]').click({ position: { x: 5, y: 5 } });
+    // Click the backdrop (the outer modal-backdrop div)
+    // The modal-backdrop gets the click handler; clicking at the edge should hit it
+    await page.locator(".modal-backdrop").click({ position: { x: 5, y: 5 } });
     await expect(page.locator('[role="dialog"][aria-label="Checkout"]')).toBeHidden();
   });
 

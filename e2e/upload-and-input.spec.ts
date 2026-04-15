@@ -27,9 +27,12 @@ test.describe("Resume Upload + JD Input", () => {
 
   test("upload non-PDF shows error message", async ({ page }) => {
     const fileInput = page.locator('input[type="file"]');
+    // Non-PDF files may be blocked by accept="application/pdf" so use dispatchEvent
+    // or check for the error text that appears
     await fileInput.setInputFiles(INVALID_FILE_PATH);
 
-    await expect(page.getByText("Only PDF files are accepted")).toBeVisible();
+    // The component shows "Only PDF files are accepted." for invalid files
+    await expect(page.getByText(/only pdf files/i)).toBeVisible();
   });
 
   test("clear uploaded file returns to dropzone", async ({ page }) => {
@@ -37,47 +40,48 @@ test.describe("Resume Upload + JD Input", () => {
     await fileInput.setInputFiles(PDF_PATH);
     await expect(page.getByText("sample-resume.pdf")).toBeVisible();
 
-    await page.getByRole("button", { name: "Clear" }).click();
+    await page.getByRole("button", { name: /clear/i }).click();
     await expect(page.getByTestId("upload-dropzone")).toBeVisible();
   });
 
   test("paste single JD and add it", async ({ page }) => {
     const textarea = page.locator("textarea").first();
     await textarea.fill("Senior Full-Stack Engineer at Nexova...");
-    await page.getByRole("button", { name: "Add job" }).click();
+    // Actual button text is "+ Add job"
+    await page.getByRole("button", { name: /add job/i }).click();
 
     // The JD card should appear
     await expect(page.getByText("Senior Full-Stack Engineer")).toBeVisible();
   });
 
-  test("add multiple JDs up to 6, slot counter decrements", async ({ page }) => {
+  test("add multiple JDs up to 6, slot counter shows 0 remaining", async ({ page }) => {
     for (let i = 1; i <= 6; i++) {
       const textarea = page.locator("textarea").first();
       await textarea.fill(`Job description ${i}`);
-      await page.getByRole("button", { name: "Add job" }).click();
+      await page.getByRole("button", { name: /add job/i }).click();
     }
 
-    // After 6 jobs, should show "0 slots remaining" or textarea hidden
-    await expect(page.getByText(/0 slots? remaining/i)).toBeVisible();
+    // After 6 jobs, should show maximum reached message
+    await expect(page.getByText(/maximum of 6/i)).toBeVisible();
   });
 
-  test("remove a JD card increments slot counter", async ({ page }) => {
+  test("remove a JD card", async ({ page }) => {
     // Add 2 jobs
     for (let i = 1; i <= 2; i++) {
       const textarea = page.locator("textarea").first();
       await textarea.fill(`Job description ${i}`);
-      await page.getByRole("button", { name: "Add job" }).click();
+      await page.getByRole("button", { name: /add job/i }).click();
     }
 
-    // Remove job 1
+    // Remove job 1 (aria-label="Remove job 1")
     await page.getByRole("button", { name: "Remove job 1" }).click();
 
     // Should show 5 remaining
-    await expect(page.getByText(/5 slots? remaining/i)).toBeVisible();
+    await expect(page.getByText(/5 slots remaining/i)).toBeVisible();
   });
 
   test("empty JD submit is blocked — Add job button disabled", async ({ page }) => {
-    const addBtn = page.getByRole("button", { name: "Add job" });
+    const addBtn = page.getByRole("button", { name: /add job/i });
     await expect(addBtn).toBeDisabled();
   });
 
@@ -98,7 +102,7 @@ test.describe("Resume Upload + JD Input", () => {
     // Add JD
     const textarea = page.locator("textarea").first();
     await textarea.fill("Some job description");
-    await page.getByRole("button", { name: "Add job" }).click();
+    await page.getByRole("button", { name: /add job/i }).click();
 
     // Analyze should be enabled
     const analyzeBtn = page.getByTestId("analyze-button");

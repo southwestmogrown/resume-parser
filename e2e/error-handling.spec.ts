@@ -23,6 +23,8 @@ test.describe("Error Handling", () => {
   test("extract API network error shows ErrorCard with Retry", async ({ page }) => {
     await mockExtractError(page);
     await mockScore(page);
+    // Block external scripts
+    await page.route("https://js.stripe.com/**", (route) => route.abort());
     await page.goto("/app");
 
     // Upload + JD
@@ -30,7 +32,7 @@ test.describe("Error Handling", () => {
     await fileInput.setInputFiles(PDF_PATH);
     const textarea = page.locator("textarea").first();
     await textarea.fill("Some job description");
-    await page.getByRole("button", { name: "Add job" }).click();
+    await page.getByRole("button", { name: /add job/i }).click();
 
     // Analyze
     await page.getByTestId("analyze-button").click();
@@ -44,18 +46,19 @@ test.describe("Error Handling", () => {
   test("score API 500 shows ErrorCard", async ({ page }) => {
     await mockExtract(page);
     await mockScoreError(page);
+    await page.route("https://js.stripe.com/**", (route) => route.abort());
     await page.goto("/app");
 
     const fileInput = page.locator('input[type="file"]');
     await fileInput.setInputFiles(PDF_PATH);
     const textarea = page.locator("textarea").first();
     await textarea.fill("Some job description");
-    await page.getByRole("button", { name: "Add job" }).click();
+    await page.getByRole("button", { name: /add job/i }).click();
 
     await page.getByTestId("analyze-button").click();
     await page.waitForResponse("**/api/extract");
 
-    // Skip Phase 0
+    // Skip Phase 0 — button text is "No, score now"
     await skipPhase0IfVisible(page);
 
     await page.waitForResponse("**/api/score");
@@ -81,7 +84,6 @@ test.describe("Error Handling", () => {
     // Navigate to cover letter tab
     await page.getByRole("tab", { name: /cover letter/i }).click();
 
-    // Wait for cover letter API — it should return 422
     // The tab should show the blocked state
     await expect(page.getByText(/not generated|dealbreaker/i)).toBeVisible();
   });
@@ -89,13 +91,14 @@ test.describe("Error Handling", () => {
   test("slow API keeps spinner visible until response", async ({ page }) => {
     await mockSlowExtract(page, 3000);
     await mockScore(page);
+    await page.route("https://js.stripe.com/**", (route) => route.abort());
     await page.goto("/app");
 
     const fileInput = page.locator('input[type="file"]');
     await fileInput.setInputFiles(PDF_PATH);
     const textarea = page.locator("textarea").first();
     await textarea.fill("Some job description");
-    await page.getByRole("button", { name: "Add job" }).click();
+    await page.getByRole("button", { name: /add job/i }).click();
 
     await page.getByTestId("analyze-button").click();
 

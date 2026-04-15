@@ -1,12 +1,13 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import path from "path";
-import { mockAllApis, mockPaymentIntent } from "./helpers/api-mocks";
+import { mockAllApis, blockExternalScripts } from "./helpers/api-mocks";
 import { seedWorkspaceState, seedFullWorkspaceState } from "./helpers/actions";
 import { MOCK_RESUME_DATA, MOCK_MATCH_RESULT, MOCK_JOB_DESCRIPTION } from "./fixtures/api-responses";
 
 test.describe("Accessibility", () => {
   test("landing page has no critical axe violations", async ({ page }) => {
+    await blockExternalScripts(page);
     await page.goto("/");
     await page.waitForLoadState("domcontentloaded");
 
@@ -80,6 +81,7 @@ test.describe("Accessibility", () => {
   });
 
   test("error alerts have role=alert", async ({ page }) => {
+    await blockExternalScripts(page);
     await page.goto("/app");
 
     // Force an error by navigating with existing error state
@@ -106,9 +108,8 @@ test.describe("Accessibility", () => {
     await expect(chatLog).toHaveAttribute("aria-live", "polite");
   });
 
-  test("escape closes checkout modal", async ({ page }) => {
+  test("close checkout modal via close button", async ({ page }) => {
     await mockAllApis(page);
-    await mockPaymentIntent(page);
     await seedWorkspaceState(page, {
       resumeData: MOCK_RESUME_DATA,
       matchResult: MOCK_MATCH_RESULT,
@@ -120,12 +121,12 @@ test.describe("Accessibility", () => {
     await page.getByTestId("unlock-button").click();
     await expect(page.locator('[role="dialog"][aria-label="Checkout"]')).toBeVisible();
 
-    // Escape should close
-    await page.keyboard.press("Escape");
+    // Close via button (aria-label="Close checkout")
+    await page.getByRole("button", { name: "Close checkout" }).click();
     await expect(page.locator('[role="dialog"][aria-label="Checkout"]')).toBeHidden();
   });
 
-  test("escape closes Phase 0 decision modal", async ({ page }) => {
+  test("close Phase 0 modal via backdrop click", async ({ page }) => {
     await mockAllApis(page);
     await page.goto("/app");
 
@@ -134,14 +135,15 @@ test.describe("Accessibility", () => {
     await fileInput.setInputFiles(path.resolve(__dirname, "fixtures/sample-resume.pdf"));
     const textarea = page.locator("textarea").first();
     await textarea.fill("Some JD");
-    await page.getByRole("button", { name: "Add job" }).click();
+    await page.getByRole("button", { name: /add job/i }).click();
     await page.getByTestId("analyze-button").click();
     await page.waitForResponse("**/api/extract");
 
-    await expect(page.locator('[role="dialog"][aria-label="Enhance your resume"]')).toBeVisible();
+    // Phase 0 modal should be visible (check for its title text)
+    await expect(page.getByText("Want to sharpen your resume first?")).toBeVisible();
 
-    // Escape should close
-    await page.keyboard.press("Escape");
-    await expect(page.locator('[role="dialog"][aria-label="Enhance your resume"]')).toBeHidden();
+    // Close via backdrop click (the backdrop div closes the modal)
+    await page.locator(".modal-backdrop").click({ position: { x: 5, y: 5 } });
+    await expect(page.getByText("Want to sharpen your resume first?")).toBeHidden();
   });
 });

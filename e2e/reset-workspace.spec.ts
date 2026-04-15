@@ -12,7 +12,7 @@ test.describe("Reset Workspace", () => {
   test("click New analysis shows confirmation modal", async ({ page }) => {
     await page.getByTestId("new-analysis-button").click();
 
-    // CSS class — no role/aria attribute on the reset confirm modal
+    // CSS class — the reset confirm modal
     await expect(page.locator(".reset-confirm-modal")).toBeVisible();
   });
 
@@ -21,14 +21,17 @@ test.describe("Reset Workspace", () => {
 
     const modal = page.locator(".reset-confirm-modal");
     await expect(modal).toBeVisible();
-    await expect(modal.getByText(/permanently lose/i)).toBeVisible();
+    // The modal title is "This will permanently delete everything."
+    await expect(modal.getByText(/permanently/i)).toBeVisible();
+    // Lost list label
+    await expect(modal.getByText(/you will permanently lose/i)).toBeVisible();
   });
 
   test("Download everything first triggers zip export", async ({ page }) => {
     await page.getByTestId("new-analysis-button").click();
     await expect(page.locator(".reset-confirm-modal")).toBeVisible();
 
-    // Listen for download
+    // Listen for download — button text is "↓ Download everything first (.zip)"
     const downloadPromise = page.waitForEvent("download");
     await page.getByRole("button", { name: /download everything/i }).click();
     const download = await downloadPromise;
@@ -40,6 +43,7 @@ test.describe("Reset Workspace", () => {
     await page.getByTestId("new-analysis-button").click();
     await expect(page.locator(".reset-confirm-modal")).toBeVisible();
 
+    // Actual button text: "Yes, delete everything"
     await page.getByRole("button", { name: /yes.*delete/i }).click();
 
     // Modal should close
@@ -57,8 +61,8 @@ test.describe("Reset Workspace", () => {
     await page.getByTestId("new-analysis-button").click();
     await expect(page.locator(".reset-confirm-modal")).toBeVisible();
 
-    // Close via cancel/keep button
-    await page.getByRole("button", { name: /keep|cancel|nevermind/i }).click();
+    // Actual button text: "Cancel — keep my work"
+    await page.getByRole("button", { name: /cancel.*keep/i }).click();
 
     // Modal should close
     await expect(page.locator(".reset-confirm-modal")).toBeHidden();

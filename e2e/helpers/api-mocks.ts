@@ -149,6 +149,11 @@ export async function mockBatchScore(page: Page) {
 /* ── Convenience: mock all APIs at once ────────────────────────────── */
 
 export async function mockAllApis(page: Page) {
+  // Block external Stripe.js to prevent network-dependent hangs in CI
+  await page.route("https://js.stripe.com/**", (route: Route) => route.abort());
+  await page.route("https://m.stripe.com/**", (route: Route) => route.abort());
+  await page.route("https://r.stripe.com/**", (route: Route) => route.abort());
+
   await mockExtract(page);
   await mockScore(page);
   await mockRewrite(page);
@@ -162,6 +167,14 @@ export async function mockAllApis(page: Page) {
   await mockOptimizedResume(page);
   await mockPaymentIntent(page);
   await mockMintToken(page);
+}
+
+/* ── Block external scripts (for tests that don't use mockAllApis) ── */
+
+export async function blockExternalScripts(page: Page) {
+  await page.route("https://js.stripe.com/**", (route: Route) => route.abort());
+  await page.route("https://m.stripe.com/**", (route: Route) => route.abort());
+  await page.route("https://r.stripe.com/**", (route: Route) => route.abort());
 }
 
 /* ── Error variants ────────────────────────────────────────────────── */
