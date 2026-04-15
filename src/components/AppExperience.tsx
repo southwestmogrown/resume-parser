@@ -256,7 +256,7 @@ export default function AppExperience() {
             </Link>
             <div className="nav-actions">
               {showResults && (
-                <button type="button" onClick={() => setShowResetConfirm(true)} className="btn-ghost">
+                <button type="button" onClick={() => setShowResetConfirm(true)} className="btn-ghost" data-testid="new-analysis-button">
                   ↩ New analysis
                 </button>
               )}
@@ -381,6 +381,7 @@ export default function AppExperience() {
                     }}
                     disabled={!canAnalyze || isBusy}
                     className="btn-primary btn-large tour-analyze-button"
+                    data-testid="analyze-button"
                   >
                     {isBusy && <Spinner />}
                     {getAnalyzeButtonText()}
@@ -399,7 +400,7 @@ export default function AppExperience() {
           ) : (
             <div className="workspace-results">
               {/* Left sidebar — score + session info */}
-              <div className="workspace-sidebar tour-anchor-score">
+              <div className="workspace-sidebar tour-anchor-score" data-testid="workspace-sidebar">
                 <MatchScore result={matchResult} loading={loadingExtraction || loadingScore} />
 
                 {selectedBatchJD && analysisToken && !hasPaidContent && !loadingPaid && (
@@ -437,7 +438,7 @@ export default function AppExperience() {
               </div>
 
               {/* Right main — batch results + tabbed content */}
-              <div className="workspace-main">
+              <div className="workspace-main" data-testid="result-panel">
                 {(batchResults || loadingBatch) && (
                   <BatchResults
                     results={batchResults}

@@ -44,7 +44,7 @@ export default function OptimizedResume({
           Your STAR coaching sessions are complete. Generate a polished, ATS-ready resume that
           incorporates your best answers, optimized bullets, and matched skills — no extra charge.
         </p>
-        <button type="button" className="btn-primary btn-inline" onClick={onGenerate}>
+        <button type="button" className="btn-primary btn-inline" onClick={onGenerate} data-testid="generate-resume-button">
           Generate my optimized resume →
         </button>
       </div>

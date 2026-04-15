@@ -127,6 +127,7 @@ function PaymentForm({ onSuccess, onClose }: PaymentFormProps) {
           type="submit"
           disabled={!stripe || !elements || !ready || loading}
           className="btn-primary btn-large btn-full"
+          data-testid="checkout-submit"
         >
           {loading && <Spinner />}
           {loading ? "Processing…" : "Pay $5 →"}

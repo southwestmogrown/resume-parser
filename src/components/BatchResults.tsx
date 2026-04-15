@@ -92,6 +92,7 @@ export default function BatchResults({ results, loading, onSelect, selectedJD }:
             type="button"
             onClick={() => onSelect(result)}
             className={`batch-row${result.jobDescription === selectedJD ? " batch-row--selected" : ""}`}
+            data-testid="batch-row"
             style={{
               padding: "var(--space-4)",
               display: "grid",

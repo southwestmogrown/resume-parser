@@ -78,6 +78,7 @@ export default function ResumeUpload({ onChange, sessionResumeName }: ResumeUplo
           onDragLeave={() => setDragging(false)}
           onDrop={handleDrop}
           className={`upload-dropzone tour-target-resume-upload ${dragging ? "is-dragging" : ""}`.trim()}
+          data-testid="upload-dropzone"
         >
           <input type="file" accept="application/pdf" onChange={handleChange} />
           <span className="eyebrow" style={{ marginBottom: 0 }}>
