@@ -33,7 +33,7 @@ export function usePaidPhases(ws: UseWorkspaceReturn, openCheckout: () => Promis
     setLoadingBatch, setBatchResults, setSelectedBatchJD, setActiveTab,
     setAnalysisToken, setPaymentState, setOptimizedResume, setLoadingOptimizedResume,
     setBatchAnalysisCache, setStarQuestions, setStarAnswers,
-    setActiveStarQuestion, setStarMessages, setInterviewBrief, setEnrichedResumeData,
+    setActiveStarQuestion, setStarMessagesByQuestion, setInterviewBrief, setEnrichedResumeData,
     setShowInterviewer, setShowPhase0Modal, setCheckoutClientSecret, setTokenExpiresAt,
     setJobDescriptions,
     notifyTab,
@@ -91,7 +91,7 @@ export function usePaidPhases(ws: UseWorkspaceReturn, openCheckout: () => Promis
               optimizedResume: partial.optimizedResume ?? existing?.optimizedResume ?? null,
               starQuestions: partial.starQuestions ?? existing?.starQuestions ?? [],
               starAnswers: partial.starAnswers ?? existing?.starAnswers ?? [],
-              starMessages: partial.starMessages ?? existing?.starMessages ?? [],
+              starMessagesByQuestion: partial.starMessagesByQuestion ?? existing?.starMessagesByQuestion ?? {},
               activeStarQuestion: partial.activeStarQuestion ?? existing?.activeStarQuestion ?? null,
               savedAt: Date.now(),
             },
@@ -370,7 +370,7 @@ export function usePaidPhases(ws: UseWorkspaceReturn, openCheckout: () => Promis
         setStarQuestions(cached.starQuestions);
         setStarAnswers(cached.starAnswers);
         setActiveStarQuestion(cached.activeStarQuestion);
-        setStarMessages(cached.starMessages);
+        setStarMessagesByQuestion(cached.starMessagesByQuestion);
         setActiveTab("rewrites");
       } else {
         setRewriteSuggestions(null);
@@ -381,11 +381,11 @@ export function usePaidPhases(ws: UseWorkspaceReturn, openCheckout: () => Promis
         setStarQuestions([]);
         setStarAnswers([]);
         setActiveStarQuestion(null);
-        setStarMessages([]);
+        setStarMessagesByQuestion({});
       }
     },
      
-    [persistCurrentBatchSelection, batchAnalysisCacheRef, setSelectedBatchJD, setJobDescriptions, setMatchResult, setRewriteSuggestions, setStudyItems, setCoverLetter, setCoverLetterBlocked, setOptimizedResume, setStarQuestions, setStarAnswers, setActiveStarQuestion, setStarMessages, setActiveTab]
+    [persistCurrentBatchSelection, batchAnalysisCacheRef, setSelectedBatchJD, setJobDescriptions, setMatchResult, setRewriteSuggestions, setStudyItems, setCoverLetter, setCoverLetterBlocked, setOptimizedResume, setStarQuestions, setStarAnswers, setActiveStarQuestion, setStarMessagesByQuestion, setActiveTab]
   );
 
   const handleBatchBack = useCallback(() => {
@@ -400,8 +400,8 @@ export function usePaidPhases(ws: UseWorkspaceReturn, openCheckout: () => Promis
     setStarQuestions([]);
     setStarAnswers([]);
     setActiveStarQuestion(null);
-    setStarMessages([]);
-  }, [persistCurrentBatchSelection, setSelectedBatchJD, setMatchResult, setRewriteSuggestions, setStudyItems, setCoverLetter, setCoverLetterBlocked, setOptimizedResume, setStarQuestions, setStarAnswers, setActiveStarQuestion, setStarMessages]);
+    setStarMessagesByQuestion({});
+  }, [persistCurrentBatchSelection, setSelectedBatchJD, setMatchResult, setRewriteSuggestions, setStudyItems, setCoverLetter, setCoverLetterBlocked, setOptimizedResume, setStarQuestions, setStarAnswers, setActiveStarQuestion, setStarMessagesByQuestion]);
 
   const handleBatchAnalyze = useCallback(() => {
     if (!resumeData || !matchResult || !selectedBatchJD || !analysisToken) return;

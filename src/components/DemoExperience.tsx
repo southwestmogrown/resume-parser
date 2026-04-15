@@ -103,7 +103,7 @@ export default function DemoExperience() {
   const [starQuestions, setStarQuestions] = useState<StarQuestion[]>([]);
   const [starAnswers, setStarAnswers] = useState<StarAnswer[]>([]);
   const [activeStarQuestion, setActiveStarQuestion] = useState<StarQuestion | null>(null);
-  const [starMessages, setStarMessages] = useState<ConversationMessage[]>([]);
+  const [starMessagesByQuestion, setStarMessagesByQuestion] = useState<Record<string, ConversationMessage[]>>({});
   const [optimizedResume, setOptimizedResume] = useState<string | null>(null);
 
   // ── Tour state ─────────────────────────────────────────────────────────────
@@ -141,7 +141,7 @@ export default function DemoExperience() {
     setStarQuestions(hasPaidDemo ? DEMO_STAR_QUESTIONS : []);
     setStarAnswers([]);
     setActiveStarQuestion(hasPaidDemo ? (DEMO_STAR_QUESTIONS[0] ?? null) : null);
-    setStarMessages([]);
+    setStarMessagesByQuestion({});
     setOptimizedResume(hasOptimizedResume ? DEMO_OPTIMIZED_RESUME : null);
 
     if (stepIndex >= TOUR_STEP_RESUME) {
@@ -482,15 +482,21 @@ export default function DemoExperience() {
                                 questions={starQuestions}
                                 answers={starAnswers}
                                 activeQuestion={activeStarQuestion}
-                                starMessages={starMessages}
+                                starMessages={starMessagesByQuestion[activeStarQuestion?.id ?? ""] ?? []}
                                 isDemo
                                 onQuestionsLoaded={setStarQuestions}
                                 onAnswerComplete={(a) => setStarAnswers((prev) => [...prev, a])}
                                 onQuestionChange={(q) => {
                                   setActiveStarQuestion(q);
-                                  setStarMessages([]);
                                 }}
-                                onMessageSend={setStarMessages}
+                                onMessageSend={(msgs) => {
+                                  if (activeStarQuestion) {
+                                    setStarMessagesByQuestion((prev) => ({
+                                      ...prev,
+                                      [activeStarQuestion.id]: msgs,
+                                    }));
+                                  }
+                                }}
                               />
                             ) : null
                           )

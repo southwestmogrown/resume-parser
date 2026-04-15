@@ -80,7 +80,10 @@ Return JSON array only. First character must be [
 
   let questions: StarQuestion[];
   try {
-    questions = parseModelJson<StarQuestion[]>(content);
+    const parsed = parseModelJson<StarQuestion[]>(content);
+    // Assign deterministic server-side IDs so they are always unique,
+    // regardless of what the model generates.
+    questions = parsed.map((q, i) => ({ ...q, id: `sq_${i + 1}` }));
   } catch {
     return NextResponse.json({ error: 'Failed to parse question generation response' }, { status: 500 });
   }

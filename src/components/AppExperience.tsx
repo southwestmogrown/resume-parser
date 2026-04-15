@@ -99,13 +99,13 @@ export default function AppExperience() {
     error, analysisToken, checkoutClientSecret,
     activeTab, showResetConfirm, tabNotifications,
     showInterviewer, showPhase0Modal, interviewBrief, enrichedResumeData,
-    starQuestions, starAnswers, activeStarQuestion, starMessages,
+    starQuestions, starAnswers, activeStarQuestion, starMessagesByQuestion,
     optimizedResume, resumeFile, jobDescriptions,
 
     // Setters
     setResumeFile, setJobDescriptions, setGithubProfile, setLinkedinProfile,
     setActiveTab, setShowResetConfirm, setShowInterviewer, setShowPhase0Modal,
-    setStarQuestions, setStarAnswers, setActiveStarQuestion, setStarMessages,
+    setStarQuestions, setStarAnswers, setActiveStarQuestion, setStarMessagesByQuestion,
     setCheckoutClientSecret, setError, tokenExpiresAt,
     clearTabNotification,
 
@@ -573,14 +573,20 @@ export default function AppExperience() {
                                 questions={starQuestions}
                                 answers={starAnswers}
                                 activeQuestion={activeStarQuestion}
-                                starMessages={starMessages}
+                                starMessages={starMessagesByQuestion[activeStarQuestion?.id ?? ""] ?? []}
                                 onQuestionsLoaded={setStarQuestions}
                                 onAnswerComplete={(a) => setStarAnswers((prev) => [...prev, a])}
                                 onQuestionChange={(q) => {
                                   setActiveStarQuestion(q);
-                                  setStarMessages([]);
                                 }}
-                                onMessageSend={setStarMessages}
+                                onMessageSend={(msgs) => {
+                                  if (activeStarQuestion) {
+                                    setStarMessagesByQuestion((prev) => ({
+                                      ...prev,
+                                      [activeStarQuestion.id]: msgs,
+                                    }));
+                                  }
+                                }}
                               />
                             ) : null
                           )
