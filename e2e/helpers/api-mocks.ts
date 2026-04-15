@@ -21,7 +21,6 @@ import {
   MOCK_OPTIMIZED_RESUME,
   MOCK_PAYMENT_INTENT,
   MOCK_TOKEN_RESPONSE,
-  MOCK_BATCH_RESULTS,
 } from "../fixtures/api-responses";
 
 /* ── Individual mocks ──────────────────────────────────────────────── */
