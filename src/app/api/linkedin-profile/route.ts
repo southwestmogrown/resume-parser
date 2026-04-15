@@ -7,6 +7,39 @@ import { isStringWithinLimit, MAX_PROFILE_TEXT_CHARS } from '@/lib/requestValida
 
 export const maxDuration = 30;
 
+/**
+ * Strip common LinkedIn page chrome that gets captured by Ctrl+A.
+ * This includes navigation, sidebar suggestions, activity feed, ads, and
+ * footer content. The goal is to keep only actual profile content so that
+ * the 8,000-char truncation sent to Claude contains maximum signal.
+ */
+function stripLinkedInNoise(text: string): string {
+  let result = text;
+
+  // 1. Strip everything before the first recognisable profile section header
+  //    that appears in the top ~20% of the text. This removes nav chrome,
+  //    search bars, notification counts, etc.
+  const sectionAnchors = /\n\s*(?:About|Experience|Education|Skills|Licenses|Certifications|Honors|Publications|Projects|Recommendations|Summary)\s*\n/i;
+  const firstAnchorMatch = sectionAnchors.exec(result);
+  if (firstAnchorMatch && firstAnchorMatch.index < result.length * 0.25) {
+    // Keep a generous amount before the anchor (the name / headline live above it)
+    const keepFrom = Math.max(0, firstAnchorMatch.index - 600);
+    result = result.slice(keepFrom);
+  }
+
+  // 2. Strip trailing footer / legal / chat widget
+  result = result.replace(/(?:LinkedIn Corporation|©\s*\d{4})[\s\S]*$/i, '');
+  result = result.replace(/Messaging\s*\n[\s\S]*$/i, '');
+
+  // 3. Strip "People also viewed" / "People you may know" blocks
+  result = result.replace(/People (?:also viewed|you may know)[\s\S]*?(?=\n{3,}|\n\s*(?:About|Experience|Education|Skills|$))/gi, '');
+
+  // 4. Collapse excessive blank lines (3+ → 2)
+  result = result.replace(/\n{3,}/g, '\n\n');
+
+  return result.trim();
+}
+
 export async function POST(req: NextRequest) {
   if (isRateLimited(req.headers, 'linkedin-profile', 8, 60_000)) {
     return NextResponse.json({ error: 'Too many LinkedIn parsing requests. Please wait a minute and try again.' }, { status: 429 });
@@ -39,6 +72,10 @@ export async function POST(req: NextRequest) {
     .replace(/\r/g, '\n')
     .trim();
 
+  // Strip LinkedIn page chrome (nav, footer, sidebar, activity feed) so that
+  // the truncation window sent to Claude contains mostly real profile content.
+  const cleanedText = stripLinkedInNoise(sanitizedText);
+
   let extractionMessage;
   try {
     extractionMessage = await getAnthropic().messages.create({
@@ -52,7 +89,7 @@ export async function POST(req: NextRequest) {
           content: `Extract structured profile data from this LinkedIn profile text.
 
 Profile text:
-${sanitizedText.slice(0, 8000)}
+${cleanedText.slice(0, 8000)}
 
 Return a JSON object with exactly these fields:
 {
