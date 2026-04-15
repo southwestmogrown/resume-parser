@@ -42,6 +42,6 @@ describe("parseModelJson", () => {
   });
 
   it("throws when no parseable JSON exists", () => {
-    expect(() => parseModelJson("not json")).toThrow("Unable to parse JSON");
+    expect(() => parseModelJson("not json")).toThrow(/Unable to parse JSON from model response:/);
   });
 });
