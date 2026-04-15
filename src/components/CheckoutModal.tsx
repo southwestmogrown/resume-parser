@@ -2,10 +2,14 @@
 
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useMemo, useState } from "react";
 import Spinner from "@/components/Spinner";
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+function getStripePromise() {
+  const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  if (!publishableKey) return Promise.resolve(null);
+  return loadStripe(publishableKey).catch(() => null);
+}
 
 const stripeAppearance = {
   theme: "night" as const,
@@ -149,6 +153,8 @@ interface CheckoutModalProps {
 }
 
 export default function CheckoutModal({ clientSecret, onSuccess, onClose }: CheckoutModalProps) {
+  const stripePromise = useMemo(() => getStripePromise(), []);
+
   return (
     <div
       className="modal-backdrop"
