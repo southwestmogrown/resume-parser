@@ -12,8 +12,9 @@ A developer-focused resume analysis toolkit. Upload a PDF resume, paste one or m
 
 ### Core Analysis
 - **Guided demo at `/demo`** — isolated demo component with pre-loaded fixtures and a step-by-step tour. Zero API calls. No account or payment needed.
+- **Phase 0: Experience Interviewer** — optional free pre-analysis chat that surfaces concrete impact metrics, hidden skills, and real stories from your work history before scoring begins. Produces an `InterviewBrief` that enriches every downstream phase.
 - **Free extraction + scoring** — upload a PDF and score it against a job description at no cost.
-- **$5 one-time paid upgrade** — unlock bullet rewrites, study plan, and cover letter. No subscription.
+- **$5 one-time paid upgrade** — unlock bullet rewrites, study plan, cover letter, STAR interview coaching, and the optimized resume. No subscription.
 - **Native PDF parsing** — Claude reads the PDF via the Anthropic document API. No parsing libraries.
 - **Skeleton loading states** — each output panel loads independently with matching skeletons.
 
@@ -40,6 +41,12 @@ One-click cover letter that highlights matched skills, proactively addresses lea
 
 ### "What to Study" Action Plan
 Concrete 1–2 sentence recommendations per learnable gap with specific resource suggestions (docs, courses, repos).
+
+### STAR Interview Coaching (Phase 5)
+After the gap analysis, PassStack generates targeted behavioral questions sourced from your actual gaps — then walks you through building a STAR-format answer, question by question. Work through every question at your own pace. Export your full STAR prep sheet as a formatted `.txt` file. Included with the $5 analysis.
+
+### Optimized Resume (Phase 6)
+Once coaching is complete, PassStack synthesizes your STAR answers, rewritten bullets, and enriched experience into a single ATS-ready resume document. Clean formatting, tailored summary, download as `.txt`. No extra token use beyond what STAR prep already consumed.
 
 ### GitHub + LinkedIn Integration
 - **GitHub** — paste a username to pull public repos, top languages, and contribution data into the scoring phase
@@ -73,14 +80,19 @@ Add up to 6 job descriptions and score your resume against all of them in one pa
 
 ### Pricing Model
 
-- **Free:** Phase 1 (PDF extraction) + Phase 2 (scoring and gap analysis)
-- **Paid ($5 one-time):** Phases 3–4 — bullet rewrites, study plan, cover letter
+- **Free:** Phase 0 (Experience Interviewer) + Phase 1 (PDF extraction) + Phase 2 (scoring and gap analysis) + Phase 5 setup (generate STAR questions)
+- **Paid ($5 one-time):** Phases 3–6 — bullet rewrites, study plan, cover letter, STAR coaching, optimized resume
 - **Demo mode:** All features, no payment, pre-loaded sample data
 
-### Single JD Mode (4 phases)
+### Single JD Mode (7 phases)
 
 ```
 PDF upload → base64 encode
+  │
+  Phase 0 ── POST /api/interview  (free, optional multi-turn)
+  │            Guided chat surfaces impact metrics + hidden skills
+  │            → InterviewBrief → merged into ResumeData before scoring
+  │            (skip anytime — proceeds directly to Phase 1)
   │
   Phase 1 ── POST /api/extract  (free, no auth)
   │            Claude reads PDF as document input
@@ -88,7 +100,7 @@ PDF upload → base64 encode
   │
   Phase 2 ── POST /api/score  (free, no auth)
   │            Claude compares ResumeData + JD (+ optional GitHub/LinkedIn profiles)
-  │            → MatchResult JSON with severity-tiered gaps
+  │            → MatchResult JSON with severity-tiered gaps + jobPostingFlags
   │            → MatchScore panel populates
   │
   [ PayGate appears after scoring → $5 in-app Stripe payment → token minted ]
@@ -97,10 +109,16 @@ PDF upload → base64 encode
   │            Bullet rewrites + study plan for learnable gaps
   │
   Phase 4 ── POST /api/cover-letter  (token required, streaming)
-               Tailored cover letter draft streamed to the UI
+  │            Tailored cover letter draft streamed to the UI
+  │
+  Phase 5 ── POST /api/generate-star-questions (free) + POST /api/star-prep (token, multi-turn)
+  │            Gap-sourced behavioral questions + STAR coaching session
+  │
+  Phase 6 ── POST /api/optimized-resume  (token required, requires star_prep_unlocked)
+               Synthesizes STAR answers + rewrites → ATS-ready resume
 ```
 
-Phases 1→2 are sequential. Phases 3–4 are non-blocking — results still display if one fails.
+Phases 1→2 are sequential. Phases 3–4 run in parallel. Phase 5 setup (question generation) is free; coaching requires a token. Phase 6 requires STAR prep to be unlocked — no additional token use.
 
 ### Batch Mode
 
@@ -186,7 +204,8 @@ create table analysis_tokens (
   token text not null unique,
   stripe_session_id text not null unique,
   used boolean not null default false,
-  uses_remaining int not null default 3,
+  uses_remaining int not null default 4,
+  star_prep_unlocked boolean not null default false,
   created_at timestamptz not null default now(),
   expires_at timestamptz not null default (now() + interval '24 hours')
 );
