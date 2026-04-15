@@ -21,7 +21,7 @@ export default function CoverLetter({ content, loading, blockedSkills }: CoverLe
         <h2 style={{ fontSize: "1.3rem" }}>Cover letter — not generated</h2>
         <p className="result-muted">
           This role has dealbreaker gaps. Writing a cover letter that manufactures enthusiasm for a role you won&apos;t
-          pass the bar on isn&apos;t helpful — so we didn&apos;t.
+          pass the bar on would waste your time — so we didn&apos;t write one.
         </p>
         {blockedSkills.length > 0 && (
           <div>
@@ -110,7 +110,7 @@ export default function CoverLetter({ content, loading, blockedSkills }: CoverLe
         ))}
       </div>
 
-      {!loading && <p className="result-muted">Use this as a draft, then make it sound like you.</p>}
+      {!loading && <p className="result-muted">Starting point. Make it yours before you send it.</p>}
     </div>
   );
 }

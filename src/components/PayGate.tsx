@@ -20,7 +20,7 @@ export default function PayGate({ resumeData, score, paymentState, onPay }: PayG
           your score
         </div>
         <h2 className="display" style={{ fontSize: "1.9rem" }}>
-          {score}% match — unlock the full analysis
+          {score}% match — here&apos;s what to do about it
         </h2>
       </div>
 
@@ -37,6 +37,7 @@ export default function PayGate({ resumeData, score, paymentState, onPay }: PayG
         <li>Cover letter draft, ready to customize</li>
         <li>STAR interview coaching — all questions, unlimited turns</li>
         <li>Optimized resume — synthesized from your coaching sessions, ATS-ready</li>
+        <li>Honest dealbreaker detection — we&apos;ll tell you if this role isn&apos;t worth your time</li>
       </ul>
       <p className="fine-print" style={{ marginTop: 'var(--space-1)' }}>
         Access expires 24 hours after payment. All features available the full window — no per-question limits.
@@ -51,9 +52,9 @@ export default function PayGate({ resumeData, score, paymentState, onPay }: PayG
         <div style={{ display: "grid", gap: "var(--space-3)" }}>
           {paymentState === "canceled" ? <p style={{ color: "var(--ps-red)" }}>Payment canceled.</p> : null}
           <button type="button" onClick={onPay} className="btn-primary btn-large tour-pay-button">
-            Unlock Full Analysis — $5 →
+            Get the full breakdown — $5 →
           </button>
-          <p className="fine-print">One-time. No subscription.</p>
+          <p className="fine-print">One-time. No subscription. No account needed.</p>
         </div>
       )}
     </div>

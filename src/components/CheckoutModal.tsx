@@ -135,7 +135,7 @@ function PaymentForm({ onSuccess, onClose }: PaymentFormProps) {
           Cancel
         </button>
         <p className="fine-print" style={{ textAlign: "center" }}>
-          One-time · No subscription · Secured by Stripe
+          One payment · No subscription · No account · Secured by Stripe
         </p>
       </div>
     </form>
@@ -160,9 +160,9 @@ export default function CheckoutModal({ clientSecret, onSuccess, onClose }: Chec
       <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div style={{ display: "grid", gap: "var(--space-1)" }}>
-            <span className="eyebrow" style={{ marginBottom: 0 }}>unlock full analysis</span>
+            <span className="eyebrow" style={{ marginBottom: 0 }}>one-time unlock</span>
             <p style={{ fontSize: "13px", color: "var(--ps-text-secondary)" }}>
-              Bullet rewrites · Study plan · Cover letter
+              Bullet rewrites · Study plan · Cover letter · Interview prep · Optimized resume
             </p>
           </div>
           <button

@@ -32,7 +32,7 @@ export default function StudyPlan({ items, loading }: StudyPlanProps) {
         <div className="eyebrow">phase 3</div>
         <h2 style={{ fontSize: "1.3rem" }}>Study plan</h2>
         <p className="result-muted" style={{ marginTop: "var(--space-3)" }}>
-          Focus only on the gaps worth closing.
+          Only the gaps worth your time. Specific resources. No fluff.
         </p>
       </div>
       <div style={{ display: "grid", gap: "var(--space-4)" }}>

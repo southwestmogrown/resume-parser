@@ -46,7 +46,7 @@ export default function ResumeRewriter({ suggestions, loading }: ResumeRewriterP
         <div className="eyebrow">phase 3</div>
         <h2 style={{ fontSize: "1.35rem" }}>Bullet rewrites</h2>
         <p className="result-muted" style={{ marginTop: "var(--space-3)" }}>
-          Your experience, reframed for the role instead of left to interpretation.
+          Same experience. Written for this role instead of all of them.
         </p>
       </div>
 
