@@ -10,6 +10,8 @@ export default defineConfig({
   expect: { timeout: 5_000 },
 
   reporter: [
+    // Terminal output so CI logs show per-test progress (html/json alone write files only)
+    ["list"],
     ["html", { open: "never" }],
     ["json", { outputFile: "test-results/results.json" }],
   ],
