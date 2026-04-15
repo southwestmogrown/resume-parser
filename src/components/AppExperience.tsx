@@ -116,7 +116,7 @@ export default function AppExperience() {
   const {
     handleAnalyze, handleBatchDrillDown, handleBatchBack,
     handleBatchAnalyze, handleBriefComplete, handlePaymentSuccess,
-    handleGenerateResume, handleExportZip,
+    handleGenerateResume, handleExportZip, handleExtractForInterview,
   } = phases;
 
   const { resetWorkspace, resetForNewRole } = ws;
@@ -166,16 +166,16 @@ export default function AppExperience() {
             <div className="reset-confirm-modal" ref={resetTrapRef} onClick={(e) => e.stopPropagation()}>
               <div className="reset-confirm-header">
                 <span className="reset-confirm-icon">⚠</span>
-                <h2>This will permanently delete everything.</h2>
+                <h2>Start a new analysis?</h2>
               </div>
 
               <p className="reset-confirm-body">
-                Starting a new analysis wipes your current workspace. <strong>There is no undo.</strong> PassStack does not store your data anywhere — once it&apos;s gone, it&apos;s gone.
+                <strong>Analyze another role</strong> keeps your resume, profiles, and token — only results are cleared. <strong>Start from scratch</strong> wipes everything and cannot be undone.
               </p>
 
               {(hasPaidContent || starAnswers.length > 0) && (
                 <div className="reset-confirm-lostlist">
-                  <p className="reset-confirm-lostlist-label">You will permanently lose:</p>
+                  <p className="reset-confirm-lostlist-label">Starting from scratch will permanently lose:</p>
                   <ul>
                     {rewriteSuggestions && <li>Bullet rewrites ({rewriteSuggestions.length} suggestions)</li>}
                     {studyItems && <li>Study plan ({studyItems.length} items)</li>}
@@ -200,17 +200,24 @@ export default function AppExperience() {
                 <button
                   type="button"
                   className="btn-primary"
-                  onClick={() => setShowResetConfirm(false)}
+                  onClick={() => { setShowResetConfirm(false); resetForNewRole(); }}
                   autoFocus
                 >
-                  Cancel — keep my work
+                  Analyze another role →
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => setShowResetConfirm(false)}
+                >
+                  Cancel
                 </button>
                 <button
                   type="button"
                   className="reset-confirm-destroy"
                   onClick={() => { setShowResetConfirm(false); resetWorkspace(); }}
                 >
-                  Yes, delete everything
+                  Start from scratch — delete everything
                 </button>
               </div>
             </div>
@@ -232,7 +239,7 @@ export default function AppExperience() {
                 <button
                   type="button"
                   className="btn-primary"
-                  onClick={() => { setShowPhase0Modal(false); setShowInterviewer(true); }}
+                  onClick={() => { setShowPhase0Modal(false); void handleExtractForInterview(); }}
                   autoFocus
                 >
                   Yes, enhance first →
@@ -372,8 +379,8 @@ export default function AppExperience() {
                   <button
                     type="button"
                     onClick={() => {
-                      // If resume is extracted and no interview done yet, show Phase 0 decision modal
-                      if (resumeData && !interviewBrief && !showInterviewer && canAnalyze) {
+                      // Show Phase 0 decision modal before scoring (if no interview done yet)
+                      if (!interviewBrief && !showInterviewer && canAnalyze) {
                         setShowPhase0Modal(true);
                         return;
                       }
