@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import path from "path";
 import { mockAllApis } from "./helpers/api-mocks";
+import { skipPhase0IfVisible } from "./helpers/actions";
 
 const PDF_PATH = path.resolve(__dirname, "fixtures/sample-resume.pdf");
 
@@ -32,11 +33,7 @@ test.describe("Batch Analysis", () => {
     // Wait for extraction
     await page.waitForResponse("**/api/extract");
 
-    // Skip Phase 0 if it appears
-    const skipBtn = page.getByRole("button", { name: /skip/i });
-    if (await skipBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await skipBtn.click();
-    }
+    await skipPhase0IfVisible(page);
 
     // Wait for score responses (multiple)
     await page.waitForResponse("**/api/score");
@@ -60,10 +57,7 @@ test.describe("Batch Analysis", () => {
     await page.getByTestId("analyze-button").click();
     await page.waitForResponse("**/api/extract");
 
-    const skipBtn = page.getByRole("button", { name: /skip/i });
-    if (await skipBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await skipBtn.click();
-    }
+    await skipPhase0IfVisible(page);
 
     await page.waitForResponse("**/api/score");
 
@@ -83,10 +77,7 @@ test.describe("Batch Analysis", () => {
     await page.getByTestId("analyze-button").click();
     await page.waitForResponse("**/api/extract");
 
-    const skipBtn = page.getByRole("button", { name: /skip/i });
-    if (await skipBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await skipBtn.click();
-    }
+    await skipPhase0IfVisible(page);
 
     await page.waitForResponse("**/api/score");
     await expect(page.getByTestId("batch-row").first()).toBeVisible();
@@ -106,10 +97,7 @@ test.describe("Batch Analysis", () => {
     await page.getByTestId("analyze-button").click();
     await page.waitForResponse("**/api/extract");
 
-    const skipBtn = page.getByRole("button", { name: /skip/i });
-    if (await skipBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await skipBtn.click();
-    }
+    await skipPhase0IfVisible(page);
 
     await page.waitForResponse("**/api/score");
     await expect(page.getByTestId("batch-row").first()).toBeVisible();
@@ -133,10 +121,7 @@ test.describe("Batch Analysis", () => {
     await page.getByTestId("analyze-button").click();
     await page.waitForResponse("**/api/extract");
 
-    const skipBtn = page.getByRole("button", { name: /skip/i });
-    if (await skipBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await skipBtn.click();
-    }
+    await skipPhase0IfVisible(page);
 
     await page.waitForResponse("**/api/score");
     await expect(page.getByTestId("batch-row").first()).toBeVisible();

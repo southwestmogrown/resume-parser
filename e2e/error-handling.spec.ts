@@ -9,7 +9,7 @@ import {
   mockSlowExtract,
   mockAllApis,
 } from "./helpers/api-mocks";
-import { seedWorkspaceState } from "./helpers/actions";
+import { seedWorkspaceState, skipPhase0IfVisible } from "./helpers/actions";
 import {
   MOCK_RESUME_DATA,
   MOCK_MATCH_RESULT,
@@ -56,10 +56,7 @@ test.describe("Error Handling", () => {
     await page.waitForResponse("**/api/extract");
 
     // Skip Phase 0
-    const skipBtn = page.getByRole("button", { name: /skip/i });
-    if (await skipBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await skipBtn.click();
-    }
+    await skipPhase0IfVisible(page);
 
     await page.waitForResponse("**/api/score");
 

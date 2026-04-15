@@ -80,6 +80,16 @@ export async function seedFullWorkspaceState(page: Page) {
   }, JSON.stringify(state));
 }
 
+/* ── Skip Phase 0 if modal appears ──────────────────────────────── */
+
+/** Click "Skip" on the Phase 0 decision modal if it becomes visible */
+export async function skipPhase0IfVisible(page: Page) {
+  const skipBtn = page.getByRole("button", { name: /skip/i });
+  if (await skipBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await skipBtn.click();
+  }
+}
+
 /** Inject a valid analysis token into localStorage */
 export async function seedToken(
   page: Page,

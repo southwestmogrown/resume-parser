@@ -10,6 +10,7 @@ import {
   MOCK_MATCH_RESULT_HIGH,
   MOCK_MATCH_RESULT_NO_FLAGS,
 } from "./fixtures/api-responses";
+import { skipPhase0IfVisible } from "./helpers/actions";
 
 const PDF_PATH = path.resolve(__dirname, "fixtures/sample-resume.pdf");
 
@@ -53,11 +54,7 @@ test.describe("Scoring Pipeline", () => {
 
     await page.waitForResponse("**/api/extract");
 
-    // Skip Phase 0
-    const skipBtn = page.getByRole("button", { name: /skip/i });
-    if (await skipBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await skipBtn.click();
-    }
+    await skipPhase0IfVisible(page);
 
     // Wait for score response
     await page.waitForResponse("**/api/score");
@@ -78,10 +75,7 @@ test.describe("Scoring Pipeline", () => {
     await page.getByTestId("analyze-button").click();
     await page.waitForResponse("**/api/extract");
 
-    const skipBtn = page.getByRole("button", { name: /skip/i });
-    if (await skipBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await skipBtn.click();
-    }
+    await skipPhase0IfVisible(page);
 
     await page.waitForResponse("**/api/score");
     await expect(page.locator('[role="img"][aria-label="Match score 88%"]')).toBeVisible();
@@ -92,10 +86,7 @@ test.describe("Scoring Pipeline", () => {
     await page.getByTestId("analyze-button").click();
     await page.waitForResponse("**/api/extract");
 
-    const skipBtn = page.getByRole("button", { name: /skip/i });
-    if (await skipBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await skipBtn.click();
-    }
+    await skipPhase0IfVisible(page);
 
     await page.waitForResponse("**/api/score");
     await expect(page.locator('[role="img"][aria-label*="Match score"]')).toBeVisible();
@@ -111,10 +102,7 @@ test.describe("Scoring Pipeline", () => {
     await page.getByTestId("analyze-button").click();
     await page.waitForResponse("**/api/extract");
 
-    const skipBtn = page.getByRole("button", { name: /skip/i });
-    if (await skipBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await skipBtn.click();
-    }
+    await skipPhase0IfVisible(page);
 
     await page.waitForResponse("**/api/score");
     await expect(page.locator('[role="img"][aria-label*="Match score"]')).toBeVisible();
@@ -128,10 +116,7 @@ test.describe("Scoring Pipeline", () => {
     await page.getByTestId("analyze-button").click();
     await page.waitForResponse("**/api/extract");
 
-    const skipBtn = page.getByRole("button", { name: /skip/i });
-    if (await skipBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await skipBtn.click();
-    }
+    await skipPhase0IfVisible(page);
 
     await page.waitForResponse("**/api/score");
     await expect(page.getByText("GOOD_FIT")).toBeVisible();
@@ -147,10 +132,7 @@ test.describe("Scoring Pipeline", () => {
     await page.getByTestId("analyze-button").click();
     await page.waitForResponse("**/api/extract");
 
-    const skipBtn = page.getByRole("button", { name: /skip/i });
-    if (await skipBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await skipBtn.click();
-    }
+    await skipPhase0IfVisible(page);
 
     await page.waitForResponse("**/api/score");
 
@@ -167,10 +149,7 @@ test.describe("Scoring Pipeline", () => {
     await page.getByTestId("analyze-button").click();
     await page.waitForResponse("**/api/extract");
 
-    const skipBtn = page.getByRole("button", { name: /skip/i });
-    if (await skipBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await skipBtn.click();
-    }
+    await skipPhase0IfVisible(page);
 
     await page.waitForResponse("**/api/score");
     await expect(page.locator('[role="img"][aria-label*="Match score"]')).toBeVisible();

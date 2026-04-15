@@ -87,13 +87,14 @@ export async function mockLinkedIn(page: Page) {
   );
 }
 
-let interviewCallCount = 0;
+const interviewCallCounts = new WeakMap<Page, number>();
 
 export async function mockInterview(page: Page) {
-  interviewCallCount = 0;
+  interviewCallCounts.set(page, 0);
   await page.route("**/api/interview", (route: Route) => {
-    interviewCallCount++;
-    const response = interviewCallCount >= 3 ? MOCK_INTERVIEW_COMPLETE : MOCK_INTERVIEW_FIRST_RESPONSE;
+    const count = (interviewCallCounts.get(page) ?? 0) + 1;
+    interviewCallCounts.set(page, count);
+    const response = count >= 3 ? MOCK_INTERVIEW_COMPLETE : MOCK_INTERVIEW_FIRST_RESPONSE;
     return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(response) });
   });
 }
@@ -104,13 +105,14 @@ export async function mockStarQuestions(page: Page) {
   );
 }
 
-let starPrepCallCount = 0;
+const starPrepCallCounts = new WeakMap<Page, number>();
 
 export async function mockStarPrep(page: Page) {
-  starPrepCallCount = 0;
+  starPrepCallCounts.set(page, 0);
   await page.route("**/api/star-prep", (route: Route) => {
-    starPrepCallCount++;
-    const response = starPrepCallCount >= 3 ? MOCK_STAR_PREP_COMPLETE : MOCK_STAR_PREP_CONTINUE;
+    const count = (starPrepCallCounts.get(page) ?? 0) + 1;
+    starPrepCallCounts.set(page, count);
+    const response = count >= 3 ? MOCK_STAR_PREP_COMPLETE : MOCK_STAR_PREP_CONTINUE;
     return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(response) });
   });
 }

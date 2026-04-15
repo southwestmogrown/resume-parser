@@ -6,11 +6,22 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   playwright:
     name: Playwright Tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
+
+    env:
+      ANTHROPIC_API_KEY: dummy-key-for-ci
+      STRIPE_SECRET_KEY: dummy-key-for-ci
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_dummy
+      STRIPE_PRICE_ID: price_dummy
+      SUPABASE_URL: https://dummy.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: dummy-key
 
     steps:
       - uses: actions/checkout@v4
@@ -28,23 +39,9 @@ jobs:
 
       - name: Build
         run: npm run build
-        env:
-          ANTHROPIC_API_KEY: dummy-key-for-build
-          STRIPE_SECRET_KEY: dummy-key-for-build
-          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_dummy
-          STRIPE_PRICE_ID: price_dummy
-          SUPABASE_URL: https://dummy.supabase.co
-          SUPABASE_SERVICE_ROLE_KEY: dummy-key
 
       - name: Run Playwright tests
         run: npx playwright test
-        env:
-          ANTHROPIC_API_KEY: dummy-key-for-test
-          STRIPE_SECRET_KEY: dummy-key-for-test
-          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_dummy
-          STRIPE_PRICE_ID: price_dummy
-          SUPABASE_URL: https://dummy.supabase.co
-          SUPABASE_SERVICE_ROLE_KEY: dummy-key
 
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
