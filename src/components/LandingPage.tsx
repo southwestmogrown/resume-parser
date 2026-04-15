@@ -9,6 +9,11 @@ import SeverityPill from "@/components/SeverityPill";
 
 const phases = [
   {
+    number: "00",
+    title: "Experience Interviewer",
+    body: "Optional pre-analysis chat that surfaces concrete impact metrics, hidden skills, and real stories from your work history — before scoring begins. Free.",
+  },
+  {
     number: "01",
     title: "Match Score",
     body: "Percentage match against the job description. See exactly where you stand before you apply.",
@@ -212,7 +217,7 @@ export default function LandingPage() {
         <div className="container">
           <div className="eyebrow">what $5 gets you</div>
           <h2 style={{ fontSize: "clamp(2rem, 4vw, 2.6rem)", marginBottom: "var(--space-8)" }}>
-            Six phases. One run. No fluff.
+            Seven phases. One run. No fluff.
           </h2>
           <div className="phase-grid">
             {phases.map((phase, index) => (
@@ -240,6 +245,36 @@ export default function LandingPage() {
           <p className="result-muted" style={{ marginBottom: "var(--space-8)", maxWidth: "560px" }}>
             Real output. Not a keyword report — a full analysis.
           </p>
+
+          {/* Phase 00 — Experience Interviewer */}
+          <div className="phase-output-row phase-output-row--reverse" data-reveal>
+            <div className="phase-output__img">
+              <Image
+                src="/assets/images/phase-0-interview.png"
+                alt="PassStack experience interviewer chat surfacing concrete impact metrics before scoring"
+                className="screenshot-img"
+                width={1200}
+                height={900}
+                sizes="(max-width: 960px) 100vw, 960px"
+              />
+            </div>
+            <div className="phase-output__text">
+              <div className="eyebrow" style={{ marginBottom: "var(--space-3)" }}>phase 00 — experience interviewer</div>
+              <h3 style={{ fontSize: "clamp(1.3rem, 3vw, 1.7rem)", lineHeight: 1.2, marginBottom: "var(--space-4)" }}>
+                Surface the impact that never made it onto your resume.
+              </h3>
+              <p className="result-muted" style={{ marginBottom: "var(--space-4)" }}>
+                Before scoring begins, a short guided interview pulls out the concrete numbers, hidden skills, and real stories buried in your work history. Scoring and rewrites use this enriched picture — not just the PDF. Optional and free.
+              </p>
+              <ul className="feature-list">
+                <li>Conversational, targeted questions — not a wall of forms</li>
+                <li>Surfaces impact metrics you forgot to quantify (percentages, timelines, scale)</li>
+                <li>Uncovers technologies and tools used but not listed on the resume</li>
+                <li>Enriches every downstream phase — scoring, rewrites, study plan, cover letter</li>
+                <li>Free — no token required, skip anytime</li>
+              </ul>
+            </div>
+          </div>
 
           {/* Phase 02 — Gap Analysis */}
           <div className="phase-output-row" data-reveal>
@@ -452,7 +487,7 @@ export default function LandingPage() {
 
           <div style={{ marginTop: "var(--space-8)", textAlign: "center" }}>
             <Link href="/demo" className="btn-ghost">
-              Try the demo — see all six phases →
+              Try the demo — see all seven phases →
             </Link>
           </div>
         </div>
@@ -508,6 +543,7 @@ export default function LandingPage() {
             <div className="card" style={{ alignSelf: "start", padding: "var(--space-6) var(--space-8)" }}>
               <div className="eyebrow" style={{ marginBottom: "var(--space-4)" }}>what you get for $5</div>
               <ul className="feature-list">
+                <li>Experience interview — surfaces impact, hidden skills, and real stories before scoring</li>
                 <li>Match score + severity-tiered gap analysis</li>
                 <li>Job posting quality scan — ghost jobs, scam indicators, impossible requirements</li>
                 <li>Bullet rewrites — before &amp; after, per role</li>
