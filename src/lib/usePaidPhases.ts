@@ -217,6 +217,42 @@ export function usePaidPhases(ws: UseWorkspaceReturn, openCheckout: () => Promis
     void runPaidPhases(resumeData, matchResult, jd);
   }, [analysisToken, coverLetter, loadingCoverLetter, loadingRewrite, loadingStudyPlan, matchResult, resumeData, rewriteSuggestions, runPaidPhases, selectedBatchJD, studyItems, jobDescriptionsRef]);
 
+  // ── handleExtractForInterview ──────────────────────────────────────────
+  // Extracts the PDF (if not already done), then opens the Phase 0 interviewer.
+
+  const handleExtractForInterview = useCallback(async () => {
+    const currentResumeData = resumeDataRef.current;
+    if (currentResumeData) {
+      // Already extracted (e.g. restored from localStorage) — just open interviewer
+      setShowInterviewer(true);
+      return;
+    }
+    if (!resumeFile) {
+      setError("Please upload your resume first.");
+      return;
+    }
+    setLoadingExtraction(true);
+    try {
+      const base64 = await extractPdfBase64(resumeFile);
+      const extractResponse = await fetch("/api/extract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resume: base64 }),
+      });
+      if (!extractResponse.ok) {
+        const data = await extractResponse.json().catch(() => ({}));
+        throw new Error((data as { error?: string }).error ?? `Extraction failed (${extractResponse.status})`);
+      }
+      const extractData: ExtractResponse = await extractResponse.json();
+      setResumeData(extractData.resumeData);
+      setShowInterviewer(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Extraction failed");
+    } finally {
+      setLoadingExtraction(false);
+    }
+  }, [resumeFile, resumeDataRef, setError, setLoadingExtraction, setResumeData, setShowInterviewer]);
+
   // ── handleAnalyze ─────────────────────────────────────────────────────
 
   const handleAnalyze = useCallback(async () => {
@@ -540,6 +576,7 @@ export function usePaidPhases(ws: UseWorkspaceReturn, openCheckout: () => Promis
 
   return {
     runPaidPhases,
+    handleExtractForInterview,
     handleAnalyze,
     handleBatchDrillDown,
     handleBatchBack,

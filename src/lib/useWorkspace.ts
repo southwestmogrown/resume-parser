@@ -325,7 +325,6 @@ export function useWorkspace() {
   const hasPaidContent = Boolean(rewriteSuggestions) || Boolean(studyItems) || Boolean(coverLetter) || Boolean(coverLetterBlocked) || Boolean(optimizedResume);
   const loadingPaid = loadingRewrite || loadingStudyPlan || loadingCoverLetter;
   const showResults =
-    Boolean(resumeData) ||
     Boolean(matchResult) ||
     Boolean(batchResults) ||
     loadingExtraction ||
