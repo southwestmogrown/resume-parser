@@ -26,6 +26,21 @@ describe("parseModelJson", () => {
     });
   });
 
+  it("parses JSON when prose follows a JSON object", () => {
+    const message = '{"question_complete":true,"answer":{"questionId":"q2"}}\nNice work, move on.';
+    expect(
+      parseModelJson<{ question_complete: boolean; answer: { questionId: string } }>(message)
+    ).toEqual({
+      question_complete: true,
+      answer: { questionId: "q2" },
+    });
+  });
+
+  it("returns the first parseable JSON object when multiple exist", () => {
+    const message = '{"id":1}\n{"id":2}';
+    expect(parseModelJson<{ id: number }>(message)).toEqual({ id: 1 });
+  });
+
   it("throws when no parseable JSON exists", () => {
     expect(() => parseModelJson("not json")).toThrow("Unable to parse JSON");
   });

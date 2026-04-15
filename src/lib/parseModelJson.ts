@@ -12,11 +12,11 @@ function findParseableJsonObject(text: string): string | null {
   for (let start = 0; start < trimmed.length; start++) {
     if (trimmed[start] !== "{") continue;
 
-    let depth = 0;
+    let depth = 1;
     let inString = false;
     let escaping = false;
 
-    for (let i = start; i < trimmed.length; i++) {
+    for (let i = start + 1; i < trimmed.length; i++) {
       const ch = trimmed[i];
 
       if (escaping) {
@@ -39,6 +39,10 @@ function findParseableJsonObject(text: string): string | null {
       if (ch === "{") depth++;
       if (ch === "}") depth--;
 
+      if (depth < 0) {
+        break;
+      }
+
       if (depth === 0) {
         const candidate = trimmed.slice(start, i + 1).trim();
         try {
@@ -58,10 +62,11 @@ export function parseModelJson<T>(text: string): T {
   const stripped = stripJsonCodeFences(text);
   try {
     return JSON.parse(stripped) as T;
-  } catch {
+  } catch (initialError) {
     const extracted = findParseableJsonObject(stripped);
     if (!extracted) {
-      throw new SyntaxError("Unable to parse JSON from model response");
+      const reason = initialError instanceof Error ? initialError.message : "unknown parse error";
+      throw new SyntaxError(`Unable to parse JSON from model response: ${reason}`);
     }
     return JSON.parse(extracted) as T;
   }
