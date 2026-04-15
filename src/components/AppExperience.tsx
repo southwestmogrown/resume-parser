@@ -56,7 +56,7 @@ function useFocusTrap(active: boolean) {
     if (!container) return;
 
     const focusable = container.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]):not([disabled])'
     );
     if (focusable.length === 0) return;
 
@@ -219,7 +219,7 @@ export default function AppExperience() {
 
         {/* Phase 0 decision modal — shown after extraction, before scoring */}
         {showPhase0Modal && (
-          <div className="modal-backdrop" onClick={() => { setShowPhase0Modal(false); void handleAnalyze(); }}>
+          <div className="modal-backdrop" onClick={() => setShowPhase0Modal(false)}>
             <div className="phase0-decision-modal" ref={phase0TrapRef} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Enhance your resume">
               <div className="phase0-decision-header">
                 <div className="eyebrow">optional · 2–3 minutes</div>

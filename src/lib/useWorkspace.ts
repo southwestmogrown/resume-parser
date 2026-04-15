@@ -117,8 +117,11 @@ export interface WorkspaceState {
 }
 
 /**
- * A ref that always stays in sync with the latest value.
- * Eliminates the need for separate useEffect sync hooks.
+ * A ref that always mirrors the latest value (useLatestRef pattern).
+ * The render-phase assignment is intentional: refs are mutable containers
+ * and assigning `.current` in render is the standard way to keep a ref
+ * in sync without a separate useEffect. This is safe because it causes
+ * no side effects visible to React's reconciler.
  */
 function useSyncRef<T>(value: T) {
   const ref = useRef(value);
