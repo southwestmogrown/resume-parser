@@ -22,7 +22,7 @@ export default function OptimizedResume({
   if (loading && !content) {
     return (
       <div className="card result-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-3)', alignItems: 'center' }}>
+        <div className="optimized-resume__header">
           <div>
             <SkeletonBlock className="h-4 w-24" />
             <SkeletonBlock className="mt-3 h-7 w-40" />
@@ -37,10 +37,10 @@ export default function OptimizedResume({
   // CTA when not yet generated and STAR prep is complete
   if (!content && !loading && canGenerate) {
     return (
-      <div className="card result-card" style={{ textAlign: 'center', padding: 'var(--space-10) var(--space-8)' }}>
-        <div className="eyebrow" style={{ marginBottom: 'var(--space-3)' }}>phase 6</div>
-        <h2 style={{ fontSize: '1.3rem', marginBottom: 'var(--space-3)' }}>Optimized Resume</h2>
-        <p className="result-muted" style={{ maxWidth: 480, margin: '0 auto var(--space-5)' }}>
+      <div className="card result-card optimized-resume__cta">
+        <div className="eyebrow optimized-resume__cta-eyebrow">phase 6</div>
+        <h2 className="optimized-resume__cta-title">Optimized Resume</h2>
+        <p className="result-muted optimized-resume__cta-desc">
           Your STAR coaching sessions are complete. Generate a polished, ATS-ready resume that
           incorporates your best answers, optimized bullets, and matched skills — no extra charge.
         </p>
@@ -54,10 +54,10 @@ export default function OptimizedResume({
   // Not ready — STAR prep not done
   if (!content && !loading && !canGenerate) {
     return (
-      <div className="card result-card" style={{ textAlign: 'center', padding: 'var(--space-10) var(--space-8)' }}>
-        <div className="eyebrow" style={{ marginBottom: 'var(--space-3)' }}>phase 6</div>
-        <h2 style={{ fontSize: '1.3rem', marginBottom: 'var(--space-3)' }}>Optimized Resume</h2>
-        <p className="result-muted" style={{ maxWidth: 440, margin: '0 auto' }}>
+      <div className="card result-card optimized-resume__cta">
+        <div className="eyebrow optimized-resume__cta-eyebrow">phase 6</div>
+        <h2 className="optimized-resume__cta-title">Optimized Resume</h2>
+        <p className="result-muted optimized-resume__cta-subdesc">
           Complete at least one STAR coaching session to unlock your optimized resume. The coach
           surfaces the real outcomes and impact metrics that make this document shine.
         </p>
@@ -84,17 +84,14 @@ export default function OptimizedResume({
   };
   return (
     <div className="card result-card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-3)', alignItems: 'center', flexWrap: 'wrap' }}>
+      <div className="optimized-resume__header">
         <div>
           <div className="eyebrow">phase 6</div>
-          <h2 style={{ fontSize: '1.3rem' }}>Optimized Resume</h2>
+          <h2 className="optimized-resume__title">Optimized Resume</h2>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+        <div className="optimized-resume__actions">
           {loading && (
-            <span
-              className="eyebrow"
-              style={{ color: 'var(--ps-accent)', animation: 'pulse 1.5s ease-in-out infinite' }}
-            >
+            <span className="eyebrow optimized-resume__generating">
               generating…
             </span>
           )}
@@ -118,7 +115,7 @@ export default function OptimizedResume({
         </div>
       </div>
 
-      <div className="cover-letter-panel" style={{ padding: 'var(--space-5, 1.25rem)', fontFamily: 'var(--font-mono, monospace)', fontSize: '0.82rem', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
+      <div className="cover-letter-panel optimized-resume__content">
         {content}
       </div>
 

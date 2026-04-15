@@ -81,18 +81,17 @@ export default function LinkedInConnect({ onProfile, initialProfile = null }: Li
     <div className="result-card">
       <div>
         <div className="eyebrow">optional context</div>
-        <h2 style={{ fontSize: "1.15rem" }}>Add your LinkedIn profile</h2>
+        <h2 className="linkedin-connect__title">Add your LinkedIn profile</h2>
       </div>
 
       {step === "paste" && (
         <>
           <div
-            className="subcard"
-            style={{ padding: "var(--space-4)", display: "grid", gap: "var(--space-3)" }}
+            className="subcard linkedin-connect__step-card"
           >
-            <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center", flexWrap: "wrap" }}>
-              <div style={{ display: "flex", alignItems: "center", flex: 1, minWidth: "180px", border: "1px solid var(--ps-border-mid)", borderRadius: "6px", background: "var(--ps-bg-elevated)", overflow: "hidden" }}>
-                <span style={{ padding: "0 var(--space-2) 0 var(--space-3)", fontSize: "12px", color: "var(--ps-text-secondary)", whiteSpace: "nowrap", userSelect: "none" }}>
+            <div className="linkedin-connect__url-row">
+              <div className="linkedin-connect__url-box">
+                <span className="linkedin-connect__url-prefix">
                   linkedin.com/in/
                 </span>
                 <input
@@ -100,33 +99,22 @@ export default function LinkedInConnect({ onProfile, initialProfile = null }: Li
                   value={profileSlug}
                   onChange={(e) => setProfileSlug(e.target.value)}
                   placeholder="your-username"
-                  className="tour-target-linkedin-url"
-                  style={{ flex: 1, fontSize: "12px", background: "transparent", border: "none", outline: "none", padding: "var(--space-2) var(--space-3) var(--space-2) 0", color: "var(--ps-text-primary)" }}
+                  className="tour-target-linkedin-url linkedin-connect__url-input"
                 />
               </div>
               <a
                 href={openHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn-ghost"
-                style={{ whiteSpace: "nowrap", fontSize: "12px" }}
+                className="btn-ghost linkedin-connect__open-link"
               >
                 Open profile →
               </a>
             </div>
 
-            <ol
-              style={{
-                margin: 0,
-                paddingLeft: "var(--space-6)",
-                display: "grid",
-                gap: "var(--space-1)",
-                fontSize: "12px",
-                color: "var(--ps-text-secondary)",
-              }}
-            >
-              <li>Press <kbd style={{ fontFamily: "inherit" }}>Ctrl+A</kbd> (or <kbd style={{ fontFamily: "inherit" }}>⌘+A</kbd>) to select all text on the page</li>
-              <li>Press <kbd style={{ fontFamily: "inherit" }}>Ctrl+C</kbd> (or <kbd style={{ fontFamily: "inherit" }}>⌘+C</kbd>) to copy</li>
+            <ol className="linkedin-connect__instructions">
+              <li>Press <kbd className="linkedin-connect__kbd">Ctrl+A</kbd> (or <kbd className="linkedin-connect__kbd">⌘+A</kbd>) to select all text on the page</li>
+              <li>Press <kbd className="linkedin-connect__kbd">Ctrl+C</kbd> (or <kbd className="linkedin-connect__kbd">⌘+C</kbd>) to copy</li>
               <li>Paste below</li>
             </ol>
           </div>
@@ -140,11 +128,10 @@ export default function LinkedInConnect({ onProfile, initialProfile = null }: Li
             placeholder="Paste your LinkedIn profile text here…"
             disabled={loading}
             rows={6}
-            className="text-input"
-            style={{ width: "100%", resize: "vertical", minHeight: "120px" }}
+            className="text-input linkedin-connect__textarea"
           />
 
-          <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "flex-end" }}>
+          <div className="linkedin-connect__button-row">
             <button type="button" onClick={handleClear} className="btn-ghost">
               Clear
             </button>
@@ -159,10 +146,10 @@ export default function LinkedInConnect({ onProfile, initialProfile = null }: Li
           </div>
 
           {loading && (
-            <div style={{ display: "grid", gap: "var(--space-3)" }}>
+            <div className="linkedin-connect__skeleton-grid">
               <SkeletonBlock className="h-4 w-40" />
               <SkeletonBlock className="h-3 w-full" />
-              <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+              <div className="linkedin-connect__pill-row">
                 <SkeletonBlock className="h-5 w-20" />
                 <SkeletonBlock className="h-5 w-20" />
                 <SkeletonBlock className="h-5 w-20" />
@@ -170,19 +157,18 @@ export default function LinkedInConnect({ onProfile, initialProfile = null }: Li
             </div>
           )}
 
-          {error && <p style={{ color: "var(--ps-red)" }}>{error}</p>}
+          {error && <p className="linkedin-connect__error">{error}</p>}
         </>
       )}
 
       {step === "done" && profile && (
         <>
           <div
-            className="github-preview"
-            style={{ padding: "var(--space-4)", display: "grid", gap: "var(--space-3)" }}
+            className="github-preview linkedin-connect__step-card"
           >
-            <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-3)", flexWrap: "wrap" }}>
+            <div className="linkedin-connect__done-header">
               <div>
-                {profile.name && <p style={{ fontWeight: 500 }}>{profile.name}</p>}
+                {profile.name && <p className="linkedin-connect__name">{profile.name}</p>}
                 {profile.headline && <p className="result-muted">{profile.headline}</p>}
                 {profile.currentRole && profile.currentCompany && (
                   <p className="subtle-note">
@@ -193,7 +179,7 @@ export default function LinkedInConnect({ onProfile, initialProfile = null }: Li
             </div>
 
             {profile.skills.length > 0 && (
-              <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+              <div className="linkedin-connect__pill-row">
                 {profile.skills.slice(0, 8).map((skill) => (
                   <SeverityPill key={skill} tone="sage" label={skill} />
                 ))}
@@ -201,17 +187,17 @@ export default function LinkedInConnect({ onProfile, initialProfile = null }: Li
             )}
 
             {profile.education && profile.education.length > 0 && (
-              <div style={{ display: "grid", gap: "var(--space-1)" }}>
+              <div className="linkedin-connect__edu-grid">
                 {profile.education.map((entry, i) => (
                   <p key={i} className="subtle-note">{entry}</p>
                 ))}
               </div>
             )}
 
-            <p style={{ color: "var(--ps-green)" }}>LinkedIn context will be included in your analysis.</p>
+            <p className="linkedin-connect__success">LinkedIn context will be included in your analysis.</p>
           </div>
 
-          <button type="button" onClick={handleClear} className="btn-ghost btn-inline" style={{ alignSelf: "flex-start" }}>
+          <button type="button" onClick={handleClear} className="btn-ghost btn-inline linkedin-connect__clear">
             Clear
           </button>
         </>
