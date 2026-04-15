@@ -86,7 +86,7 @@ describe("display components", () => {
 
     rerender(<PayGate resumeData={sampleResumeData} paymentState="canceled" onPay={onPay} />);
     expect(screen.getByText("Payment canceled.")).toBeInTheDocument();
-    screen.getByRole("button", { name: /Unlock Full Analysis/ }).click();
+    screen.getByRole("button", { name: /Get the full breakdown/ }).click();
     expect(onPay).toHaveBeenCalled();
   });
 

@@ -10,7 +10,7 @@ function Boom() {
 describe("LandingPage and ErrorBoundary", () => {
   it("renders the landing page and responds to scroll", () => {
     render(<LandingPage />);
-    expect(screen.getByText("Stop guessing why you're getting ghosted.")).toBeInTheDocument();
+    expect(screen.getByText("You're qualified. The ATS doesn't know that yet.")).toBeInTheDocument();
     const nav = document.querySelector(".site-nav") as HTMLElement;
     expect(nav).not.toHaveClass("site-nav--scrolled");
 
@@ -20,7 +20,7 @@ describe("LandingPage and ErrorBoundary", () => {
     });
 
     expect(nav).toHaveClass("site-nav--scrolled");
-    expect(screen.getByText("Six phases. One run. No fluff.")).toBeInTheDocument();
+    expect(screen.getByText("Seven phases. One run. The full picture.")).toBeInTheDocument();
     expect(screen.getByText("STAR Interview Coaching")).toBeInTheDocument();
   });
 
