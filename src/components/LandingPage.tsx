@@ -11,37 +11,37 @@ const phases = [
   {
     number: "00",
     title: "Experience Interviewer",
-    body: "Optional pre-analysis chat that surfaces concrete impact metrics, hidden skills, and real stories from your work history — before scoring begins. Free.",
+    body: "A quick conversation before scoring starts. Pulls out the numbers, the scale, the tools — the stuff that was on your resume three versions ago but got cut for space. Free, optional, and worth 2 minutes.",
   },
   {
     number: "01",
     title: "Match Score",
-    body: "Percentage match against the job description. See exactly where you stand before you apply.",
+    body: "A straight number. How well does your resume match this specific role? No vague grades. No 'you're almost there!' Just the score, and what's behind it.",
   },
   {
     number: "02",
     title: "Gap Analysis + Posting Sniffer",
-    body: "Every missing skill ranked by severity — dealbreaker, learnable, or soft. Plus an automatic scan of the job posting itself for red flags: ghost jobs, incoherent requirements, and scam indicators.",
+    body: "Your gaps, ranked: dealbreaker, learnable, or nice-to-have. Plus a scan of the job posting itself — because sometimes the posting is the problem, not you.",
   },
   {
     number: "03",
     title: "Bullet Rewrites",
-    body: "Your experience, reframed for the role. Before and after for every relevant bullet. Copy and paste.",
+    body: "Your actual experience, rewritten to speak the JD's language. Side by side, so you see exactly what changed and why. Copy, paste, move on.",
   },
   {
     number: "04",
     title: "Cover Letter + Study Plan",
-    body: "A tailored cover letter draft and a concrete study plan for the gaps worth closing.",
+    body: "A cover letter that's actually about this role — not a template. Plus a study plan for the gaps worth closing, with specific resources. If the role has dealbreakers, we tell you to skip it.",
   },
   {
     number: "05",
     title: "STAR Interview Coaching",
-    body: "Behavioral prep built from your actual gap analysis. Coach-guided, question by question. Build real STAR answers — not generic scripts.",
+    body: "The interview questions they're going to ask you — sourced from your actual gaps — with a coach that walks you through building real answers. Your stories. STAR format. Not a script.",
   },
   {
     number: "06",
     title: "Optimized Resume",
-    body: "After coaching, PassStack pulls together your rewritten bullets, enriched experience, and strongest STAR outcomes into a polished, ATS-ready resume you can send directly to recruiters.",
+    body: "Everything you just built — rewrites, interview answers, stronger experience — compiled into one ATS-ready document. Download it. Send it. Done.",
   },
 ] as const;
 
@@ -49,17 +49,17 @@ const steps = [
   {
     number: "01",
     title: "Upload your resume",
-    body: "PDF drag-and-drop. Nothing is stored longer than it needs to be.",
+    body: "Drop your PDF. Nothing is stored longer than it takes to run the analysis.",
   },
   {
     number: "02",
     title: "Paste the JD",
-    body: "Any job posting. Copy the whole thing so the analysis has something real to work with.",
+    body: "Copy-paste the full job posting. The more it has, the sharper the analysis.",
   },
   {
     number: "03",
     title: "Get your analysis",
-    body: "Full report in under 60 seconds. Match score, gaps, rewrites, cover letter, study plan.",
+    body: "Full report. Under 60 seconds. Score, gaps, rewrites, cover letter, study plan, interview prep, and a finished resume.",
   },
 ] as const;
 
@@ -104,7 +104,7 @@ export default function LandingPage() {
             <Link href="/app" className="btn-ghost">
               Open App
             </Link>
-            <Link href="/app#workspace" className="btn-primary">
+            <Link href="/app#workspace" className="btn-primary" aria-label="One-time payment, no subscription">
               Unlock — $5 →
             </Link>
           </div>
@@ -114,21 +114,21 @@ export default function LandingPage() {
       <section className="landing-hero">
         <div className="container hero-grid">
           <div className="hero-copy">
-            <div className="eyebrow">resume intelligence</div>
-            <h1 className="display">Stop guessing why you&apos;re getting ghosted.</h1>
+            <div className="eyebrow">for people who are done guessing</div>
+            <h1 className="display">You&apos;re qualified. The ATS doesn&apos;t know that yet.</h1>
             <p>
-              Upload your resume. Paste the job description. Get the real analysis — not keyword stuffing.
+              Upload your resume. Paste the job description. In 60 seconds you&apos;ll know exactly what&apos;s getting you filtered — and what to do about it. No keyword-stuffing gimmicks. No subscription. Just the answer.
             </p>
             <div className="hero-actions">
               <Link href="/app#workspace" className="btn-primary btn-large">
-                Unlock Full Analysis — $5 →
+                Get the full breakdown — $5, once →
               </Link>
               <Link href="/demo" className="btn-ghost btn-large">
                 Try the demo →
               </Link>
             </div>
             <p className="fine-print" style={{ marginTop: "var(--space-3)" }}>
-              One-time payment. No account. No subscription.
+              One payment. No account. No subscription. No one sells your data.
             </p>
           </div>
 
@@ -191,23 +191,23 @@ export default function LandingPage() {
                 </div>
               </div>
               <p className="fine-print" style={{ marginTop: "var(--space-4)" }}>
-                Full analysis. No subscription. No account. No data farming.
+                Full analysis. Every phase. No subscription. No account. Nobody sells your information.
               </p>
             </div>
             <div>
               <div className="prose-block">
                 <h2 style={{ fontSize: "clamp(2.2rem, 5vw, 2.9rem)", lineHeight: 1.05 }}>
-                  Most candidates never get clear feedback on why they were filtered out.
+                  You&apos;ve applied to 40 jobs. You&apos;ve heard back from zero. That&apos;s not bad luck — it&apos;s bad infrastructure.
                 </h2>
                 <p>
-                  Most resume tools charge $20–$50 a month for glorified keyword counters. They don&apos;t tell you why you&apos;re getting filtered. They don&apos;t rewrite your bullets. They don&apos;t generate a cover letter that actually fits the role.
+                  The resume industry charges you $30/month to count keywords and call it career help. They don&apos;t tell you <em>why</em> you&apos;re getting filtered. They don&apos;t rewrite your bullets. They don&apos;t tell you when a job posting is a ghost listing. They just take your money and tell you to try again next month.
                 </p>
-                <p>Sometimes the problem is fit. Sometimes it&apos;s framing. You should know which is which before you apply again.</p>
+                <p>Sometimes you&apos;re not qualified. That happens. But sometimes you ARE qualified and your resume just doesn&apos;t say it in the right language. You deserve to know which one it is before you spend another hour customizing a cover letter for a role that was never going to call you back.</p>
                 <p>
                   PassStack runs the full analysis for $5. One time. No subscription. No account required.
                 </p>
               </div>
-              <div className="pull-quote">&quot;Know whether the problem is fit, framing, or both.&quot;</div>
+              <div className="pull-quote">&quot;I spent three months applying to roles I was qualified for. I never heard back. I wasn&apos;t the problem. My resume was.&quot;</div>
             </div>
           </div>
         </div>
@@ -217,7 +217,7 @@ export default function LandingPage() {
         <div className="container">
           <div className="eyebrow">what $5 gets you</div>
           <h2 style={{ fontSize: "clamp(2rem, 4vw, 2.6rem)", marginBottom: "var(--space-8)" }}>
-            Seven phases. One run. No fluff.
+            Seven phases. One run. The full picture.
           </h2>
           <div className="phase-grid">
             {phases.map((phase, index) => (
@@ -243,7 +243,7 @@ export default function LandingPage() {
             What you actually get.
           </h2>
           <p className="result-muted" style={{ marginBottom: "var(--space-8)", maxWidth: "560px" }}>
-            Real output. Not a keyword report — a full analysis.
+            Real output from a real analysis. Not a keyword count and a pat on the back.
           </p>
 
           {/* Phase 00 — Experience Interviewer */}
@@ -261,16 +261,16 @@ export default function LandingPage() {
             <div className="phase-output__text">
               <div className="eyebrow" style={{ marginBottom: "var(--space-3)" }}>phase 00 — experience interviewer</div>
               <h3 style={{ fontSize: "clamp(1.3rem, 3vw, 1.7rem)", lineHeight: 1.2, marginBottom: "var(--space-4)" }}>
-                Surface the impact that never made it onto your resume.
+                Pull out the numbers you forgot to put on your resume.
               </h3>
               <p className="result-muted" style={{ marginBottom: "var(--space-4)" }}>
-                Before scoring begins, a short guided interview pulls out the concrete numbers, hidden skills, and real stories buried in your work history. Scoring and rewrites use this enriched picture — not just the PDF. Optional and free.
+                Before scoring begins, a short guided interview pulls out the concrete numbers, hidden skills, and real stories buried in your work history. Scoring and rewrites use this stronger picture — not just the PDF. Optional and free.
               </p>
               <ul className="feature-list">
                 <li>Conversational, targeted questions — not a wall of forms</li>
-                <li>Surfaces impact metrics you forgot to quantify (percentages, timelines, scale)</li>
+                <li>Pulls out impact metrics you forgot to quantify (percentages, timelines, scale)</li>
                 <li>Uncovers technologies and tools used but not listed on the resume</li>
-                <li>Enriches every downstream phase — scoring, rewrites, study plan, cover letter</li>
+                <li>Makes every phase sharper — scoring, rewrites, study plan, cover letter</li>
                 <li>Free — no token required, skip anytime</li>
               </ul>
             </div>
@@ -322,7 +322,7 @@ export default function LandingPage() {
             <div className="phase-output__text">
               <div className="eyebrow" style={{ marginBottom: "var(--space-3)" }}>phase 03 — bullet rewrites</div>
               <h3 style={{ fontSize: "clamp(1.3rem, 3vw, 1.7rem)", lineHeight: 1.2, marginBottom: "var(--space-4)" }}>
-                Your experience, reframed for the role.
+                Same experience. Different language. Wildly different results.
               </h3>
               <p className="result-muted" style={{ marginBottom: "var(--space-4)" }}>
                 Before and after for every relevant bullet. Copy and paste directly into your resume.
@@ -362,7 +362,7 @@ export default function LandingPage() {
                 <li>Specific resource recommendations — courses, docs, projects</li>
                 <li>Prioritized by impact on the role, not just gap severity</li>
                 <li>Filters out dealbreakers — no study plan for hard requirements</li>
-                <li>LinkedIn profile integration for context-aware suggestions</li>
+                <li>LinkedIn profile connected for personalized suggestions</li>
               </ul>
             </div>
           </div>
@@ -382,7 +382,7 @@ export default function LandingPage() {
             <div className="phase-output__text">
               <div className="eyebrow" style={{ marginBottom: "var(--space-3)" }}>phase 04 — cover letter</div>
               <h3 style={{ fontSize: "clamp(1.3rem, 3vw, 1.7rem)", lineHeight: 1.2, marginBottom: "var(--space-4)" }}>
-                A tailored draft in under 30 seconds.
+                A cover letter that sounds like you wrote it for this role — because you basically did.
               </h3>
               <p className="result-muted" style={{ marginBottom: "var(--space-4)" }}>
                 If dealbreakers exist, we tell you — and suggest a better target instead.
@@ -412,10 +412,10 @@ export default function LandingPage() {
             <div className="phase-output__text">
               <div className="eyebrow" style={{ marginBottom: "var(--space-3)" }}>phase 05 — STAR Coaching</div>
               <h3 style={{ fontSize: "clamp(1.3rem, 3vw, 1.7rem)", lineHeight: 1.2, marginBottom: "var(--space-4)" }}>
-                Question-by-question coaching built from your actual gaps.
+                The questions they&apos;re going to ask. The answers you&apos;re going to nail.
               </h3>
               <p className="result-muted" style={{ marginBottom: "var(--space-4)" }}>
-                After the gap analysis, PassStack generates targeted behavioral questions from your actual gaps — then walks you through building a STAR-format answer, question by question. Not a template. Not generic questions. Your gaps. Your story. Your answers.
+                PassStack knows your gaps. It generates the exact behavioral questions an interviewer would ask about them — then coaches you through each answer in STAR format. Not a template. Your gaps. Your stories. Your words.
               </p>
               <ul className="feature-list">
                 <li>Questions sourced from your specific gap analysis</li>
@@ -440,7 +440,7 @@ export default function LandingPage() {
             <div className="phase-output__text">
               <div className="eyebrow" style={{ marginBottom: "var(--space-3)" }}>phase 06 — optimized resume</div>
               <h3 style={{ fontSize: "clamp(1.3rem, 3vw, 1.7rem)", lineHeight: 1.2, marginBottom: "var(--space-4)" }}>
-                Walk away with a resume that&apos;s actually ready to send.
+                You walked in with a PDF. You&apos;re leaving with a weapon.
               </h3>
               <p className="result-muted" style={{ marginBottom: "var(--space-4)" }}>
                 After your coaching sessions, PassStack pulls everything together — your experience, rewritten bullets, and strongest outcomes — into a single polished document. ATS-ready. No formatting gymnastics required.
@@ -470,10 +470,10 @@ export default function LandingPage() {
             <div className="phase-output__text">
               <div className="eyebrow" style={{ color: "var(--ps-red)", marginBottom: "var(--space-3)" }}>honest by design</div>
               <h3 style={{ fontSize: "clamp(1.3rem, 3vw, 1.7rem)", lineHeight: 1.2, marginBottom: "var(--space-4)" }}>
-                Sometimes the analysis tells you not to apply.
+                We&apos;ll tell you when to walk away. No one else will.
               </h3>
               <p className="result-muted" style={{ marginBottom: "var(--space-4)" }}>
-                When dealbreaker gaps exist — hard requirements you genuinely don&apos;t meet — PassStack says so. No manufactured enthusiasm. No cover letter for a role you won&apos;t get. Just the honest verdict, and a better target.
+                When dealbreaker gaps exist — hard requirements you genuinely don&apos;t meet — PassStack says so. We don&apos;t write cover letters for roles you won&apos;t get. That&apos;s not a bug. That&apos;s the whole point.
               </p>
               <ul className="feature-list">
                 <li>Dealbreaker detection before any content is generated</li>
@@ -510,13 +510,57 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className="section">
+        <div className="container" style={{ textAlign: "center" }}>
+          <div className="eyebrow">from real users</div>
+          <p className="result-muted" style={{ maxWidth: "480px", margin: "var(--space-4) auto 0" }}>
+            Real feedback from real users — coming soon. We&apos;re in early access.
+          </p>
+        </div>
+      </section>
+
+      <section className="section section-surface">
+        <div className="container">
+          <div className="eyebrow">common questions</div>
+          <h2 style={{ fontSize: "clamp(2rem, 4vw, 2.6rem)", marginBottom: "var(--space-8)" }}>
+            Before you ask.
+          </h2>
+          <div style={{ display: "grid", gap: "var(--space-6)", maxWidth: "720px" }}>
+            <div>
+              <h3 style={{ fontSize: "1.1rem", marginBottom: "var(--space-2)" }}>&quot;Is this just ChatGPT?&quot;</h3>
+              <p className="result-muted">
+                No. PassStack runs a seven-phase pipeline — extraction, scoring, gap analysis, rewrites, cover letter, interview coaching, and resume generation. Each phase has a specific prompt contract. It&apos;s not a chatbot. It&apos;s a structured analysis engine.
+              </p>
+            </div>
+            <div>
+              <h3 style={{ fontSize: "1.1rem", marginBottom: "var(--space-2)" }}>&quot;Why only $5?&quot;</h3>
+              <p className="result-muted">
+                Because I built this for people like me — people who can&apos;t afford $49/month while they&apos;re job hunting. One payment. Full analysis. That&apos;s it.
+              </p>
+            </div>
+            <div>
+              <h3 style={{ fontSize: "1.1rem", marginBottom: "var(--space-2)" }}>&quot;What happens to my data?&quot;</h3>
+              <p className="result-muted">
+                Your resume is processed in memory and never stored permanently. No account. No profile. No data farming. We don&apos;t sell your information to recruiters, ad networks, or anyone else.
+              </p>
+            </div>
+            <div>
+              <h3 style={{ fontSize: "1.1rem", marginBottom: "var(--space-2)" }}>&quot;What if the analysis says don&apos;t apply?&quot;</h3>
+              <p className="result-muted">
+                Then you saved yourself an hour writing a cover letter for a role that was never going to call you back. That honesty is the whole point.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="section section-surface">
         <div className="container">
           <div className="eyebrow">why passstack exists</div>
           <div className="why-grid">
             <div className="prose-block">
               <h2 className="display" style={{ fontSize: "clamp(2rem, 4vw, 2.4rem)" }}>
-                I&apos;m still working production shifts. I built this while I was working them.
+                I&apos;m still on the factory floor. I built this between shifts.
               </h2>
               <p>
                 I manage 45 operators at a manufacturing plant. It&apos;s honest work. It&apos;s not where I&apos;m headed.
@@ -536,6 +580,9 @@ export default function LandingPage() {
               <p>
                 I know exactly who I&apos;m building it for.
               </p>
+              <p>
+                If you&apos;re out there applying and hearing nothing back — this is for you. I know what that silence feels like. It ends here.
+              </p>
               <p className="subtle-note" style={{ marginTop: "var(--space-4)" }}>
                 Wilkey Digital Solutions
               </p>
@@ -551,7 +598,7 @@ export default function LandingPage() {
                 <li>Gap-based study plan with resources</li>
                 <li>STAR behavioral interview coaching</li>
                 <li>Optimized resume — synthesized and ATS-ready</li>
-                <li>GitHub + LinkedIn profile enrichment</li>
+                <li>GitHub + LinkedIn profiles connected for a sharper picture</li>
                 <li>Honest dealbreaker detection — no fake enthusiasm for roles you won&apos;t get</li>
               </ul>
               <p className="fine-print" style={{ marginTop: "var(--space-5)" }}>
@@ -565,9 +612,9 @@ export default function LandingPage() {
       <section className="section">
         <div className="container early-access-inner">
           <div className="eyebrow">early access</div>
-          <h2 style={{ fontSize: "clamp(2rem, 4vw, 2.6rem)" }}>Not ready to upload your resume?</h2>
+          <h2 style={{ fontSize: "clamp(2rem, 4vw, 2.6rem)" }}>See what the analysis looks like before you commit.</h2>
           <p className="result-muted" style={{ maxWidth: "520px", margin: "var(--space-4) auto 0" }}>
-            Try it with sample data first. No upload required — the full analysis runs in under 30 seconds.
+            Run the full demo with sample data. No upload. No payment. All seven phases in under 30 seconds. Then decide if it&apos;s worth five bucks.
           </p>
           <div style={{ display: "flex", gap: "var(--space-4)", justifyContent: "center", flexWrap: "wrap", marginTop: "var(--space-6)" }}>
             <Link href="/demo" className="btn-primary btn-large">
@@ -578,7 +625,7 @@ export default function LandingPage() {
             </Link>
           </div>
           <p className="fine-print" style={{ marginTop: "var(--space-4)" }}>
-            One-time payment. No account. No subscription.
+            One payment. No account. No subscription.
           </p>
         </div>
       </section>

@@ -84,7 +84,7 @@ export default function ResumeUpload({ onChange, sessionResumeName }: ResumeUplo
             pdf only
           </span>
           <h3 style={{ fontSize: "1rem" }}>Drag it here or click to browse</h3>
-          <p className="result-muted">We extract the structure first, then stop and show you what $5 unlocks.</p>
+          <p className="result-muted">We pull the structure out first, show you your score for free, then you decide.</p>
         </div>
       ) : (
         <div className="file-chip" style={{ padding: "var(--space-4)", display: "flex", justifyContent: "space-between", gap: "var(--space-3)", alignItems: "center" }}>

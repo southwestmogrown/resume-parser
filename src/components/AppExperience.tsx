@@ -292,9 +292,9 @@ export default function AppExperience() {
         <section className="container app-hero">
           <div className="app-heading">
             <div className="eyebrow">resume analysis workspace</div>
-            <h1 className="display">Stop feeding the ATS blind.</h1>
+            <h1 className="display">See what the ATS sees — then fix it.</h1>
             <p className="result-muted">
-              Upload your resume, paste a job description, and get your match score instantly — free. Pay once to unlock bullet rewrites, a study plan, and a cover letter draft.
+              Upload your resume, paste a job description, and get your match score in seconds — free. Always. Pay once to unlock bullet rewrites, a study plan, and a cover letter draft.
             </p>
             <p className="fine-print">Score is always free. Full analysis: $5 one-time, no subscription.</p>
           </div>
@@ -525,7 +525,7 @@ export default function AppExperience() {
                     {isTabLocked(activeTab) && activeTab !== "interview" ? (
                       <div className="tab-locked-upsell">
                         <p className="tab-locked-upsell__text">
-                          This feature is part of the full analysis.
+                          This unlocks with the full analysis — $5, once.
                         </p>
                         <button
                           type="button"
@@ -551,7 +551,7 @@ export default function AppExperience() {
                             matchResult && resumeData ? (
                               <div className="tour-anchor-interview-paygate tab-locked-upsell">
                                 <p className="tab-locked-upsell__text">
-                                  STAR interview coaching is part of the full analysis.
+                                  STAR coaching unlocks with the full analysis — $5, once.
                                 </p>
                                 <button
                                   type="button"

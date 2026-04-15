@@ -41,8 +41,7 @@ export default function OptimizedResume({
         <div className="eyebrow optimized-resume__cta-eyebrow">phase 6</div>
         <h2 className="optimized-resume__cta-title">Optimized Resume</h2>
         <p className="result-muted optimized-resume__cta-desc">
-          Your STAR coaching sessions are complete. Generate a polished, ATS-ready resume that
-          incorporates your best answers, optimized bullets, and matched skills — no extra charge.
+          Your coaching sessions are done. Generate a polished resume from everything you just built — no extra charge.
         </p>
         <button type="button" className="btn-primary btn-inline" onClick={onGenerate}>
           Generate my optimized resume →
@@ -59,7 +58,7 @@ export default function OptimizedResume({
         <h2 className="optimized-resume__cta-title">Optimized Resume</h2>
         <p className="result-muted optimized-resume__cta-subdesc">
           Complete at least one STAR coaching session to unlock your optimized resume. The coach
-          surfaces the real outcomes and impact metrics that make this document shine.
+          pulls out the real outcomes and impact that make this document worth sending.
         </p>
       </div>
     );
@@ -121,7 +120,7 @@ export default function OptimizedResume({
 
       {!loading && (
         <p className="result-muted">
-          Use this as a base — swap in real contact details and tailor the summary for each application.
+          Swap in your contact info and customize the summary for each application.
           Downloads as <code>.txt</code>; paste into Word or Google Docs to save as PDF.
         </p>
       )}

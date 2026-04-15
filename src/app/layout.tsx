@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "PassStack — Resume analysis for people tired of ATS roulette",
+  title: "PassStack — Stop getting filtered out by machines that never read your resume",
   description:
-    "Upload your resume, paste the job description, and get the real breakdown for $5 one time. No subscription. No account. No fluff.",
+    "You're qualified. The ATS doesn't care. Upload your resume, paste the job posting, and find out exactly what's getting you ghosted — for $5 one time. No account. No subscription. No data harvesting.",
 };
 
 export default function RootLayout({
