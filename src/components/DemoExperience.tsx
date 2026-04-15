@@ -392,111 +392,118 @@ export default function DemoExperience() {
 
                 {(hasPaidContent || !!matchResult) && (
                   <>
-                    <div className="result-tabs">
-                      {hasPaidContent && (
-                        <>
+                    <div className="result-tabs" role="tablist">
+                      {(["rewrites", "study", "cover", "interview", "resume"] as ResultTab[]).map((tab) => {
+                        const locked = !analysisToken && tab !== "interview";
+                        const labels: Record<ResultTab, string> = {
+                          rewrites: "Bullet Rewrites",
+                          study: "Study Plan",
+                          cover: "Cover Letter",
+                          interview: "Interview Prep",
+                          resume: "Optimized Resume",
+                        };
+                        const tourClass: Record<ResultTab, string> = {
+                          rewrites: "tour-tab-rewrites",
+                          study: "tour-tab-study",
+                          cover: "tour-tab-cover",
+                          interview: "tour-tab-interview",
+                          resume: "tour-tab-resume",
+                        };
+                        return (
                           <button
+                            key={tab}
                             type="button"
-                            className={`result-tab tour-tab-rewrites ${activeTab === "rewrites" ? "result-tab--active" : ""}`.trim()}
-                            onClick={() => setActiveTab("rewrites")}
+                            role="tab"
+                            aria-selected={activeTab === tab}
+                            className={`result-tab ${tourClass[tab]} ${activeTab === tab ? "result-tab--active" : ""}`.trim()}
+                            onClick={() => setActiveTab(tab)}
                           >
-                            Bullet Rewrites
-                            {rewriteSuggestions && (
-                              <span style={{ opacity: 0.5 }}> ({rewriteSuggestions.length})</span>
+                            {locked && <span className="tab-lock" aria-label="locked">🔒</span>}
+                            {labels[tab]}
+                            {tab === "rewrites" && rewriteSuggestions && (
+                              <span className="tab-count"> ({rewriteSuggestions.length})</span>
+                            )}
+                            {tab === "study" && studyItems && (
+                              <span className="tab-count"> ({studyItems.length})</span>
+                            )}
+                            {tab === "interview" && starAnswers.length > 0 && (
+                              <span className="tab-count"> ({starAnswers.length})</span>
                             )}
                           </button>
-                          <button
-                            type="button"
-                            className={`result-tab tour-tab-study ${activeTab === "study" ? "result-tab--active" : ""}`.trim()}
-                            onClick={() => setActiveTab("study")}
-                          >
-                            Study Plan
-                            {studyItems && (
-                              <span style={{ opacity: 0.5 }}> ({studyItems.length})</span>
-                            )}
-                          </button>
-                          <button
-                            type="button"
-                            className={`result-tab tour-tab-cover ${activeTab === "cover" ? "result-tab--active" : ""}`.trim()}
-                            onClick={() => setActiveTab("cover")}
-                          >
-                            Cover Letter
-                          </button>
-                        </>
-                      )}
-                      <button
-                        type="button"
-                        className={`result-tab tour-tab-interview ${activeTab === "interview" ? "result-tab--active" : ""}`.trim()}
-                        onClick={() => setActiveTab("interview")}
-                      >
-                        Interview Prep
-                        {starAnswers.length > 0 && (
-                          <span style={{ opacity: 0.5 }}> ({starAnswers.length})</span>
-                        )}
-                      </button>
-                      {hasPaidContent && (
-                        <button
-                          type="button"
-                          className={`result-tab tour-tab-resume ${activeTab === "resume" ? "result-tab--active" : ""}`.trim()}
-                          onClick={() => setActiveTab("resume")}
-                        >
-                          Optimized Resume
-                        </button>
-                      )}
+                        );
+                      })}
                     </div>
 
-                    {activeTab === "rewrites" && (
-                      <ResumeRewriter suggestions={rewriteSuggestions} loading={false} />
-                    )}
-                    {activeTab === "study" && (
-                      <StudyPlan items={studyItems} loading={false} />
-                    )}
-                    {activeTab === "cover" && (
-                      <CoverLetter content={coverLetter} loading={false} blockedSkills={null} />
-                    )}
-                    {activeTab === "interview" && (
-                      !analysisToken ? (
-                        matchResult && resumeData ? (
-                          <div className="tour-anchor-interview-paygate">
-                            <PayGate
-                              resumeData={resumeData}
-                              score={matchResult.score}
-                              paymentState={paymentState}
-                              onPay={applyDemoPaidFixtures}
-                            />
-                          </div>
-                        ) : null
-                      ) : (
-                        matchResult && resumeData ? (
-                          <StarPrepPanel
-                            resumeData={resumeData}
-                            matchResult={matchResult}
-                            jobDescription={jobDescriptions[0] ?? ""}
-                            token={analysisToken}
-                            tokenExpiresAt={null}
-                            questions={starQuestions}
-                            answers={starAnswers}
-                            activeQuestion={activeStarQuestion}
-                            starMessages={starMessages}
-                            isDemo
-                            onQuestionsLoaded={setStarQuestions}
-                            onAnswerComplete={(a) => setStarAnswers((prev) => [...prev, a])}
-                            onQuestionChange={(q) => {
-                              setActiveStarQuestion(q);
-                              setStarMessages([]);
-                            }}
-                            onMessageSend={setStarMessages}
+                    {/* Locked tab inline upsell */}
+                    {!analysisToken && activeTab !== "interview" ? (
+                      <div className="tab-locked-upsell">
+                        <p className="tab-locked-upsell__text">
+                          This feature is part of the full analysis.
+                        </p>
+                        <button
+                          type="button"
+                          className="btn-primary btn-inline"
+                          onClick={applyDemoPaidFixtures}
+                        >
+                          Unlock — $5 →
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        {activeTab === "rewrites" && (
+                          <ResumeRewriter suggestions={rewriteSuggestions} loading={false} />
+                        )}
+                        {activeTab === "study" && (
+                          <StudyPlan items={studyItems} loading={false} />
+                        )}
+                        {activeTab === "cover" && (
+                          <CoverLetter content={coverLetter} loading={false} blockedSkills={null} />
+                        )}
+                        {activeTab === "interview" && (
+                          !analysisToken ? (
+                            matchResult && resumeData ? (
+                              <div className="tour-anchor-interview-paygate">
+                                <PayGate
+                                  resumeData={resumeData}
+                                  score={matchResult.score}
+                                  paymentState={paymentState}
+                                  onPay={applyDemoPaidFixtures}
+                                />
+                              </div>
+                            ) : null
+                          ) : (
+                            matchResult && resumeData ? (
+                              <StarPrepPanel
+                                resumeData={resumeData}
+                                matchResult={matchResult}
+                                jobDescription={jobDescriptions[0] ?? ""}
+                                token={analysisToken}
+                                tokenExpiresAt={null}
+                                questions={starQuestions}
+                                answers={starAnswers}
+                                activeQuestion={activeStarQuestion}
+                                starMessages={starMessages}
+                                isDemo
+                                onQuestionsLoaded={setStarQuestions}
+                                onAnswerComplete={(a) => setStarAnswers((prev) => [...prev, a])}
+                                onQuestionChange={(q) => {
+                                  setActiveStarQuestion(q);
+                                  setStarMessages([]);
+                                }}
+                                onMessageSend={setStarMessages}
+                              />
+                            ) : null
+                          )
+                        )}
+                        {activeTab === "resume" && (
+                          <OptimizedResume
+                            content={optimizedResume}
+                            loading={false}
+                            canGenerate={Boolean(analysisToken)}
+                            onGenerate={() => setOptimizedResume(DEMO_OPTIMIZED_RESUME)}
                           />
-                        ) : null
-                      )
-                    )}
-                    {activeTab === "resume" && (
-                      <OptimizedResume
-                        content={optimizedResume}
-                        loading={false}
-                        canGenerate={Boolean(analysisToken)}
-                        onGenerate={() => setOptimizedResume(DEMO_OPTIMIZED_RESUME)}
-                      />
+                        )}
+                      </>
                     )}
                   </>
                 )}

@@ -151,7 +151,9 @@ export default function StarPrepPanel({
   const [loadingTurn, setLoadingTurn] = useState(false);
   const [userInput, setUserInput] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [turnError, setTurnError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const lastTurnRef = useRef<ConversationMessage[]>([]);
 
   useEffect(() => {
     if (questions.length === 0 && !loadingQuestions) {
@@ -201,6 +203,8 @@ export default function StarPrepPanel({
   async function sendTurn(history: ConversationMessage[]) {
     if (!activeQuestion) return;
     setLoadingTurn(true);
+    setTurnError(null);
+    lastTurnRef.current = history;
     onMessageSend(history);
 
     if (isDemo) {
@@ -255,7 +259,7 @@ export default function StarPrepPanel({
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Something went wrong.';
-      onMessageSend([...history, { role: 'assistant' as const, content: `Error: ${msg}` }]);
+      setTurnError(msg);
     } finally {
       setLoadingTurn(false);
     }
@@ -417,7 +421,7 @@ export default function StarPrepPanel({
               </div>
 
               {/* Messages — skip the internal kickoff prompt (index 0, role user) */}
-              <div className="chat-messages">
+              <div className="chat-messages" role="log" aria-live="polite">
                 {starMessages
                   .filter((msg, i) => !(i === 0 && msg.role === 'user'))
                   .map((msg, i) => (
@@ -430,7 +434,22 @@ export default function StarPrepPanel({
                   ))}
                 {loadingTurn && (
                   <div className="chat-bubble chat-bubble--assistant">
-                    <div className="typing-indicator"><span /><span /><span /></div>
+                    <div className="typing-indicator" role="status" aria-label="Typing"><span /><span /><span /></div>
+                  </div>
+                )}
+                {turnError && !loadingTurn && (
+                  <div className="error-card" role="alert" style={{ margin: '0 var(--space-3)' }}>
+                    <div className="error-card__content">
+                      <span className="error-card__icon" aria-hidden="true">⚠</span>
+                      <p className="error-card__message">{turnError}</p>
+                    </div>
+                    <div className="error-card__actions">
+                      <button type="button" className="btn-primary btn-inline" onClick={() => {
+                        if (lastTurnRef.current.length > 0) void sendTurn(lastTurnRef.current);
+                      }}>
+                        Retry
+                      </button>
+                    </div>
                   </div>
                 )}
                 <div ref={bottomRef} />
@@ -452,6 +471,7 @@ export default function StarPrepPanel({
                     placeholder="Type your answer… (⌘↵ to send)"
                     rows={3}
                     disabled={loadingTurn}
+                    aria-label="Your STAR answer"
                   />
                   <button
                     type="button"

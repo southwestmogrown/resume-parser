@@ -44,9 +44,9 @@ describe("display components", () => {
     expect(container.querySelectorAll(".skeleton").length).toBeGreaterThan(0);
 
     rerender(<MatchScore result={sampleMatchResult} loading={false} />);
-    expect(screen.getByText("Dealbreakers")).toBeInTheDocument();
-    expect(screen.getByText("Learnable gaps")).toBeInTheDocument();
-    expect(screen.getByText("Soft gaps")).toBeInTheDocument();
+    expect(screen.getByText(/Dealbreakers/)).toBeInTheDocument();
+    expect(screen.getByText(/Learnable gaps/)).toBeInTheDocument();
+    expect(screen.getByText(/Soft gaps/)).toBeInTheDocument();
     expect(screen.getByText(sampleMatchResult.recommendation)).toBeInTheDocument();
   });
 

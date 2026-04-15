@@ -14,19 +14,25 @@ const SECTION_LABELS = {
   soft: "Soft gaps",
 } as const;
 
+const SEVERITY_ICONS: Record<string, string> = {
+  dealbreaker: "🔴",
+  learnable: "🟡",
+  soft: "🟢",
+};
+
 function GapGroup({ severity, gaps }: { severity: keyof typeof SECTION_LABELS; gaps: MissingSkill[] }) {
   if (gaps.length === 0) return null;
 
   return (
     <div className="result-block">
       <div className="field-label">
-        <span>{SECTION_LABELS[severity]}</span>
+        <span>{SEVERITY_ICONS[severity]} {SECTION_LABELS[severity]}</span>
       </div>
       <div style={{ display: "grid", gap: "var(--space-3)" }}>
         {gaps.map((gap, index) => (
           <div key={`${gap.skill}-${index}`} className={`gap-item gap-item--${severity}`} style={{ padding: "var(--space-4)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-3)", alignItems: "flex-start", flexWrap: "wrap" }}>
-              <p>{gap.skill}</p>
+              <p><span aria-hidden="true">{SEVERITY_ICONS[gap.severity]} </span>{gap.skill}</p>
               <SeverityPill severity={gap.severity} label={gap.severity} />
             </div>
             <p className="result-muted" style={{ marginTop: "var(--space-3)" }}>{gap.reason}</p>
