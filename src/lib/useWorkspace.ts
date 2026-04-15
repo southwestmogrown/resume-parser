@@ -28,7 +28,7 @@ export interface BatchAnalysisEntry {
   optimizedResume: string | null;
   starQuestions: StarQuestion[];
   starAnswers: StarAnswer[];
-  starMessages: ConversationMessage[];
+  starMessagesByQuestion: Record<string, ConversationMessage[]>;
   activeStarQuestion: StarQuestion | null;
   savedAt: number;
 }
@@ -107,7 +107,7 @@ export interface WorkspaceState {
   starQuestions: StarQuestion[];
   starAnswers: StarAnswer[];
   activeStarQuestion: StarQuestion | null;
-  starMessages: ConversationMessage[];
+  starMessagesByQuestion: Record<string, ConversationMessage[]>;
 
   // Phase 6 — Optimized Resume
   optimizedResume: string | null;
@@ -178,7 +178,7 @@ export function useWorkspace() {
   const [starQuestions, setStarQuestions] = useState<StarQuestion[]>([]);
   const [starAnswers, setStarAnswers] = useState<StarAnswer[]>([]);
   const [activeStarQuestion, setActiveStarQuestion] = useState<StarQuestion | null>(null);
-  const [starMessages, setStarMessages] = useState<ConversationMessage[]>([]);
+  const [starMessagesByQuestion, setStarMessagesByQuestion] = useState<Record<string, ConversationMessage[]>>({});
 
   // Phase 6
   const [optimizedResume, setOptimizedResume] = useState<string | null>(null);
@@ -201,7 +201,7 @@ export function useWorkspace() {
   const optimizedResumeRef = useSyncRef(optimizedResume);
   const starQuestionsRef = useSyncRef(starQuestions);
   const starAnswersRef = useSyncRef(starAnswers);
-  const starMessagesRef = useSyncRef(starMessages);
+  const starMessagesByQuestionRef = useSyncRef(starMessagesByQuestion);
   const activeStarQuestionRef = useSyncRef(activeStarQuestion);
   const enrichedResumeDataRef = useSyncRef(enrichedResumeData);
 
@@ -259,9 +259,9 @@ export function useWorkspace() {
       if (d.starAnswers) setStarAnswers(d.starAnswers as StarAnswer[]);
        
       if (d.activeStarQuestion) setActiveStarQuestion(d.activeStarQuestion as StarQuestion);
-      if (Array.isArray(d.starMessages) && (d.starMessages as ConversationMessage[]).length > 0) {
+      if (d.starMessagesByQuestion && typeof d.starMessagesByQuestion === "object") {
          
-        setStarMessages(d.starMessages as ConversationMessage[]);
+        setStarMessagesByQuestion(d.starMessagesByQuestion as Record<string, ConversationMessage[]>);
       }
        
       if (d.optimizedResume) setOptimizedResume(d.optimizedResume as string);
@@ -307,7 +307,7 @@ export function useWorkspace() {
         starQuestions,
         starAnswers,
         activeStarQuestion,
-        starMessages,
+        starMessagesByQuestion,
         optimizedResume,
         analysisToken,
         tokenExpiresAt,
@@ -316,7 +316,7 @@ export function useWorkspace() {
     } catch {
       // Storage unavailable or full
     }
-  }, [activeStarQuestion, analysisToken, batchAnalysisCache, batchResults, coverLetter, coverLetterBlocked, enrichedResumeData, githubProfile, interviewBrief, jobDescriptions, linkedinProfile, matchResult, optimizedResume, resumeData, rewriteSuggestions, starAnswers, starMessages, starQuestions, studyItems, tokenExpiresAt]);
+  }, [activeStarQuestion, analysisToken, batchAnalysisCache, batchResults, coverLetter, coverLetterBlocked, enrichedResumeData, githubProfile, interviewBrief, jobDescriptions, linkedinProfile, matchResult, optimizedResume, resumeData, rewriteSuggestions, starAnswers, starMessagesByQuestion, starQuestions, studyItems, tokenExpiresAt]);
 
   // ── Derived state ─────────────────────────────────────────────────────
 
@@ -376,7 +376,7 @@ export function useWorkspace() {
     setStarQuestions([]);
     setStarAnswers([]);
     setActiveStarQuestion(null);
-    setStarMessages([]);
+    setStarMessagesByQuestion({});
     setOptimizedResume(null);
     setLoadingOptimizedResume(false);
     setAnalysisToken(null);
@@ -402,7 +402,7 @@ export function useWorkspace() {
     setStarQuestions([]);
     setStarAnswers([]);
     setActiveStarQuestion(null);
-    setStarMessages([]);
+    setStarMessagesByQuestion({});
     setOptimizedResume(null);
     setLoadingOptimizedResume(false);
     setBatchAnalysisCache({});
@@ -422,7 +422,7 @@ export function useWorkspace() {
     const currentOptimizedResume = optimizedResumeRef.current;
     const currentStarQuestions = starQuestionsRef.current;
     const currentStarAnswers = starAnswersRef.current;
-    const currentStarMessages = starMessagesRef.current;
+    const currentStarMessagesByQuestion = starMessagesByQuestionRef.current;
     const currentActiveQuestion = activeStarQuestionRef.current;
 
     if (!hasAnyPaidContent({
@@ -446,12 +446,12 @@ export function useWorkspace() {
         optimizedResume: currentOptimizedResume,
         starQuestions: currentStarQuestions,
         starAnswers: currentStarAnswers,
-        starMessages: currentStarMessages,
+        starMessagesByQuestion: currentStarMessagesByQuestion,
         activeStarQuestion: currentActiveQuestion,
         savedAt: Date.now(),
       },
     }));
-  }, [selectedBatchJDRef, rewriteSuggestionsRef, studyItemsRef, coverLetterRef, coverLetterBlockedRef, optimizedResumeRef, starQuestionsRef, starAnswersRef, starMessagesRef, activeStarQuestionRef]);
+  }, [selectedBatchJDRef, rewriteSuggestionsRef, studyItemsRef, coverLetterRef, coverLetterBlockedRef, optimizedResumeRef, starQuestionsRef, starAnswersRef, starMessagesByQuestionRef, activeStarQuestionRef]);
 
   // Sync current paid state into batch cache whenever it changes in drill-down mode
   useEffect(() => {
@@ -477,12 +477,12 @@ export function useWorkspace() {
         optimizedResume,
         starQuestions,
         starAnswers,
-        starMessages,
+        starMessagesByQuestion,
         activeStarQuestion,
         savedAt: Date.now(),
       },
     }));
-  }, [activeStarQuestion, coverLetter, coverLetterBlocked, optimizedResume, rewriteSuggestions, selectedBatchJD, starAnswers, starMessages, starQuestions, studyItems]);
+  }, [activeStarQuestion, coverLetter, coverLetterBlocked, optimizedResume, rewriteSuggestions, selectedBatchJD, starAnswers, starMessagesByQuestion, starQuestions, studyItems]);
 
   return {
     // State
@@ -494,7 +494,7 @@ export function useWorkspace() {
     error, analysisToken, tokenExpiresAt, paymentState,
     checkoutClientSecret, activeTab, showResetConfirm, tabNotifications,
     showInterviewer, showPhase0Modal, interviewBrief, enrichedResumeData,
-    starQuestions, starAnswers, activeStarQuestion, starMessages,
+    starQuestions, starAnswers, activeStarQuestion, starMessagesByQuestion,
     optimizedResume, batchAnalysisCache,
 
     // Setters
@@ -506,7 +506,7 @@ export function useWorkspace() {
     setError, setAnalysisToken, setTokenExpiresAt, setPaymentState,
     setCheckoutClientSecret, setActiveTab, setShowResetConfirm,
     setShowInterviewer, setShowPhase0Modal, setInterviewBrief, setEnrichedResumeData,
-    setStarQuestions, setStarAnswers, setActiveStarQuestion, setStarMessages,
+    setStarQuestions, setStarAnswers, setActiveStarQuestion, setStarMessagesByQuestion,
     setOptimizedResume, setBatchAnalysisCache,
 
     // Tab notifications
@@ -517,7 +517,7 @@ export function useWorkspace() {
     githubProfileRef, linkedinProfileRef, selectedBatchJDRef,
     batchAnalysisCacheRef, rewriteSuggestionsRef, studyItemsRef,
     coverLetterRef, coverLetterBlockedRef, optimizedResumeRef,
-    starQuestionsRef, starAnswersRef, starMessagesRef,
+    starQuestionsRef, starAnswersRef, starMessagesByQuestionRef,
     activeStarQuestionRef, enrichedResumeDataRef,
     pollTimeoutRef, isMountedRef,
 
